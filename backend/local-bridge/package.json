@@ -37,6 +37,8 @@
     "@types/better-sqlite3": "^7.6.13",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^22.16.5",
+    "@yao-pkg/pkg": "^6.12.0",
+    "caxa": "^3.0.1",
     "javascript-obfuscator": "^5.2.1",
     "pkg": "^5.8.1",
     "tsx": "^4.21.0",
