@@ -3,6 +3,7 @@ import { z } from 'zod';
 import crypto from 'crypto';
 import { db } from '../db/index.js';
 import { authenticateRequest } from './utils/auth.js';
+import { t } from '../i18n/index.js';
 
 const salesQuerySchema = z.object({
   store_id: z.string().optional(),
@@ -78,7 +79,7 @@ export async function registerSalesRoutes(app: FastifyInstance) {
 
     const storeId = claims.store_id;
     if (!storeId) {
-      return reply.status(400).send({ error: 'StoreRequired', message: 'Store is required.' });
+      return reply.status(400).send({ error: 'StoreRequired', message: t('validation.storeRequired') });
     }
 
     const sales = db.listSales(storeId, limit);
@@ -92,10 +93,10 @@ export async function registerSalesRoutes(app: FastifyInstance) {
     const saleId = (request.params as { id: string }).id;
     const sale = db.getSaleById(saleId);
     if (!sale) {
-      return reply.status(404).send({ error: 'NotFound', message: 'Sale not found.' });
+      return reply.status(404).send({ error: 'NotFound', message: t('notFound.sale') });
     }
     if (claims.store_id && claims.store_id !== sale.store_id && claims.role !== 'master') {
-      return reply.status(403).send({ error: 'Forbidden', message: 'Cannot view this sale.' });
+      return reply.status(403).send({ error: 'Forbidden', message: t('forbidden.viewSale') });
     }
 
     return reply.send(sale);
@@ -112,7 +113,7 @@ export async function registerSalesRoutes(app: FastifyInstance) {
 
     const storeId = parsed.data.store_id ?? claims.store_id;
     if (!storeId) {
-      return reply.status(400).send({ error: 'StoreRequired', message: 'Store is required.' });
+      return reply.status(400).send({ error: 'StoreRequired', message: t('validation.storeRequired') });
     }
 
     const now = new Date().toISOString();
@@ -177,10 +178,10 @@ export async function registerSalesRoutes(app: FastifyInstance) {
     const saleId = (request.params as { id: string }).id;
     const existing = db.getSaleById(saleId);
     if (!existing) {
-      return reply.status(404).send({ error: 'NotFound', message: 'Sale not found.' });
+      return reply.status(404).send({ error: 'NotFound', message: t('notFound.sale') });
     }
     if (claims.store_id && claims.store_id !== existing.store_id && claims.role !== 'master') {
-      return reply.status(403).send({ error: 'Forbidden', message: 'Cannot update sale.' });
+      return reply.status(403).send({ error: 'Forbidden', message: t('forbidden.updateSale') });
     }
 
     const updated = db.updateSale(saleId, { ...parsed.data, updated_at: new Date().toISOString() });
@@ -194,10 +195,10 @@ export async function registerSalesRoutes(app: FastifyInstance) {
     const saleId = (request.params as { id: string }).id;
     const existing = db.getSaleById(saleId);
     if (!existing) {
-      return reply.status(404).send({ error: 'NotFound', message: 'Sale not found.' });
+      return reply.status(404).send({ error: 'NotFound', message: t('notFound.sale') });
     }
     if (claims.store_id && claims.store_id !== existing.store_id) {
-      return reply.status(403).send({ error: 'Forbidden', message: 'Cannot delete sale.' });
+      return reply.status(403).send({ error: 'Forbidden', message: t('forbidden.deleteSale') });
     }
 
     db.deleteSale(saleId);
@@ -213,7 +214,7 @@ export async function registerSalesRoutes(app: FastifyInstance) {
       store_id: existing.store_id,
     });
 
-    return reply.send({ message: 'Sale deleted.' });
+    return reply.send({ message: t('success.saleDeleted') });
   });
 
   app.get('/rest/v1/sale_items', async (request, reply) => {
@@ -227,10 +228,10 @@ export async function registerSalesRoutes(app: FastifyInstance) {
 
     const sale = db.getSaleById(parsed.data.sale_id);
     if (!sale) {
-      return reply.status(404).send({ error: 'NotFound', message: 'Sale not found.' });
+      return reply.status(404).send({ error: 'NotFound', message: t('notFound.sale') });
     }
     if (claims.store_id && claims.store_id !== sale.store_id && claims.role !== 'master') {
-      return reply.status(403).send({ error: 'Forbidden', message: 'Cannot view items.' });
+      return reply.status(403).send({ error: 'Forbidden', message: t('forbidden.viewSaleItems') });
     }
 
     return reply.send(db.listSaleItems(parsed.data.sale_id));
