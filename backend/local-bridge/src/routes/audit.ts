@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify';
 import { db } from '../db/index.js';
 import { authenticateRequest } from './utils/auth.js';
 import { randomUUID } from 'crypto';
+import { t } from '../i18n/index.js';
 
 export async function registerAuditRoutes(app: FastifyInstance) {
   app.get('/rest/v1/audit_logs', async (request, reply) => {
@@ -12,7 +13,7 @@ export async function registerAuditRoutes(app: FastifyInstance) {
     
     // Authorization: Only master can see all logs, workers only their own store
     if (user.role !== 'master' && store_id !== user.store_id) {
-      return reply.status(403).send({ message: 'Forbidden' });
+      return reply.status(403).send({ message: t('forbidden.default') });
     }
 
     const logs = db.listAuditLogs({

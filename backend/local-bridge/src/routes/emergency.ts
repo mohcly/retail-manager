@@ -1,13 +1,14 @@
 import type { FastifyInstance } from 'fastify';
 import { db } from '../db/index.js';
 import { authenticateRequest } from './utils/auth.js';
+import { t } from '../i18n/index.js';
 
 export async function registerEmergencyRoutes(app: FastifyInstance) {
   console.log('[Emergency] Registering Emergency Routes...');
 
   // Simple ping to verify connectivity
   app.get('/rest/v1/emergency/ping', async () => {
-    return { status: 'ok', message: 'Emergency routes are active' };
+    return { status: 'ok', message: t('system.emergencyActive') };
   });
 
   app.post('/rest/v1/system-repair', async (request, reply) => {
@@ -26,7 +27,7 @@ export async function registerEmergencyRoutes(app: FastifyInstance) {
       } catch (e) {}
       
       db.db.exec('VACUUM;');
-      return reply.send({ success: true, message: 'Database repaired and Vody removed.' });
+      return reply.send({ success: true, message: t('success.dbRepairedVodyRemoved') });
     } catch (error: any) {
       console.error('[System] Repair error:', error);
       return reply.status(500).send({ error: 'RepairFailed', message: error.message });
@@ -48,7 +49,7 @@ export async function registerEmergencyRoutes(app: FastifyInstance) {
       }
       db.db.exec('PRAGMA foreign_keys = ON;');
       db.initialize();
-      return reply.send({ success: true, message: 'Database wiped successfully.' });
+      return reply.send({ success: true, message: t('success.dbWipedSuccessfully') });
     } catch (error: any) {
       console.error('[System] Reset error:', error);
       return reply.status(500).send({ error: 'ResetFailed', message: error.message });
