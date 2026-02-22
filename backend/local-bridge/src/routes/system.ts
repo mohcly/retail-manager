@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { db } from '../db/index.js';
 import { authenticateRequest } from './utils/auth.js';
+import { t } from '../i18n/index.js';
 
 export async function registerSystemRoutes(app: FastifyInstance) {
   console.log('[System] Registering System Routes...');
@@ -33,14 +34,14 @@ export async function registerSystemRoutes(app: FastifyInstance) {
       
       return reply.send({ 
         success: true, 
-        message: 'Database repaired and optimized. Corrupt records (Vody) attempted removal.', 
+        message: t('success.dbRepairedOptimized'), 
         integrity 
       });
     } catch (error) {
       console.error('[System] Deep Repair Failed:', error);
       return reply.status(500).send({ 
         error: 'RepairFailed', 
-        message: 'Failed to repair database. Physical corruption detected.' 
+        message: t('system.repairFailed') 
       });
     }
   });

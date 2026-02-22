@@ -3,6 +3,7 @@ import { z } from 'zod';
 import crypto from 'crypto';
 import { db } from '../db/index.js';
 import { authenticateRequest } from './utils/auth.js';
+import { t } from '../i18n/index.js';
 
 const storeCreateSchema = z.object({
   name: z.string().min(1),
@@ -63,10 +64,10 @@ export async function registerStoreRoutes(app: FastifyInstance) {
     const storeId = (request.params as { id: string }).id;
     const existing = db.getStoreById(storeId);
     if (!existing) {
-      return reply.status(404).send({ error: 'NotFound', message: 'Store not found.' });
+      return reply.status(404).send({ error: 'NotFound', message: t('notFound.store') });
     }
     if (existing.owner_id && existing.owner_id !== claims.sub) {
-      return reply.status(403).send({ error: 'Forbidden', message: 'Cannot update this store.' });
+      return reply.status(403).send({ error: 'Forbidden', message: t('forbidden.updateStore') });
     }
 
     const updated = db.updateStore(storeId, { ...parsed.data, updated_at: new Date().toISOString() });
@@ -80,13 +81,13 @@ export async function registerStoreRoutes(app: FastifyInstance) {
     const storeId = (request.params as { id: string }).id;
     const existing = db.getStoreById(storeId);
     if (!existing) {
-      return reply.status(404).send({ error: 'NotFound', message: 'Store not found.' });
+      return reply.status(404).send({ error: 'NotFound', message: t('notFound.store') });
     }
     if (existing.owner_id && existing.owner_id !== claims.sub) {
-      return reply.status(403).send({ error: 'Forbidden', message: 'Cannot delete this store.' });
+      return reply.status(403).send({ error: 'Forbidden', message: t('forbidden.deleteStore') });
     }
 
     db.deleteStore(storeId);
-    return reply.send({ message: 'Store deleted.' });
+    return reply.send({ message: t('success.storeDeleted') });
   });
 }

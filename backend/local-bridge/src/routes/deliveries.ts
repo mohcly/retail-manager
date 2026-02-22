@@ -3,6 +3,7 @@ import { z } from 'zod';
 import crypto from 'crypto';
 import { db } from '../db/index.js';
 import { authenticateRequest } from './utils/auth.js';
+import { t } from '../i18n/index.js';
 
 const listSchema = z.object({
   store_id: z.string().optional(),
@@ -44,7 +45,7 @@ export async function registerDeliveryRoutes(app: FastifyInstance) {
     const delivererId = parsed.data.deliverer_id ?? (claims.role === 'deliverer' ? claims.sub : undefined);
 
     if (!storeId && !delivererId && claims.role !== 'master') {
-      return reply.status(400).send({ error: 'StoreRequired', message: 'Store is required.' });
+      return reply.status(400).send({ error: 'StoreRequired', message: t('validation.storeRequired') });
     }
 
     const deliveries = db.listDeliveries(storeId, delivererId);
@@ -62,7 +63,7 @@ export async function registerDeliveryRoutes(app: FastifyInstance) {
 
     const storeId = parsed.data.store_id ?? claims.store_id;
     if (!storeId) {
-      return reply.status(400).send({ error: 'StoreRequired', message: 'Store is required.' });
+      return reply.status(400).send({ error: 'StoreRequired', message: t('validation.storeRequired') });
     }
 
     const now = new Date().toISOString();
@@ -98,14 +99,14 @@ export async function registerDeliveryRoutes(app: FastifyInstance) {
     const deliveryId = (request.params as { id: string }).id;
     const existing = db.getDeliveryById(deliveryId);
     if (!existing) {
-      return reply.status(404).send({ error: 'NotFound', message: 'Delivery not found.' });
+      return reply.status(404).send({ error: 'NotFound', message: t('notFound.delivery') });
     }
 
     if (claims.role === 'deliverer' && existing.deliverer_id !== claims.sub) {
-      return reply.status(403).send({ error: 'Forbidden', message: 'Cannot update this delivery.' });
+      return reply.status(403).send({ error: 'Forbidden', message: t('forbidden.updateDelivery') });
     }
     if (claims.role !== 'master' && claims.store_id && existing.store_id !== claims.store_id) {
-      return reply.status(403).send({ error: 'Forbidden', message: 'Cannot update this delivery.' });
+      return reply.status(403).send({ error: 'Forbidden', message: t('forbidden.updateDelivery') });
     }
 
     const updated = db.updateDelivery(deliveryId, {
@@ -122,13 +123,13 @@ export async function registerDeliveryRoutes(app: FastifyInstance) {
     const deliveryId = (request.params as { id: string }).id;
     const existing = db.getDeliveryById(deliveryId);
     if (!existing) {
-      return reply.status(404).send({ error: 'NotFound', message: 'Delivery not found.' });
+      return reply.status(404).send({ error: 'NotFound', message: t('notFound.delivery') });
     }
     if (claims.store_id && existing.store_id && claims.store_id !== existing.store_id) {
-      return reply.status(403).send({ error: 'Forbidden', message: 'Cannot delete this delivery.' });
+      return reply.status(403).send({ error: 'Forbidden', message: t('forbidden.deleteDelivery') });
     }
 
     db.deleteDelivery(deliveryId);
-    return reply.send({ message: 'Delivery deleted.' });
+    return reply.send({ message: t('success.deliveryDeleted') });
   });
 }

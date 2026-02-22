@@ -3,6 +3,7 @@ import { z } from 'zod';
 import crypto from 'crypto';
 import { db } from '../db/index.js';
 import { authenticateRequest } from './utils/auth.js';
+import { t } from '../i18n/index.js';
 
 const listSchema = z.object({
   store_id: z.string().optional(),
@@ -71,7 +72,7 @@ export async function registerClientsRoutes(app: FastifyInstance) {
     // Workers can only see their own store
     if (claims.role !== 'master') {
       if (storeId && storeId !== claims.store_id) {
-        return reply.status(403).send({ error: 'Forbidden', message: 'Access to other stores denied.' });
+        return reply.status(403).send({ error: 'Forbidden', message: t('forbidden.accessOtherStores') });
       }
       storeId = claims.store_id || undefined;
     }
@@ -88,12 +89,12 @@ export async function registerClientsRoutes(app: FastifyInstance) {
     const client = db.getClientById(id);
 
     if (!client) {
-      return reply.status(404).send({ error: 'NotFound', message: 'Client not found.' });
+      return reply.status(404).send({ error: 'NotFound', message: t('notFound.client') });
     }
 
     // Auth check
     if (claims.role !== 'master' && claims.store_id && client.store_id !== claims.store_id) {
-      return reply.status(403).send({ error: 'Forbidden', message: 'Access denied.' });
+      return reply.status(403).send({ error: 'Forbidden', message: t('forbidden.accessDenied') });
     }
 
     return reply.send(client);
@@ -110,11 +111,11 @@ export async function registerClientsRoutes(app: FastifyInstance) {
 
     const storeId = parsed.data.store_id ?? claims.store_id;
     if (!storeId) {
-      return reply.status(400).send({ error: 'StoreRequired', message: 'Store is required.' });
+      return reply.status(400).send({ error: 'StoreRequired', message: t('validation.storeRequired') });
     }
 
     if (claims.role !== 'master' && storeId !== claims.store_id) {
-      return reply.status(403).send({ error: 'Forbidden', message: 'Cannot create client in another store.' });
+      return reply.status(403).send({ error: 'Forbidden', message: t('forbidden.createClientOtherStore') });
     }
 
     const now = new Date().toISOString();
@@ -147,11 +148,11 @@ export async function registerClientsRoutes(app: FastifyInstance) {
     const id = (request.params as { id: string }).id;
     const existing = db.getClientById(id);
     if (!existing) {
-      return reply.status(404).send({ error: 'NotFound', message: 'Client not found.' });
+      return reply.status(404).send({ error: 'NotFound', message: t('notFound.client') });
     }
 
     if (claims.role !== 'master' && claims.store_id && existing.store_id !== claims.store_id) {
-      return reply.status(403).send({ error: 'Forbidden', message: 'Access denied.' });
+      return reply.status(403).send({ error: 'Forbidden', message: t('forbidden.accessDenied') });
     }
 
     const parsed = clientUpdateSchema.safeParse(request.body ?? {});
@@ -175,11 +176,11 @@ export async function registerClientsRoutes(app: FastifyInstance) {
     const id = (request.params as { id: string }).id;
     const existing = db.getClientById(id);
     if (!existing) {
-      return reply.status(404).send({ error: 'NotFound', message: 'Client not found.' });
+      return reply.status(404).send({ error: 'NotFound', message: t('notFound.client') });
     }
 
     db.deleteClient(id);
-    return reply.send({ message: 'Client deleted.' });
+    return reply.send({ message: t('success.clientDeleted') });
   });
 
   // --- Client Services (Groups) ---
@@ -197,7 +198,7 @@ export async function registerClientsRoutes(app: FastifyInstance) {
     
     if (claims.role !== 'master') {
       if (storeId && storeId !== claims.store_id) {
-        return reply.status(403).send({ error: 'Forbidden', message: 'Access to other stores denied.' });
+        return reply.status(403).send({ error: 'Forbidden', message: t('forbidden.accessOtherStores') });
       }
       storeId = claims.store_id || undefined;
     }
@@ -232,11 +233,11 @@ export async function registerClientsRoutes(app: FastifyInstance) {
     const service = db.getClientServiceById(id);
 
     if (!service) {
-      return reply.status(404).send({ error: 'NotFound', message: 'Service not found.' });
+      return reply.status(404).send({ error: 'NotFound', message: t('notFound.service') });
     }
 
     if (claims.role !== 'master' && claims.store_id && service.store_id !== claims.store_id) {
-      return reply.status(403).send({ error: 'Forbidden', message: 'Access denied.' });
+      return reply.status(403).send({ error: 'Forbidden', message: t('forbidden.accessDenied') });
     }
 
     return reply.send(service);
@@ -253,11 +254,11 @@ export async function registerClientsRoutes(app: FastifyInstance) {
 
     const storeId = parsed.data.store_id ?? claims.store_id;
     if (!storeId) {
-      return reply.status(400).send({ error: 'StoreRequired', message: 'Store is required.' });
+      return reply.status(400).send({ error: 'StoreRequired', message: t('validation.storeRequired') });
     }
 
     if (claims.role !== 'master' && storeId !== claims.store_id) {
-      return reply.status(403).send({ error: 'Forbidden', message: 'Cannot create service in another store.' });
+      return reply.status(403).send({ error: 'Forbidden', message: t('forbidden.createServiceOtherStore') });
     }
 
     const now = new Date().toISOString();
@@ -283,11 +284,11 @@ export async function registerClientsRoutes(app: FastifyInstance) {
     const id = (request.params as { id: string }).id;
     const existing = db.getClientServiceById(id);
     if (!existing) {
-      return reply.status(404).send({ error: 'NotFound', message: 'Service not found.' });
+      return reply.status(404).send({ error: 'NotFound', message: t('notFound.service') });
     }
 
     if (claims.role !== 'master' && claims.store_id && existing.store_id !== claims.store_id) {
-      return reply.status(403).send({ error: 'Forbidden', message: 'Access denied.' });
+      return reply.status(403).send({ error: 'Forbidden', message: t('forbidden.accessDenied') });
     }
 
     const parsed = clientServiceUpdateSchema.safeParse(request.body ?? {});
@@ -310,11 +311,11 @@ export async function registerClientsRoutes(app: FastifyInstance) {
     const id = (request.params as { id: string }).id;
     const existing = db.getClientServiceById(id);
     if (!existing) {
-      return reply.status(404).send({ error: 'NotFound', message: 'Service not found.' });
+      return reply.status(404).send({ error: 'NotFound', message: t('notFound.service') });
     }
 
     db.deleteClientService(id);
-    return reply.send({ message: 'Service deleted.' });
+    return reply.send({ message: t('success.serviceDeleted') });
   });
 
   // --- Client Payments ---
@@ -330,11 +331,11 @@ export async function registerClientsRoutes(app: FastifyInstance) {
 
     const client = db.getClientById(parsed.data.client_id);
     if (!client) {
-      return reply.status(404).send({ error: 'NotFound', message: 'Client not found.' });
+      return reply.status(404).send({ error: 'NotFound', message: t('notFound.client') });
     }
 
     if (claims.role !== 'master' && claims.store_id && client.store_id !== claims.store_id) {
-      return reply.status(403).send({ error: 'Forbidden', message: 'Access denied.' });
+      return reply.status(403).send({ error: 'Forbidden', message: t('forbidden.accessDenied') });
     }
 
     // Record payment (reduces balance)

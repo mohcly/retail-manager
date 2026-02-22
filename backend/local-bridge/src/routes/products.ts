@@ -3,6 +3,7 @@ import { z } from 'zod';
 import crypto from 'crypto';
 import { db } from '../db/index.js';
 import { authenticateRequest } from './utils/auth.js';
+import { t } from '../i18n/index.js';
 
 const listQuerySchema = z.object({
   store_id: z.string().optional(),
@@ -97,7 +98,7 @@ export async function registerProductRoutes(app: FastifyInstance) {
       if (!product) {
         return reply.status(404).send({
           error: 'NotFound',
-          message: 'Product not found.',
+          message: t('notFound.product'),
         });
       }
 
@@ -106,7 +107,7 @@ export async function registerProductRoutes(app: FastifyInstance) {
       if (!canView) {
         return reply.status(403).send({
           error: 'Forbidden',
-          message: 'You cannot view this product.',
+          message: t('forbidden.viewProduct'),
         });
       }
 
@@ -123,7 +124,7 @@ export async function registerProductRoutes(app: FastifyInstance) {
     if (!targetStoreId) {
       return reply.status(400).send({
         error: 'StoreRequired',
-        message: 'No store specified for this request.',
+        message: t('validation.noStoreSpecified'),
       });
     }
 
@@ -157,7 +158,7 @@ export async function registerProductRoutes(app: FastifyInstance) {
     if (!targetStoreId) {
       return reply.status(400).send({
         error: 'StoreRequired',
-        message: 'Store is required to create a product.',
+        message: t('validation.storeRequiredForProduct'),
       });
     }
 
@@ -165,14 +166,14 @@ export async function registerProductRoutes(app: FastifyInstance) {
     if (!store) {
       return reply.status(400).send({
         error: 'InvalidStore',
-        message: 'Selected store does not exist.',
+        message: t('invalid.store'),
       });
     }
 
     if (claims.role !== 'master' && claims.store_id !== targetStoreId) {
       return reply.status(403).send({
         error: 'Forbidden',
-        message: 'You cannot create products for another store.',
+        message: t('forbidden.createProductOtherStore'),
       });
     }
 
@@ -181,13 +182,13 @@ export async function registerProductRoutes(app: FastifyInstance) {
       if (!family) {
         return reply.status(400).send({
           error: 'InvalidFamily',
-          message: 'Selected family does not exist.',
+          message: t('invalid.family'),
         });
       }
       if (family.store_id !== targetStoreId) {
         return reply.status(403).send({
           error: 'Forbidden',
-          message: 'Family belongs to another store.',
+          message: t('forbidden.familyOtherStore'),
         });
       }
     }
@@ -251,7 +252,7 @@ export async function registerProductRoutes(app: FastifyInstance) {
 
     const storeId = claims.store_id;
     if (!storeId) {
-      return reply.status(400).send({ error: 'StoreRequired', message: 'Store is required.' });
+      return reply.status(400).send({ error: 'StoreRequired', message: t('validation.storeRequired') });
     }
 
     const movements = db.listInventoryMovements(storeId);
@@ -280,15 +281,15 @@ export async function registerProductRoutes(app: FastifyInstance) {
 
     const storeId = parsed.data.store_id ?? claims.store_id;
     if (!storeId) {
-      return reply.status(400).send({ error: 'StoreRequired', message: 'Store is required.' });
+      return reply.status(400).send({ error: 'StoreRequired', message: t('validation.storeRequired') });
     }
 
     const product = db.getProductById(parsed.data.product_id);
     if (!product) {
-      return reply.status(404).send({ error: 'NotFound', message: 'Product not found.' });
+      return reply.status(404).send({ error: 'NotFound', message: t('notFound.product') });
     }
     if (product.store_id !== storeId) {
-      return reply.status(400).send({ error: 'InvalidStore', message: 'Product does not belong to this store.' });
+      return reply.status(400).send({ error: 'InvalidStore', message: t('product.productNotBelongToStore') });
     }
 
     const movementId = crypto.randomUUID();
@@ -372,7 +373,7 @@ export async function registerProductRoutes(app: FastifyInstance) {
     if (!storeId) {
       return reply.status(400).send({
         error: 'StoreRequired',
-        message: 'No store specified for this request.',
+        message: t('validation.noStoreSpecified'),
       });
     }
 
@@ -398,7 +399,7 @@ export async function registerProductRoutes(app: FastifyInstance) {
     if (!storeId) {
       return reply.status(400).send({
         error: 'StoreRequired',
-        message: 'Store is required to create a family.',
+        message: t('validation.storeRequiredForFamily'),
       });
     }
 
@@ -406,7 +407,7 @@ export async function registerProductRoutes(app: FastifyInstance) {
     if (!store) {
       return reply.status(400).send({
         error: 'InvalidStore',
-        message: 'Selected store does not exist.',
+        message: t('invalid.store'),
       });
     }
 
@@ -441,7 +442,7 @@ export async function registerProductRoutes(app: FastifyInstance) {
     if (!existing) {
       return reply.status(404).send({
         error: 'NotFound',
-        message: 'Famille introuvable.',
+        message: t('notFound.family'),
       });
     }
 
@@ -450,7 +451,7 @@ export async function registerProductRoutes(app: FastifyInstance) {
     if (!canModify) {
       return reply.status(403).send({
         error: 'Forbidden',
-        message: 'Vous ne pouvez pas modifier cette famille.',
+        message: t('forbidden.modifyFamily'),
       });
     }
 
@@ -470,19 +471,19 @@ export async function registerProductRoutes(app: FastifyInstance) {
     if (!existing) {
       return reply.status(404).send({
         error: 'NotFound',
-        message: 'Famille introuvable.',
+        message: t('notFound.family'),
       });
     }
 
     if (claims.store_id && claims.store_id !== existing.store_id) {
       return reply.status(403).send({
         error: 'Forbidden',
-        message: 'Vous ne pouvez pas supprimer cette famille.',
+        message: t('forbidden.deleteFamily'),
       });
     }
 
     db.deleteProductFamily(familyId);
-    return reply.send({ message: 'Famille supprimée.' });
+    return reply.send({ message: t('success.familyDeleted') });
   });
 
   app.post('/rpc/worker_create_product', async (request, reply) => {
@@ -502,7 +503,7 @@ export async function registerProductRoutes(app: FastifyInstance) {
     if (!storeId) {
       return reply.status(400).send({
         error: 'StoreRequired',
-        message: 'Store is required to create a product.',
+        message: t('validation.storeRequiredForProduct'),
       });
     }
 
@@ -510,7 +511,7 @@ export async function registerProductRoutes(app: FastifyInstance) {
     if (!store) {
       return reply.status(400).send({
         error: 'InvalidStore',
-        message: 'Selected store does not exist.',
+        message: t('invalid.store'),
       });
     }
 
@@ -558,7 +559,7 @@ export async function registerProductRoutes(app: FastifyInstance) {
     if (!existing) {
       return reply.status(404).send({
         error: 'NotFound',
-        message: 'Product not found.',
+        message: t('notFound.product'),
       });
     }
 
@@ -567,7 +568,7 @@ export async function registerProductRoutes(app: FastifyInstance) {
     if (!canModify) {
       return reply.status(403).send({
         error: 'Forbidden',
-        message: 'You cannot modify this product.',
+        message: t('forbidden.modifyProduct'),
       });
     }
 
@@ -576,13 +577,13 @@ export async function registerProductRoutes(app: FastifyInstance) {
       if (!family) {
         return reply.status(400).send({
           error: 'InvalidFamily',
-          message: 'Selected family does not exist.',
+          message: t('invalid.family'),
         });
       }
       if (family.store_id !== existing.store_id) {
         return reply.status(403).send({
           error: 'Forbidden',
-          message: 'Family belongs to another store.',
+          message: t('forbidden.familyOtherStore'),
         });
       }
     }
@@ -624,13 +625,13 @@ export async function registerProductRoutes(app: FastifyInstance) {
       if (claims.role !== 'master' && claims.store_id !== existing.store_id) {
         return reply.status(403).send({
           error: 'Forbidden',
-          message: 'You cannot delete this product.',
+          message: t('forbidden.deleteProduct'),
         });
       }
     }
 
     db.deleteProduct(productId);
-    return reply.send({ message: 'Product deleted.' });
+    return reply.send({ message: t('success.productDeleted') });
   });
 
   // Product Batches Route
@@ -649,11 +650,11 @@ export async function registerProductRoutes(app: FastifyInstance) {
 
     const storeId = query.data.store_id ?? claims.store_id;
     if (!storeId) {
-      return reply.status(400).send({ error: 'StoreRequired', message: 'Store is required.' });
+      return reply.status(400).send({ error: 'StoreRequired', message: t('validation.storeRequired') });
     }
 
     if (claims.role !== 'master' && claims.store_id !== storeId) {
-      return reply.status(403).send({ error: 'Forbidden', message: 'You cannot view batches for another store.' });
+      return reply.status(403).send({ error: 'Forbidden', message: t('forbidden.viewBatchesOtherStore') });
     }
 
     return reply.send(db.listProductBatches(storeId, query.data.product_id));
@@ -670,7 +671,7 @@ export async function registerProductRoutes(app: FastifyInstance) {
         db.db.prepare("DELETE FROM products WHERE name LIKE '%Vody%'").run();
       } catch (e) {}
       db.db.exec('VACUUM;');
-      return reply.send({ success: true, message: 'Repair complete.' });
+      return reply.send({ success: true, message: t('success.repairComplete') });
     } catch (error: any) {
       return reply.status(500).send({ error: 'RepairFailed', message: error.message });
     }
@@ -694,7 +695,7 @@ export async function registerProductRoutes(app: FastifyInstance) {
       // but here we just manually trigger initialize.
       // @ts-ignore - reaching into private for emergency
       db.initialize();
-      return reply.send({ success: true, message: 'Database wiped and reset to factory defaults.' });
+      return reply.send({ success: true, message: t('success.dbWipedReset') });
     } catch (error: any) {
       return reply.status(500).send({ error: 'ResetFailed', message: error.message });
     }

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import crypto from 'crypto';
 import { db } from '../db/index.js';
 import { authenticateRequest } from './utils/auth.js';
+import { t } from '../i18n/index.js';
 
 const listQuerySchema = z.object({
   store_id: z.string().optional(),
@@ -78,7 +79,7 @@ export async function registerInvitationRoutes(app: FastifyInstance) {
     if (!existing) {
       return reply.status(404).send({
         error: 'NotFound',
-        message: 'Invitation not found.',
+        message: t('notFound.invitation'),
       });
     }
 
@@ -95,7 +96,7 @@ export async function registerInvitationRoutes(app: FastifyInstance) {
     if (!existing) {
       return reply.status(404).send({
         error: 'NotFound',
-        message: 'Invitation not found.',
+        message: t('notFound.invitation'),
       });
     }
 
@@ -121,21 +122,21 @@ export async function registerInvitationRoutes(app: FastifyInstance) {
     if (!invitation) {
       return reply.status(404).send({
         error: 'NotFound',
-        message: 'Invitation not found.',
+        message: t('notFound.invitation'),
       });
     }
 
     if (invitation.status !== 'pending') {
       return reply.status(400).send({
         error: 'InvalidStatus',
-        message: 'Invitation is no longer pending.',
+        message: t('invalid.invitationNotPending'),
       });
     }
 
     if (claims.email.toLowerCase() !== invitation.email.toLowerCase()) {
       return reply.status(403).send({
         error: 'Forbidden',
-        message: 'Invitation email does not match current user.',
+        message: t('forbidden.invitationEmailMismatch'),
       });
     }
 
