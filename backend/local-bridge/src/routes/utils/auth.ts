@@ -1,6 +1,7 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import jwt from 'jsonwebtoken';
 import { env } from '../../env.js';
+import { t } from '../../i18n/index.js';
 import type { LocalRole } from '../../db/index.js';
 
 export type Role = LocalRole['role'] | 'any' | 'supabase-sync';
@@ -21,7 +22,7 @@ export function authenticateRequest(
   if (!header || !header.startsWith('Bearer ')) {
     reply.status(401).send({
       error: 'Unauthorized',
-      message: 'Missing bearer token.',
+      message: t('auth.missingBearerToken'),
     });
     return undefined;
   }
@@ -39,7 +40,7 @@ export function authenticateRequest(
     ) {
       reply.status(403).send({
         error: 'Forbidden',
-        message: 'Insufficient role to perform this action.',
+        message: t('auth.insufficientRole'),
       });
       return undefined;
     }
@@ -48,7 +49,7 @@ export function authenticateRequest(
     request.log.warn({ err }, 'Failed to verify token');
     reply.status(401).send({
       error: 'Unauthorized',
-      message: 'Invalid or expired token.',
+      message: t('auth.invalidOrExpiredToken'),
     });
     return undefined;
   }
