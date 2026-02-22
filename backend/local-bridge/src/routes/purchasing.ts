@@ -3,6 +3,7 @@ import { z } from 'zod';
 import crypto from 'crypto';
 import { db } from '../db/index.js';
 import { authenticateRequest } from './utils/auth.js';
+import { t } from '../i18n/index.js';
 
 const listSchema = z.object({
   store_id: z.string().optional(),
@@ -209,7 +210,7 @@ export async function registerPurchasingRoutes(app: FastifyInstance) {
 
     const storeId = parsed.data.store_id ?? claims.store_id;
     if (!storeId) {
-      return reply.status(400).send({ error: 'StoreRequired', message: 'Store is required.' });
+      return reply.status(400).send({ error: 'StoreRequired', message: t('validation.storeRequired') });
     }
 
     const orders = db.listScheduledOrders(storeId);
@@ -233,7 +234,7 @@ export async function registerPurchasingRoutes(app: FastifyInstance) {
 
     const storeId = parsed.data.store_id ?? claims.store_id;
     if (!storeId) {
-      return reply.status(400).send({ error: 'StoreRequired', message: 'Store is required.' });
+      return reply.status(400).send({ error: 'StoreRequired', message: t('validation.storeRequired') });
     }
 
     const now = new Date().toISOString();
@@ -262,7 +263,7 @@ export async function registerPurchasingRoutes(app: FastifyInstance) {
       });
     }
 
-    return reply.status(201).send({ message: 'Scheduled order created', id: orderId, next_run: nextRun });
+    return reply.status(201).send({ message: t('success.scheduledOrderCreated'), id: orderId, next_run: nextRun });
   });
 
   app.delete('/rest/v1/scheduled_orders/:id', async (request, reply) => {
@@ -270,7 +271,7 @@ export async function registerPurchasingRoutes(app: FastifyInstance) {
     if (!claims) return;
     const id = (request.params as { id: string }).id;
     db.deleteScheduledOrder(id);
-    return reply.send({ message: 'Scheduled order deleted' });
+    return reply.send({ message: t('success.scheduledOrderDeleted') });
   });
 
   app.get('/rest/v1/suppliers', async (request, reply) => {
@@ -284,7 +285,7 @@ export async function registerPurchasingRoutes(app: FastifyInstance) {
 
     const storeId = parsed.data.store_id ?? claims.store_id;
     if (!storeId) {
-      return reply.status(400).send({ error: 'StoreRequired', message: 'Store is required.' });
+      return reply.status(400).send({ error: 'StoreRequired', message: t('validation.storeRequired') });
     }
 
     return reply.send(db.listSuppliers(storeId));
@@ -301,12 +302,12 @@ export async function registerPurchasingRoutes(app: FastifyInstance) {
 
     const storeId = parsed.data.store_id ?? claims.store_id;
     if (!storeId) {
-      return reply.status(400).send({ error: 'StoreRequired', message: 'Store is required.' });
+      return reply.status(400).send({ error: 'StoreRequired', message: t('validation.storeRequired') });
     }
 
     const store = db.getStoreById(storeId);
     if (!store) {
-      return reply.status(400).send({ error: 'InvalidStore', message: 'Selected store does not exist.' });
+      return reply.status(400).send({ error: 'InvalidStore', message: t('invalid.store') });
     }
 
     const now = new Date().toISOString();
@@ -338,10 +339,10 @@ export async function registerPurchasingRoutes(app: FastifyInstance) {
     const supplierId = (request.params as { id: string }).id;
     const existing = db.getSupplierById(supplierId);
     if (!existing) {
-      return reply.status(404).send({ error: 'NotFound', message: 'Supplier not found.' });
+      return reply.status(404).send({ error: 'NotFound', message: t('notFound.supplier') });
     }
     if (claims.store_id && claims.store_id !== existing.store_id && claims.role !== 'master') {
-      return reply.status(403).send({ error: 'Forbidden', message: 'Cannot update supplier.' });
+      return reply.status(403).send({ error: 'Forbidden', message: t('forbidden.updateSupplier') });
     }
 
     const updated = db.updateSupplier(supplierId, {
@@ -358,15 +359,15 @@ export async function registerPurchasingRoutes(app: FastifyInstance) {
     const supplierId = (request.params as { id: string }).id;
     const existing = db.getSupplierById(supplierId);
     if (!existing) {
-      return reply.status(404).send({ error: 'NotFound', message: 'Supplier not found.' });
+      return reply.status(404).send({ error: 'NotFound', message: t('notFound.supplier') });
     }
 
     if (claims.store_id && claims.store_id !== existing.store_id) {
-      return reply.status(403).send({ error: 'Forbidden', message: 'Cannot delete supplier.' });
+      return reply.status(403).send({ error: 'Forbidden', message: t('forbidden.deleteSupplier') });
     }
 
     db.deleteSupplier(supplierId);
-    return reply.send({ message: 'Supplier deleted.' });
+    return reply.send({ message: t('success.supplierDeleted') });
   });
 
   app.get('/rest/v1/purchasing/needs', async (request, reply) => {
@@ -380,7 +381,7 @@ export async function registerPurchasingRoutes(app: FastifyInstance) {
 
     const storeId = parsed.data.store_id ?? claims.store_id;
     if (!storeId) {
-      return reply.status(400).send({ error: 'StoreRequired', message: 'Store is required.' });
+      return reply.status(400).send({ error: 'StoreRequired', message: t('validation.storeRequired') });
     }
 
     const needs = db.getReplenishmentNeeds(storeId);
@@ -398,7 +399,7 @@ export async function registerPurchasingRoutes(app: FastifyInstance) {
 
     const storeId = parsed.data.store_id ?? claims.store_id;
     if (!storeId) {
-      return reply.status(400).send({ error: 'StoreRequired', message: 'Store is required.' });
+      return reply.status(400).send({ error: 'StoreRequired', message: t('validation.storeRequired') });
     }
 
     return reply.send(db.listPurchaseOrders(storeId, parsed.data.status));
@@ -415,15 +416,15 @@ export async function registerPurchasingRoutes(app: FastifyInstance) {
 
     const storeId = parsed.data.store_id ?? claims.store_id;
     if (!storeId) {
-      return reply.status(400).send({ error: 'StoreRequired', message: 'Store is required.' });
+      return reply.status(400).send({ error: 'StoreRequired', message: t('validation.storeRequired') });
     }
 
     const supplier = db.getSupplierById(parsed.data.supplier_id);
     if (!supplier) {
-      return reply.status(400).send({ error: 'InvalidSupplier', message: 'Supplier not found.' });
+      return reply.status(400).send({ error: 'InvalidSupplier', message: t('invalid.supplier') });
     }
     if (supplier.store_id !== storeId) {
-      return reply.status(403).send({ error: 'Forbidden', message: 'Supplier belongs to another store.' });
+      return reply.status(403).send({ error: 'Forbidden', message: t('forbidden.supplierOtherStore') });
     }
 
     const now = new Date().toISOString();
@@ -454,10 +455,10 @@ export async function registerPurchasingRoutes(app: FastifyInstance) {
     const orderId = (request.params as { id: string }).id;
     const existing = db.getPurchaseOrderById(orderId);
     if (!existing) {
-      return reply.status(404).send({ error: 'NotFound', message: 'Order not found.' });
+      return reply.status(404).send({ error: 'NotFound', message: t('notFound.order') });
     }
     if (claims.store_id && claims.store_id !== existing.store_id && claims.role !== 'master') {
-      return reply.status(403).send({ error: 'Forbidden', message: 'Cannot update order.' });
+      return reply.status(403).send({ error: 'Forbidden', message: t('forbidden.updateOrder') });
     }
 
     const updated = db.updatePurchaseOrder(orderId, {
@@ -474,13 +475,13 @@ export async function registerPurchasingRoutes(app: FastifyInstance) {
     const orderId = (request.params as { id: string }).id;
     const existing = db.getPurchaseOrderById(orderId);
     if (!existing) {
-      return reply.status(404).send({ error: 'NotFound', message: 'Order not found.' });
+      return reply.status(404).send({ error: 'NotFound', message: t('notFound.order') });
     }
     if (claims.store_id && claims.store_id !== existing.store_id) {
-      return reply.status(403).send({ error: 'Forbidden', message: 'Cannot delete order.' });
+      return reply.status(403).send({ error: 'Forbidden', message: t('forbidden.deleteOrder') });
     }
     db.deletePurchaseOrder(orderId);
-    return reply.send({ message: 'Order deleted.' });
+    return reply.send({ message: t('success.orderDeleted') });
   });
 
   app.get('/rest/v1/purchase_items', async (request, reply) => {
@@ -494,10 +495,10 @@ export async function registerPurchasingRoutes(app: FastifyInstance) {
 
     const order = db.getPurchaseOrderById(query.data.order_id);
     if (!order) {
-      return reply.status(404).send({ error: 'NotFound', message: 'Order not found.' });
+      return reply.status(404).send({ error: 'NotFound', message: t('notFound.order') });
     }
     if (claims.store_id && claims.store_id !== order.store_id && claims.role !== 'master') {
-      return reply.status(403).send({ error: 'Forbidden', message: 'Cannot view items.' });
+      return reply.status(403).send({ error: 'Forbidden', message: t('forbidden.viewItems') });
     }
 
     return reply.send(db.listPurchaseItems(query.data.order_id));
@@ -514,10 +515,10 @@ export async function registerPurchasingRoutes(app: FastifyInstance) {
 
     const order = db.getPurchaseOrderById(parsed.data.order_id);
     if (!order) {
-      return reply.status(404).send({ error: 'NotFound', message: 'Order not found.' });
+      return reply.status(404).send({ error: 'NotFound', message: t('notFound.order') });
     }
     if (claims.store_id && claims.store_id !== order.store_id && claims.role !== 'master') {
-      return reply.status(403).send({ error: 'Forbidden', message: 'Cannot add items.' });
+      return reply.status(403).send({ error: 'Forbidden', message: t('forbidden.addItems') });
     }
 
     const now = new Date().toISOString();
@@ -547,11 +548,11 @@ export async function registerPurchasingRoutes(app: FastifyInstance) {
     const itemId = (request.params as { id: string }).id;
     const existing = db.updatePurchaseItem(itemId, {});
     if (!existing) {
-      return reply.status(404).send({ error: 'NotFound', message: 'Item not found.' });
+      return reply.status(404).send({ error: 'NotFound', message: t('notFound.item') });
     }
     const order = db.getPurchaseOrderById(existing.order_id);
     if (order && claims.store_id && claims.store_id !== order.store_id && claims.role !== 'master') {
-      return reply.status(403).send({ error: 'Forbidden', message: 'Cannot update items.' });
+      return reply.status(403).send({ error: 'Forbidden', message: t('forbidden.updateItems') });
     }
 
     const updated = db.updatePurchaseItem(itemId, parsed.data);
@@ -565,14 +566,14 @@ export async function registerPurchasingRoutes(app: FastifyInstance) {
     const itemId = (request.params as { id: string }).id;
     const existing = db.updatePurchaseItem(itemId, {});
     if (!existing) {
-      return reply.status(404).send({ error: 'NotFound', message: 'Item not found.' });
+      return reply.status(404).send({ error: 'NotFound', message: t('notFound.item') });
     }
     const order = db.getPurchaseOrderById(existing.order_id);
     if (order && claims.store_id && claims.store_id !== order.store_id) {
-      return reply.status(403).send({ error: 'Forbidden', message: 'Cannot delete items.' });
+      return reply.status(403).send({ error: 'Forbidden', message: t('forbidden.deleteItems') });
     }
     db.deletePurchaseItem(itemId);
-    return reply.send({ message: 'Item deleted.' });
+    return reply.send({ message: t('success.itemDeleted') });
   });
 
   app.post('/rest/v1/purchase_orders/:id/receive', async (request, reply) => {
@@ -595,10 +596,10 @@ export async function registerPurchasingRoutes(app: FastifyInstance) {
 
     const order = db.getPurchaseOrderById(orderId);
     if (!order) {
-      return reply.status(404).send({ error: 'NotFound', message: 'Order not found.' });
+      return reply.status(404).send({ error: 'NotFound', message: t('notFound.order') });
     }
     if (claims.store_id && claims.store_id !== order.store_id && claims.role !== 'master') {
-      return reply.status(403).send({ error: 'Forbidden', message: 'Cannot receive order.' });
+      return reply.status(403).send({ error: 'Forbidden', message: t('forbidden.receiveOrder') });
     }
 
     itemsPayload.data.forEach((item) => {
@@ -654,7 +655,7 @@ export async function registerPurchasingRoutes(app: FastifyInstance) {
 
     const storeId = parsed.data.store_id ?? claims.store_id;
     if (!storeId) {
-      return reply.status(400).send({ error: 'StoreRequired', message: 'Store is required.' });
+      return reply.status(400).send({ error: 'StoreRequired', message: t('validation.storeRequired') });
     }
 
     const payments = db.listSupplierPayments(storeId, parsed.data.supplier_id);
@@ -679,15 +680,15 @@ export async function registerPurchasingRoutes(app: FastifyInstance) {
 
     const storeId = parsed.data.store_id ?? claims.store_id;
     if (!storeId) {
-      return reply.status(400).send({ error: 'StoreRequired', message: 'Store is required.' });
+      return reply.status(400).send({ error: 'StoreRequired', message: t('validation.storeRequired') });
     }
 
     const supplier = db.getSupplierById(parsed.data.supplier_id);
     if (!supplier) {
-      return reply.status(400).send({ error: 'InvalidSupplier', message: 'Supplier not found.' });
+      return reply.status(400).send({ error: 'InvalidSupplier', message: t('invalid.supplier') });
     }
     if (supplier.store_id !== storeId) {
-      return reply.status(403).send({ error: 'Forbidden', message: 'Supplier belongs to another store.' });
+      return reply.status(403).send({ error: 'Forbidden', message: t('forbidden.supplierOtherStore') });
     }
 
     const now = new Date().toISOString();
@@ -724,11 +725,11 @@ export async function registerPurchasingRoutes(app: FastifyInstance) {
     const paymentId = (request.params as { id: string }).id;
     const existing = db.getSupplierPaymentById(paymentId);
     if (!existing) {
-      return reply.status(404).send({ error: 'NotFound', message: 'Payment not found.' });
+      return reply.status(404).send({ error: 'NotFound', message: t('notFound.payment') });
     }
     
     if (claims.store_id && claims.store_id !== existing.store_id && claims.role !== 'master') {
-      return reply.status(403).send({ error: 'Forbidden', message: 'Cannot update payment.' });
+      return reply.status(403).send({ error: 'Forbidden', message: t('forbidden.updatePayment') });
     }
 
     const updated = db.updateSupplierPayment(paymentId, parsed.data);
@@ -750,7 +751,7 @@ export async function registerPurchasingRoutes(app: FastifyInstance) {
 
     const storeId = query.data.store_id ?? claims.store_id;
     if (!storeId) {
-      return reply.status(400).send({ error: 'StoreRequired', message: 'Store is required.' });
+      return reply.status(400).send({ error: 'StoreRequired', message: t('validation.storeRequired') });
     }
 
     const transactions = db.listSupplierTransactions(storeId, query.data.supplier_id);
