@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import { env } from '../env.js';
 import { db } from '../db/index.js';
 import { authenticateRequest } from './utils/auth.js';
+import { t } from '../i18n/index.js';
 
 type SupabaseHeaders = Record<string, string>;
 
@@ -42,7 +43,7 @@ export async function registerSyncRoutes(app: FastifyInstance) {
 
     const storeId = (request.query as { store_id?: string }).store_id;
     if (!storeId) {
-      return reply.status(400).send({ error: 'MissingStoreId', message: 'store_id query parameter is required.' });
+      return reply.status(400).send({ error: 'MissingStoreId', message: t('validation.storeRequiredForSync') });
     }
 
     const stats = db.getOutboxStats(storeId);
@@ -71,11 +72,11 @@ export async function registerSyncRoutes(app: FastifyInstance) {
     }
 
     if (!env.supabaseServiceKey || parsed.data.supabase_service_key !== env.supabaseServiceKey) {
-      return reply.status(401).send({ error: 'Unauthorized', message: 'Invalid Supabase service key.' });
+      return reply.status(401).send({ error: 'Unauthorized', message: t('auth.invalidSupabaseKey') });
     }
 
     if (!env.supabaseUrl) {
-      return reply.status(400).send({ error: 'ConfigMissing', message: 'SUPABASE_URL not configured.' });
+      return reply.status(400).send({ error: 'ConfigMissing', message: t('system.supabaseUrlMissing') });
     }
 
     let pending = db.listPendingMutations('pending');
@@ -135,7 +136,7 @@ export async function registerSyncRoutes(app: FastifyInstance) {
     if (!claims) return;
 
     if (!env.supabaseUrl || !env.supabaseServiceKey) {
-      return reply.status(400).send({ error: 'ConfigMissing', message: 'Supabase credentials not configured.' });
+      return reply.status(400).send({ error: 'ConfigMissing', message: t('system.supabaseCredentialsMissing') });
     }
 
     const url = new URL(`${env.supabaseUrl}/rest/v1/products`);
@@ -149,7 +150,7 @@ export async function registerSyncRoutes(app: FastifyInstance) {
     });
 
     if (!res.ok) {
-      return reply.status(502).send({ error: 'SupabaseError', message: 'Failed to pull data.' });
+      return reply.status(502).send({ error: 'SupabaseError', message: t('system.pullFailed') });
     }
 
     const products = await res.json();
