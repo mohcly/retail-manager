@@ -6,6 +6,7 @@ import jwt from 'jsonwebtoken';
 import { db } from '../db/index.js';
 import { env } from '../env.js';
 import { authenticateRequest, type Role } from './utils/auth.js';
+import { t } from '../i18n/index.js';
 
 const bootstrapSchema = z.object({
   email: z.string().email(),
@@ -76,7 +77,7 @@ export async function registerAuthRoutes(app: FastifyInstance) {
     if (existing) {
       return reply.status(409).send({
         error: 'MasterAlreadyExists',
-        message: 'A master user already exists on this device.',
+        message: t('auth.masterAlreadyExists'),
       });
     }
 
@@ -137,7 +138,7 @@ export async function registerAuthRoutes(app: FastifyInstance) {
     });
 
     return reply.status(201).send({
-      message: 'Master user created',
+      message: t('auth.masterCreated'),
       store_id: storeId,
       store_name: storeLabel,
     });
@@ -168,7 +169,7 @@ export async function registerAuthRoutes(app: FastifyInstance) {
 
       return reply.status(401).send({
         error: 'InvalidCredentials',
-        message: 'Invalid email or password.',
+        message: t('auth.invalidCredentials'),
       });
     }
 
@@ -223,7 +224,7 @@ export async function registerAuthRoutes(app: FastifyInstance) {
     if (!session || session.expires_at <= Math.floor(Date.now() / 1000)) {
       return reply.status(401).send({
         error: 'InvalidRefreshToken',
-        message: 'Refresh token is invalid or expired.',
+        message: t('auth.refreshTokenInvalid'),
       });
     }
 
@@ -232,7 +233,7 @@ export async function registerAuthRoutes(app: FastifyInstance) {
       db.deleteSession(session.id);
       return reply.status(401).send({
         error: 'UserNotFound',
-        message: 'Associated user no longer exists.',
+        message: t('auth.userNotFound'),
       });
     }
 
@@ -264,7 +265,7 @@ export async function registerAuthRoutes(app: FastifyInstance) {
     }
 
     if (!env.supabaseServiceKey || parsed.data.supabase_service_key !== env.supabaseServiceKey) {
-      return reply.status(401).send({ error: 'Unauthorized', message: 'Invalid Supabase service key.' });
+      return reply.status(401).send({ error: 'Unauthorized', message: t('auth.invalidSupabaseKey') });
     }
 
     const now = Math.floor(Date.now() / 1000);
@@ -304,7 +305,7 @@ export async function registerAuthRoutes(app: FastifyInstance) {
       db.deleteSession(session.id);
     }
 
-    return reply.send({ message: 'Logged out' });
+    return reply.send({ message: t('auth.loggedOut') });
   });
 
   app.post('/auth/workers', async (request, reply) => {
@@ -324,7 +325,7 @@ export async function registerAuthRoutes(app: FastifyInstance) {
     if (existing) {
       return reply.status(409).send({
         error: 'UserExists',
-        message: 'A user with that email already exists.',
+        message: t('auth.userExists'),
       });
     }
 
@@ -346,7 +347,7 @@ export async function registerAuthRoutes(app: FastifyInstance) {
       } else {
         return reply.status(400).send({
           error: 'InvalidStore',
-          message: 'Selected store does not exist.',
+          message: t('invalid.store'),
         });
       }
     }
