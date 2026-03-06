@@ -149,9 +149,7 @@ export const createSalesRepo = (db: Database.Database) => {
           if (!product) {
             throw new Error(`Product not found: ${item.product_id}`);
           }
-          if (product.quantity < item.quantity) {
-            throw new Error(`Insufficient stock for product ${item.product_id}`);
-          }
+          // User requested: allow negative stock for regularization later
           stmts.deductStock.run(item.quantity, item.product_id);
         }
       }
