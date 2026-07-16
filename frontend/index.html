@@ -55,8 +55,16 @@
         return false;
       }
 
+      function isBenignResizeObserverError(message) {
+        var strMsg = String(message || '');
+        return strMsg.indexOf('ResizeObserver loop') !== -1;
+      }
+
       window.onerror = function(message, source, lineno, colno, error) {
         if (handleChunkLoadError(message, error)) {
+          return true;
+        }
+        if (isBenignResizeObserverError(message)) {
           return true;
         }
         var errDiv = document.createElement('div');
@@ -79,6 +87,10 @@
         var reason = event.reason || '';
         var reasonStr = typeof reason === 'object' ? (reason.message || '') : String(reason);
         if (handleChunkLoadError(reasonStr, reason)) {
+          event.preventDefault();
+          return;
+        }
+        if (isBenignResizeObserverError(reasonStr)) {
           event.preventDefault();
           return;
         }
