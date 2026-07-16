@@ -13,11 +13,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Debug token validity
-        run: |
-          curl -s -o /dev/null -w "whoami status: %{http_code}\n" -H "Authorization: token ${{ secrets.MOHCLY_DEPLOY_TOKEN }}" https://api.github.com/user
-          curl -s -o /dev/null -w "repo-visibility status: %{http_code}\n" -H "Authorization: token ${{ secrets.MOHCLY_DEPLOY_TOKEN }}" https://api.github.com/repos/mohcly/mpm-food-portal
-
       - name: Push to mohcly/mpm-food-portal main
         run: |
-          git push "https://x-access-token:${{ secrets.MOHCLY_DEPLOY_TOKEN }}@github.com/mohcly/mpm-food-portal.git" "HEAD:main" --force
+          git push "https://mohcly:${{ secrets.MOHCLY_DEPLOY_TOKEN }}@github.com/mohcly/mpm-food-portal.git" "HEAD:main" --force
