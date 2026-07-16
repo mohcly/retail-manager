@@ -1,0 +1,18 @@
+name: "Mirror to Vercel-connected repo"
+
+on:
+  push:
+    branches:
+      - main-restaurants
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Push to mohcly/mpm-food-portal main
+        run: |
+          git push "https://x-access-token:${{ secrets.MOHCLY_DEPLOY_TOKEN }}@github.com/mohcly/mpm-food-portal.git" "HEAD:main" --force
