@@ -37,3 +37,5 @@ backend/local-bridge/dist
 backend/local-bridge/payload.zip
 backend/local-bridge/*.exe
 backend/local-bridge/retail-manager-logs/
+.vercel
+.env*
