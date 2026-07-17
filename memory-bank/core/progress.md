@@ -41,6 +41,11 @@
       the user directly).
 - [ ] `main-niamana-dubai`'s icon-font fix committed locally but **not pushed** (desktop CI branch —
       standing rule is no build-triggering push without explicit go-ahead).
+- [x] STIHL "master can't open Team module" (`Failed to send a request to the Edge Function`)
+      root-caused to `get-team`/`delete-user` never existing as source anywhere on the stores
+      product line, hence never deployed. Ported from `main-restaurants`, deployed to the shared
+      `onsqvduklnwffugsiybs` project (fixes all 5 stores-family branches at once), source ported to
+      all 5. `main-stores-stihl`/`main-stores-dubai` pushed; 3 desktop branches held locally.
 
 ## 2026-07-16 additions (see `memory-bank/HANDOFF_2026-07-16_production-fixes.md` for full detail)
 - [x] Mobile NaN pricing fix, mobile sales infinite-loading fallback fix — committed +

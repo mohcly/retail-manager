@@ -46,6 +46,20 @@
   correct live remote via fast-forward ancestry check before pushing, not by assumption. Worth
   re-verifying remote health before any future push to a branch not touched in a while.
 
+- **STIHL "master dashboard can't open the Team module" root-caused and fixed**: the whole
+  "stores" product line (`main-stores-stihl`/`-dubai`, `main-stihl-dibidani`/`-niamakoro`,
+  `main-niamana-dubai`) calls `get-team`/`delete-user` edge functions from `OfflineTeamService.ts`,
+  but those functions **never existed as source on this product line at all** (only on the
+  restaurant branches) — confirmed via live 404s on the shared project. All 5 stores-family
+  branches point at the same `onsqvduklnwffugsiybs` project, which I have CLI access to (unlike
+  `fpvrbxmbrotowdlyebqv`/`kvxqutffphaxlhjyyjsw`), so this one was actually fixable directly: ported
+  both functions from `main-restaurants` (swapping the `restaurants` table lookup for `stores`),
+  deployed to `onsqvduklnwffugsiybs` (confirmed 404→401), and ported the source to all 5 branches.
+  One deploy fixes all 5 immediately since they share the backend project; source was still ported
+  everywhere for consistency. `main-stores-stihl`/`main-stores-dubai` (web) pushed; the 3 desktop
+  branches (`main-stihl-dibidani`/`-niamakoro`, `main-niamana-dubai`) committed locally only, held
+  per the no-build-push-without-asking rule.
+
 **Still open**: Edge Functions missing on 2 Supabase projects (`fpvrbxmbrotowdlyebqv`,
 `kvxqutffphaxlhjyyjsw` — need account access not currently available); SaaS/business roadmap
 requested but not yet written (self-serve multi-tenant + strict-isolation bespoke tier for
