@@ -46,19 +46,38 @@
   correct live remote via fast-forward ancestry check before pushing, not by assumption. Worth
   re-verifying remote health before any future push to a branch not touched in a while.
 
-- **STIHL "master dashboard can't open the Team module" root-caused and fixed**: the whole
-  "stores" product line (`main-stores-stihl`/`-dubai`, `main-stihl-dibidani`/`-niamakoro`,
-  `main-niamana-dubai`) calls `get-team`/`delete-user` edge functions from `OfflineTeamService.ts`,
-  but those functions **never existed as source on this product line at all** (only on the
-  restaurant branches) — confirmed via live 404s on the shared project. All 5 stores-family
-  branches point at the same `onsqvduklnwffugsiybs` project, which I have CLI access to (unlike
-  `fpvrbxmbrotowdlyebqv`/`kvxqutffphaxlhjyyjsw`), so this one was actually fixable directly: ported
-  both functions from `main-restaurants` (swapping the `restaurants` table lookup for `stores`),
-  deployed to `onsqvduklnwffugsiybs` (confirmed 404→401), and ported the source to all 5 branches.
-  One deploy fixes all 5 immediately since they share the backend project; source was still ported
-  everywhere for consistency. `main-stores-stihl`/`main-stores-dubai` (web) pushed; the 3 desktop
-  branches (`main-stihl-dibidani`/`-niamakoro`, `main-niamana-dubai`) committed locally only, held
-  per the no-build-push-without-asking rule.
+- **STIHL "master dashboard can't open the Team module" — root-caused twice, fixed for real the
+  second time**: `OfflineTeamService.ts` calls `get-team`/`delete-user` edge functions that never
+  existed as source anywhere on the "stores" product line (only on the restaurant branches).
+  First pass: ported both from `main-restaurants` (swapped `restaurants`→`stores` table lookup),
+  deployed to `onsqvduklnwffugsiybs` (the shared project all 5 stores-family branches' *source code
+  fallback* points to, and the only Supabase project I had CLI access to at the time) — but the
+  user reported the error was still live. **Root cause of that miss**: `djati-stihl.vercel.app`'s
+  real production `VITE_SUPABASE_URL` build-time env var overrides the source fallback entirely and
+  actually points at `fpvrbxmbrotowdlyebqv` (STIHL Dibidani's own dedicated project) — confirmed by
+  grepping the live JS bundle for the embedded project ref, not by trusting source code. User then
+  supplied real STIHL credentials (now stored, git-ignored, in `retail-manager/.env.local`) plus a
+  Supabase Personal Access Token (`sbp_...`, account-level Management API access — distinct from the
+  project-scoped JWT/secret keys, which cannot deploy functions). **Checked all 8 edge functions
+  that exist in source against the real `fpvrbxmbrotowdlyebqv` project and every single one was
+  404 — this project has never had a single working edge function deployed to it.** Deployed all 8
+  (`get-team`, `delete-user`, `create-user`, `ai-suggestions`, `create-product`,
+  `send-invitation-email`, `verify-master-password`, `ai-chat`); confirmed 404→401 on all of them.
+  This likely also fixes previously-unexplained STIHL issues beyond the Team module (master-password
+  verification, AI product suggestions/chat, invitation emails) that were never separately reported
+  but share the identical root cause. Source for `get-team`/`delete-user` also ported to the other 4
+  stores-family branches for consistency — `main-stores-stihl`/`main-stores-dubai` (web) pushed; the
+  3 desktop branches (`main-stihl-dibidani`/`-niamakoro`, `main-niamana-dubai`) committed locally
+  only, held per the no-build-push-without-asking rule. **Lesson for next time**: always verify a
+  live deployment's actual bundled env vars (grep the built JS) before trusting a source file's
+  hardcoded fallback constant — they silently diverge.
+- **`.env.local` (repo root, gitignored) now holds real STIHL Dibidani credentials**: anon/
+  publishable/service_role/secret keys, DB password, and a Supabase account-level access token
+  (`CLAUDE_SUPABASE_ACCESS_TOKEN`, `sbp_...`) for future edge-function/CLI work on
+  `fpvrbxmbrotowdlyebqv`. Found this file existed untracked-but-NOT-gitignored — fixed `.gitignore`
+  (`.env*`, `.vercel`) and ported that protection to all 7 branches (2 already had a pending
+  uncommitted version of the same fix from earlier in the session, just committed those instead of
+  cherry-picking over them).
 
 **Still open**: Edge Functions missing on 2 Supabase projects (`fpvrbxmbrotowdlyebqv`,
 `kvxqutffphaxlhjyyjsw` — need account access not currently available); SaaS/business roadmap

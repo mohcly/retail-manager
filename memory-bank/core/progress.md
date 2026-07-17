@@ -41,11 +41,17 @@
       the user directly).
 - [ ] `main-niamana-dubai`'s icon-font fix committed locally but **not pushed** (desktop CI branch —
       standing rule is no build-triggering push without explicit go-ahead).
-- [x] STIHL "master can't open Team module" (`Failed to send a request to the Edge Function`)
-      root-caused to `get-team`/`delete-user` never existing as source anywhere on the stores
-      product line, hence never deployed. Ported from `main-restaurants`, deployed to the shared
-      `onsqvduklnwffugsiybs` project (fixes all 5 stores-family branches at once), source ported to
-      all 5. `main-stores-stihl`/`main-stores-dubai` pushed; 3 desktop branches held locally.
+- [x] STIHL "master can't open Team module" — actually fixed on the second pass. First deploy went
+      to `onsqvduklnwffugsiybs` (source fallback project) but live production actually runs on
+      `fpvrbxmbrotowdlyebqv` (confirmed by grepping the live JS bundle). **That real project had
+      zero working edge functions deployed, ever** — deployed all 8 (`get-team`, `delete-user`,
+      `create-user`, `ai-suggestions`, `create-product`, `send-invitation-email`,
+      `verify-master-password`, `ai-chat`), confirmed 404→401 on all. Likely fixes several other
+      never-separately-reported STIHL issues (master-password verification, AI features, invitation
+      emails) sharing the same root cause.
+- [x] `.env.local` secrets file found untracked-but-not-gitignored at repo root — fixed
+      `.gitignore` on all 7 branches (`main-stores-stihl`/`main-stores-dubai`/`main-restaurants`
+      pushed, 4 desktop branches held locally).
 
 ## 2026-07-16 additions (see `memory-bank/HANDOFF_2026-07-16_production-fixes.md` for full detail)
 - [x] Mobile NaN pricing fix, mobile sales infinite-loading fallback fix — committed +
