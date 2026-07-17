@@ -1,8 +1,72 @@
 # Progress Tracking - Retail Manager
 
-*Last updated: 2026-07-15*
+*Last updated: 2026-07-17*
 *Canonical core file. Consolidates and supersedes `core/progress/progress.md` (kept for history).*
 *Granular task-by-task tracking lives in `core/tasks.md`.*
+
+## 2026-07-17 additions (see `memory-bank/HANDOFF_2026-07-17_saas-roadmap-and-system-state.md` for full detail)
+- [x] `Djati-stores`/`Djati-restaurants` consolidated as branches inside `retail-manager` (7-branch
+      matrix), full history preserved via `git subtree`. 3 dedicated single-branch `mohcly` repos
+      created to work around Vercel Hobby's lack of a per-project production-branch override.
+- [x] Mirror-to-Vercel-repo CI built for the 3 web branches (2 bugs found/fixed: git username
+      convention, `actions/checkout` credential-persistence override).
+- [x] Desktop Tauri CI rebuilt end-to-end on `stadium92` (3 bugs found/fixed: stray lockfile,
+      missing `tauri` package.json script, `stadium93` billing block) + source-free release repo
+      `stadium94/app-releases` wired in as the publish target, with a bilingual EN/FR README.
+- [x] Exposed live GitHub PAT on `stadium92` rotated/secured.
+- [x] Local-bridge store-rename 403 bug fixed (`stores.ts` dropped a redundant `owner_id` check
+      the `master`-role gate already covered).
+- [x] Web-path store-rename silent-failure bug fixed: missing `.select()` on Supabase `.update()`
+      calls meant an RLS-blocked write silently "succeeded" with nothing changed.
+- [x] "Team module can't create accounts" root-caused to undeployed Supabase Edge Functions;
+      deployed on the 1 of 3 projects with available CLI access. **Open**: `fpvrbxmbrotowdlyebqv`
+      (STIHL) and `kvxqutffphaxlhjyyjsw` (restaurant) still missing them, need account access.
+- [x] Calendar/date-range picker added to the mobile Sales tracking module (`main-stores-stihl`).
+- [x] **Critical**: payment dialog crash (`InvalidStateError`, blocked 100% of sales) — fixed and
+      shipped to all 7 branches same-day.
+- [x] "Master can't see data on mobile" — `OfflineAuthService.getOfflineSession()` store-ID
+      fallback fixed on all 7 branches now (5 earlier + `main-restaurants`/`main-mpm-food` just
+      now, patched separately since that file's structure differs — see activeContext.md).
+- [x] Icon-font CDN bug (Material Symbols as raw text on flaky mobile networks) fixed on all 3
+      "stores" branches now (`main-stores-stihl` earlier + `main-stores-dubai`/`main-niamana-dubai`
+      just now, self-hosted like `main-restaurants` already did).
+- [x] Security audit of committed secrets completed — see activeContext.md for the one real
+      finding (`test_supa_logins.mjs`) and its status.
+- [ ] SaaS/business roadmap requested (self-serve multi-tenant + strict-isolation bespoke tier for
+      clients who won't share data) — not yet written, may land in a fresh chat instead.
+- [ ] Broad-scope PATs (`stadium93` `SUBMODULE_PAT`, `stadium94` release token) not narrowed/rotated.
+- [ ] No systematic RLS audit across all tables — only reactive, per-bug-report fixes so far.
+- [ ] `Djati-stores`/`Djati-restaurant` git history itself not scrubbed of old committed secrets
+      (lower priority now that the one real leak — test account passwords — is being rotated by
+      the user directly).
+- [ ] `main-niamana-dubai`'s icon-font fix committed locally but **not pushed** (desktop CI branch —
+      standing rule is no build-triggering push without explicit go-ahead).
+
+## 2026-07-16 additions (see `memory-bank/HANDOFF_2026-07-16_production-fixes.md` for full detail)
+- [x] Mobile NaN pricing fix, mobile sales infinite-loading fallback fix — committed +
+      pushed to `Djati-stores` (`main`, `feat/stihl-dibidani-v3`) and `Djati-restaurant`
+      (`main`, `main-mpm-food`); **confirmed live in production** on all 3 deploy repos
+      (`djati-stores-mobile`, `djati-stihl`, `mpm-food-portal`).
+- [x] Favicon fix — committed/pushed to `Djati-stores`; **confirmed live** on
+      `djati-stores-mobile` and `djati-stihl` (N/A for the restaurant portal).
+- [ ] Team role-promotion fix — committed/pushed to `Djati-stores` (`main`,
+      `feat/stihl-dibidani-v3`), but **NOT yet mirrored into production** — the
+      2-hop deploy pipeline (monorepo → personal mirror repo → Vercel) hasn't
+      picked up this commit yet. N/A for the restaurant portal (feature doesn't
+      have this bug there).
+- [x] **Mapped the actual production deploy pipeline for the first time** — Vercel
+      does not deploy directly from `Djati-stores`/`Djati-restaurant`; it deploys
+      from 3 separate personal mirror repos fed by a 2-hop CI process from the
+      `stadium91/retail-manager` monorepo. Documented in the handoff file above.
+- [x] Supabase RLS audit on `fpvrbxmbrotowdlyebqv` (stihl project): fixed `stores`
+      (RLS-enabled/zero-policies), `role_audit_log` (missing policy),
+      `products`/`sales`/`sale_items` (RLS was disabled entirely — real security
+      gap). Verified via rollback-wrapped role-simulated SQL, zero regression.
+- [ ] `sales.worker_id` FK still wrong (references legacy `workers` table, not
+      `auth.users`) — fix drafted, **not applied**, needs explicit user go-ahead.
+- [ ] Real store name (placeholder `Store 5a992264...`) still unanswered by user.
+- [x] Removed `feat/stihl-dibidani` and `worktree-agent-a838f618a7c55a27a`
+      worktrees (branches themselves untouched).
 
 ## 2026-07-15 additions (see activeContext.md for full detail)
 - [x] `fpvrbxmbrotowdlyebqv` (STIHL Dibidani's own Supabase project) given the full `profiles`/

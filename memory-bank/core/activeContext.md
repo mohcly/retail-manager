@@ -1,7 +1,89 @@
 # Active Context - Retail Manager
 
-*Last updated: 2026-07-15*
+*Last updated: 2026-07-17*
 *Canonical core file. Consolidates and supersedes `core/context/activeContext.md` (kept for history).*
+
+## Status Update — 2026-07-17 (7-branch restructuring, CI/CD overhaul, critical fixes, security audit)
+
+**Full detail**: `memory-bank/HANDOFF_2026-07-17_saas-roadmap-and-system-state.md`. Summary:
+
+- **Consolidated `Djati-stores`/`Djati-restaurants` as branches inside `retail-manager`**
+  (reversing the earlier submodule/parent-only decision), preserving full commit history via
+  `git subtree`. 7-branch matrix: `main-restaurants`/`main-stores-dubai`/`main-stores-stihl`
+  (web/Vercel, each mirrored via CI to its own dedicated `mohcly` repo — Vercel Hobby has no
+  per-project production-branch override) and `main-stihl-dibidani`/`main-stihl-niamakoro`/
+  `main-niamana-dubai`/`main-mpm-food` (desktop `.exe`, Tauri CI). **Standing rule**: same-class
+  fixes get ported branch-to-branch via cherry-pick/commit import, not re-derived by hand.
+- **Desktop CI/CD rebuilt on `stadium92`** after a `stadium93` billing block; built a source-free
+  "fictif" release repo (`stadium94/app-releases`) so a shared/client machine only ever sees
+  built installers. **Standing rule**: desktop branches are never pushed to trigger a build
+  without explicit go-ahead, except for confirmed-critical/production-breaking bugs.
+- **Critical fix shipped to all 7 branches**: payment dialog crashed (`InvalidStateError`) on
+  every sale — root cause was a redundant `setSelectionRange()` call on a `type="number"` input
+  (unsupported per spec for that input type).
+- **"Master can't see data on mobile" bug**: `OfflineAuthService.getOfflineSession()`'s store-ID
+  fallback chain didn't cover account-level masters (role row, no `store_id`, no `owner_id`
+  match). Now fixed on all 7 branches — 5 during the main session, `main-restaurants`/
+  `main-mpm-food` (structurally different, older 1420-line file, `legacyGetOfflineSession()`)
+  patched separately just now.
+- **Icon-font CDN bug** (Material Symbols renders as raw text on flaky mobile networks because
+  it loaded from Google Fonts CDN): fixed on all 3 "stores" branches (`main-stores-stihl` during
+  the main session, `main-stores-dubai`/`main-niamana-dubai` just now) by self-hosting the font
+  like `main-restaurants` already did.
+- **Security audit of committed secrets** (user request: confirm nothing hacker-visible):
+  `.env`/`.env.production*` files on both `Djati-restaurants` and `Djati-stores` contain only
+  public `VITE_*` client keys — no `service_role` key or DB password found. `.pem` files are
+  mkcert dev certs scoped to `localhost` only, harmless outside the dev machine. **One real
+  finding**: `Djati-restaurants/frontend/test_supa_logins.mjs` (git history) hardcodes 8
+  candidate staff emails + 3 candidate passwords and login-tests them against the live
+  `kvxqutffphaxlhjyyjsw` Supabase project. Whether any combo is still valid was never confirmed
+  (live credential-testing blocked by the permission classifier, correctly) — **user chose to
+  rotate/delete those 8 accounts themselves**, not yet confirmed done. Git history itself not
+  scrubbed (lower priority once passwords are rotated — a rotated password makes the leaked
+  history harmless).
+- **`origin` remote (`stadium91/retail-manager`) is now dead** ("Repository not found") — pushes
+  now go to `mohcly-origin` (`https://github.com/mohcly/retail-manager.git`), confirmed as the
+  correct live remote via fast-forward ancestry check before pushing, not by assumption. Worth
+  re-verifying remote health before any future push to a branch not touched in a while.
+
+**Still open**: Edge Functions missing on 2 Supabase projects (`fpvrbxmbrotowdlyebqv`,
+`kvxqutffphaxlhjyyjsw` — need account access not currently available); SaaS/business roadmap
+requested but not yet written (self-serve multi-tenant + strict-isolation bespoke tier for
+clients who won't share data) — may be intended for a fresh chat per the user's own handoff-doc
+request; broad-scope PATs (`stadium93`/`stadium94`) not narrowed/rotated; no systematic RLS audit
+across all tables, only reactive per-bug-report fixes so far.
+
+## Status Update — 2026-07-16 (4 bug-fix handoff + deploy-pipeline discovery)
+
+**Full detail**: `memory-bank/HANDOFF_2026-07-16_production-fixes.md`. Summary:
+
+- Shipped 4 fixes (mobile NaN pricing, mobile sales infinite-loading fallback,
+  favicon, Team role-promotion) across `Djati-stores` (`main`,
+  `feat/stihl-dibidani-v3`) and `Djati-restaurant` (`main`, `main-mpm-food`) —
+  all committed and pushed, verified via `git log origin/<branch>`.
+- **Discovered the actual production deploy pipeline** (previously
+  undocumented): source → `stadium91/retail-manager` (submodules resolved) →
+  mirrored by CI into 3 personal deploy-only repos (`mohcly/djati-stores-mobile`,
+  `mohcly/djati-stihl`, `mohcly/mpm-food-portal`, each still using the old
+  `frontend/` layout) → each of those has its own
+  `mirror-to-vercel-repo.yml` that force-pushes a side branch onto its own
+  `main` → Vercel deploys only from that `main`. This is why "is it live" was
+  unanswerable from the source repos alone.
+- Verified via GitHub Contents API against the actual deploy repos: 3 of 4
+  fixes (pricing, sales fallback, favicon) are live in production; the Team
+  role-promotion fix has not yet propagated through the mirror (open gap, see
+  handoff doc §3).
+- Supabase RLS/schema audit for `fpvrbxmbrotowdlyebqv` (stihl project): fixed
+  `stores` (RLS-enabled-zero-policies trap), `role_audit_log` (missing
+  policy), `products`/`sales`/`sale_items` (RLS was disabled entirely — real
+  security gap, fixed atomically). Verified no regression via rollback-wrapped
+  role-simulated transactions.
+- **Still open, needs explicit user go-ahead**: `sales.worker_id` FK points at
+  the legacy `workers` table instead of `auth.users(id)` — fix drafted, never
+  applied (safety-classifier blocked as unauthorized schema+data change).
+- **Still unanswered**: real store name to replace placeholder
+  `Store 5a992264...` (asked twice); whether to widen the Master Sales page's
+  30-day default date filter.
 
 ## Status Update — 2026-07-15 (dibidani/Supabase/CI/Vercel session)
 
