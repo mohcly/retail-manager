@@ -1271,7 +1271,19 @@ export class OfflineAuthService {
             created_at: r.created_at,
           }));
 
-          const storeId = user.user_metadata?.store_id || localRoles.find(r => r.store_id)?.store_id;
+          let storeId = user.user_metadata?.store_id || localRoles.find(r => r.store_id)?.store_id;
+          const isMasterUser = roles.some(r => r.role === 'master') || user.user_metadata?.role === 'master';
+          if (!storeId && isMasterUser) {
+            // Account-level masters have a role row but no directly-linked store_id.
+            // Fall back to whatever store RLS makes visible to them instead of leaving them storeless.
+            const { data: visibleStores } = await supabase.from('stores').select('id').limit(1);
+            storeId = visibleStores?.[0]?.id;
+          }
+          if (storeId) {
+            for (const r of roles) {
+              if (r.role === 'master' && !r.store_id) r.store_id = storeId;
+            }
+          }
 
           return {
             user: {
@@ -1312,9 +1324,18 @@ export class OfflineAuthService {
         created_at: r.created_at,
       }));
 
-      const storeId = localRoles.find(r => r.store_id)?.store_id;
+      let storeId = localRoles.find(r => r.store_id)?.store_id;
+      if (!storeId && roles.some(r => r.role === 'master')) {
+        // Account-level masters have a role row but no directly-linked store_id.
+        // Fall back to whatever store RLS makes visible to them instead of leaving them storeless.
+        const { data: visibleStores } = await supabase.from('stores').select('id').limit(1);
+        storeId = visibleStores?.[0]?.id;
+      }
       if (storeId) {
         session.user.user_metadata.store_id = storeId;
+        for (const r of roles) {
+          if (r.role === 'master' && !r.store_id) r.store_id = storeId;
+        }
       }
 
       return {
