@@ -79,6 +79,31 @@
   uncommitted version of the same fix from earlier in the session, just committed those instead of
   cherry-picking over them).
 
+- **CRITICAL security finding, fixed live 2026-07-18**: `user_roles`' `INSERT` RLS policies on
+  BOTH `fpvrbxmbrotowdlyebqv` and `onsqvduklnwffugsiybs` allowed any authenticated user (worker,
+  cashier) to grant themselves `master` role via a direct REST call — `WITH CHECK (user_id =
+  auth.uid() OR has_role(master))` never validated *what role* was being self-assigned, and the
+  table's unique constraint is `(user_id, role, store_id)`, not `user_id` alone, so a second
+  self-inserted row was always possible. Found via static analysis of migration files, but the
+  LIVE database on both projects had a *third*, undocumented policy
+  ("Allow role assignment on signup and by masters") not present in any committed migration file —
+  had the same gap via a `role = role` tautology bug in its `NOT EXISTS` subquery. Fixed both
+  policies on both projects directly via `psql` (see below), verified via `pg_policies` query
+  after. `stores`/`products` policies checked too — properly scoped, no similar issue.
+  **Lesson**: migration files in the repo do not necessarily reflect live policy state — always
+  verify live before trusting committed migrations, same lesson as the STIHL edge-function saga.
+- **Working Postgres connection details** (for any future direct-SQL need): `supabase link
+  --project-ref <ref>` (with `SUPABASE_ACCESS_TOKEN` set, or the default CLI login session for
+  projects the access token doesn't cover) writes the *exact* correct pooler host to
+  `supabase/.temp/pooler-url` — don't guess `aws-0` vs `aws-1` or the region, read it from there.
+  Port **6543** (transaction mode) worked; 5432 (session mode) got "server closed the connection
+  unexpectedly" on both projects tried. `fpvrbxmbrotowdlyebqv`'s pooler is `aws-1-us-west-2`;
+  `onsqvduklnwffugsiybs`'s is `aws-1-us-east-1`. DB passwords for both now live in `.env.local`.
+- **Deploying arbitrary-SQL-execution capability (even read-only, even temporary) to a live
+  Supabase project gets correctly blocked by the permission classifier** — don't try to route
+  around it (e.g. via a throwaway edge function using `postgres.js` against `SUPABASE_DB_URL`).
+  Direct `psql` with a real DB password is the sanctioned path for ad-hoc production DB access.
+
 **Still open**: Edge Functions missing on 2 Supabase projects (`fpvrbxmbrotowdlyebqv`,
 `kvxqutffphaxlhjyyjsw` — need account access not currently available); SaaS/business roadmap
 requested but not yet written (self-serve multi-tenant + strict-isolation bespoke tier for

@@ -32,6 +32,18 @@
       just now, self-hosted like `main-restaurants` already did).
 - [x] Security audit of committed secrets completed — see activeContext.md for the one real
       finding (`test_supa_logins.mjs`) and its status.
+- [x] **Follow-up routine security audit** (2026-07-18): found and fixed a critical privilege-
+      escalation bug in `user_roles` RLS INSERT policies on both live Supabase projects (any
+      worker could self-promote to master) — see activeContext.md for full detail and the working
+      psql connection recipe. Also: `system-hard-reset` local-bridge endpoint only has a client-side
+      `confirm()` guard (no server-side confirmation) for a full local-DB wipe; `system-repair` has
+      a permanent hardcoded `DELETE ... WHERE name LIKE '%Vody%'`; `emergency.ts` is dead/unreachable
+      duplicate code; `npm audit fix` applied across all 7 branches (jspdf critical + lodash/
+      picomatch high + 3 moderate resolved, `esbuild`/`vite` breaking-change bump and `xlsx`
+      no-fix-available deferred, both low real-world risk here — builds verified).
+- [ ] `system-hard-reset`/`system-repair` local-bridge endpoints not yet hardened (server-side
+      confirmation, remove the hardcoded Vody-deletion hack) — flagged, not fixed.
+- [ ] `emergency.ts` dead code not yet deleted.
 - [ ] SaaS/business roadmap requested (self-serve multi-tenant + strict-isolation bespoke tier for
       clients who won't share data) — not yet written, may land in a fresh chat instead.
 - [ ] Broad-scope PATs (`stadium93` `SUBMODULE_PAT`, `stadium94` release token) not narrowed/rotated.
