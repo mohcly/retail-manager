@@ -286,7 +286,7 @@ export function MobilePOS({ onBack }: MobilePOSProps) {
             </main>
 
             {/* Fixed Bottom Panel */}
-            <div className="fixed bottom-[64px] left-0 w-full bg-[#141414] border-t border-rs-surface-container-highest px-4 py-3 flex flex-col gap-3 z-40 pb-safe md:bottom-0">
+            <div className="fixed bottom-[var(--mobile-tabbar-h)] left-0 w-full bg-[#141414] border-t border-rs-surface-container-highest px-4 py-3 flex flex-col gap-3 z-40 pb-safe md:bottom-0">
                 <div className="flex justify-between items-end">
                     <span className="font-bold tracking-tight text-rs-on-surface text-xl">NET À PAYER</span>
                     <div className="flex flex-col items-end">
