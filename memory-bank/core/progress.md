@@ -44,6 +44,10 @@
 - [ ] `system-hard-reset`/`system-repair` local-bridge endpoints not yet hardened (server-side
       confirmation, remove the hardcoded Vody-deletion hack) — flagged, not fixed.
 - [ ] `emergency.ts` dead code not yet deleted.
+- [x] Mobile menu icon-chip bug fixed (invalid `hsl(...)+hex-alpha-suffix` CSS, icons rendered
+      invisible/flat-colored) — see activeContext.md for root cause + the verification recipe
+      (license/trial/landing-gate chain, HashRouter query-param quirk, `force_cloud=true`). Shipped
+      to all 7 branches, web ones pushed+mirrored, desktop ones held locally.
 - [ ] SaaS/business roadmap requested (self-serve multi-tenant + strict-isolation bespoke tier for
       clients who won't share data) — not yet written, may land in a fresh chat instead.
 - [ ] Broad-scope PATs (`stadium93` `SUBMODULE_PAT`, `stadium94` release token) not narrowed/rotated.

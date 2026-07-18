@@ -104,6 +104,27 @@
   around it (e.g. via a throwaway edge function using `postgres.js` against `SUPABASE_DB_URL`).
   Direct `psql` with a real DB password is the sanctioned path for ad-hoc production DB access.
 
+- **Mobile menu icon-chip bug, root-caused and fixed 2026-07-18**: user reported the redesigned
+  menu screen showed flat opaque colored blobs with no visible icons ("AI slop" look). Root cause:
+  `SECTION_ACCENTS` stored full `hsl(H,S%,L%)` strings, and the icon-chip background did
+  `` `${accent}1f` `` — a hex alpha-channel suffix appended directly onto an HSL functional string,
+  which is not valid CSS (the browser rejects it, falling back to transparent — confirmed via an
+  isolated HTML/CSS test, `getComputedStyle` returned `rgba(0,0,0,0)`). Fixed by storing accents as
+  bare `"H S% L%"` triplets and building `hsl(${a})` / `hsl(${a} / 16%)` with valid CSS Color 4
+  syntax. **Verified visually** via a real production build (not the dev server — Vite's dev-mode
+  module loader hit an unrelated pre-existing `Identifier 'supabase' has already been declared`
+  crash on this exact navigation path, worth investigating separately someday) + Playwright
+  screenshot: icons render clearly against soft-tinted backgrounds now. Getting to a logged-in
+  screen for testing required chaining through: a license-activation gate → trial-continue link →
+  license-agreement checkbox+confirm → a marketing landing page's "Commencer" button → only then
+  the real `/auth` form — and this app uses `HashRouter`, so `devLogin()`'s query-param trigger
+  (`?devlogin=master`) only works appended *inside* the `#/...` hash fragment, not the outer URL's
+  query string. Also: `getDataClient()` in `dataClient.ts` defaults to local-first/desktop mode
+  whenever not on HTTPS, unless a `?force_cloud=true` param is present — needed for local HTTP
+  testing to reach the same cloud-mode code path production (HTTPS) uses automatically. Shipped to
+  all 7 branches; web branches pushed + mirrored, desktop branches held locally per the standing
+  rule.
+
 **Still open**: Edge Functions missing on 2 Supabase projects (`fpvrbxmbrotowdlyebqv`,
 `kvxqutffphaxlhjyyjsw` — need account access not currently available); SaaS/business roadmap
 requested but not yet written (self-serve multi-tenant + strict-isolation bespoke tier for
