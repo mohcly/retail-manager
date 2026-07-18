@@ -165,15 +165,6 @@ export function MobilePOS({ onBack }: MobilePOSProps) {
             {/* TopAppBar */}
             <header className="fixed top-0 w-full h-[56px] border-b border-rs-surface-container-highest bg-rs-surface flex justify-between items-center px-4 z-50 pt-safe">
                 <div className="flex items-center gap-3">
-                    {onBack ? (
-                        <button onClick={onBack} className="active:scale-95 transition-transform duration-150 p-2 -ml-2 rounded-full hover:bg-rs-surface-container-highest text-rs-on-surface-variant">
-                            <span className="material-symbols-outlined">arrow_back</span>
-                        </button>
-                    ) : (
-                        <button className="active:scale-95 transition-transform duration-150 p-2 -ml-2 rounded-full hover:bg-rs-surface-container-highest text-rs-on-surface-variant">
-                            <span className="material-symbols-outlined">restaurant</span>
-                        </button>
-                    )}
                     <div className="flex flex-col">
                         <h1 className="font-bold text-rs-surface-tint uppercase tracking-tight text-lg">TICKET COMMANDE</h1>
                         <span className="text-sm text-rs-on-surface-variant font-mono">Mobile POS</span>
