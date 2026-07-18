@@ -125,6 +125,18 @@
   all 7 branches; web branches pushed + mirrored, desktop branches held locally per the standing
   rule.
 
+- **Net-a-payer panel not flush with the mobile tab bar, fixed 2026-07-18**: three places
+  independently hardcoded the mobile bottom tab bar's height as a literal `64px` — the tab bar
+  itself (`MobileWorkerLayout.tsx`), and (depending on branch family) either the checkout panel's
+  `fixed bottom-[64px]` position (older main-mpm-food/main-restaurants layout) or the root's
+  `pb-[64px]` reserved padding (newer flexbox `shrink-0` layout on the 5 stores-family branches).
+  Nothing guaranteed these stayed in sync. Fixed by introducing `--mobile-tabbar-h: 64px` as a
+  single source of truth in `index.css`, referenced via `h-[var(--mobile-tabbar-h)]` /
+  `bottom-[var(--mobile-tabbar-h)]` / `pb-[var(--mobile-tabbar-h)]` everywhere. Verified via a
+  production build + Playwright: measured the actual DOM rects of the panel's bottom edge and the
+  tab bar's top edge post-fix — exact 0px gap. Shipped to all 7 branches (web pushed+mirrored,
+  desktop held locally).
+
 **Still open**: Edge Functions missing on 2 Supabase projects (`fpvrbxmbrotowdlyebqv`,
 `kvxqutffphaxlhjyyjsw` — need account access not currently available); SaaS/business roadmap
 requested but not yet written (self-serve multi-tenant + strict-isolation bespoke tier for

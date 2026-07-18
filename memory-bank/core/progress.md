@@ -48,6 +48,9 @@
       invisible/flat-colored) — see activeContext.md for root cause + the verification recipe
       (license/trial/landing-gate chain, HashRouter query-param quirk, `force_cloud=true`). Shipped
       to all 7 branches, web ones pushed+mirrored, desktop ones held locally.
+- [x] Net-a-payer checkout panel now pinned flush to the mobile tab bar via a shared
+      `--mobile-tabbar-h` CSS variable instead of 3 independently-hardcoded `64px` literals —
+      measured 0px gap post-fix. Shipped to all 7 branches, same push pattern as above.
 - [ ] SaaS/business roadmap requested (self-serve multi-tenant + strict-isolation bespoke tier for
       clients who won't share data) — not yet written, may land in a fresh chat instead.
 - [ ] Broad-scope PATs (`stadium93` `SUBMODULE_PAT`, `stadium94` release token) not narrowed/rotated.
