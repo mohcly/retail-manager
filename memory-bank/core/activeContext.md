@@ -137,6 +137,24 @@
   tab bar's top edge post-fix — exact 0px gap. Shipped to all 7 branches (web pushed+mirrored,
   desktop held locally).
 
+- **Scroll-triggered gap between net-a-payer panel and tab bar, mitigated 2026-07-19 (needs
+  real-device confirmation)**: user's screenshot showed a gap opening between the checkout panel
+  and the tab bar specifically *while scrolling*, alongside the phone's own status bar clock
+  overlapping the app's header — both point at the mobile browser's address bar collapsing
+  mid-scroll (real, common mobile-web behavior). `MobilePOS.tsx`'s root used `h-dvh` (dynamic
+  viewport height), which actively reflows every time the address bar shows/hides; the separately
+  `fixed`-positioned tab bar repositions on a different mechanism, and the two can visibly desync
+  during that transition. Switched the stores-family (5 branches) `MobilePOS.tsx` root from
+  `h-dvh` to `h-[100svh]` (small viewport height — never changes regardless of address-bar state,
+  so nothing needs to resync; trades a few px of unused space when the browser chrome is hidden
+  for a fully static layout during scroll). **Could not verify this one the way prior fixes were
+  verified** — headless Chrome has no real, animatable browser chrome to collapse, so this exact
+  failure mode isn't reproducible in this environment. The restaurant-family branches
+  (`main-mpm-food`/`main-restaurants`) use a structurally different, static-unit approach
+  (`min-h-screen`/`fixed bottom-[...]`, not `h-dvh`/flexbox) and were deliberately NOT touched —
+  no evidence of the same bug there, and blindly applying the same change risked an unrelated
+  regression. Shipped to stores-family only; web pushed+mirrored, desktop held locally.
+
 **Still open**: Edge Functions missing on 2 Supabase projects (`fpvrbxmbrotowdlyebqv`,
 `kvxqutffphaxlhjyyjsw` — need account access not currently available); SaaS/business roadmap
 requested but not yet written (self-serve multi-tenant + strict-isolation bespoke tier for

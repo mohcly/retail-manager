@@ -51,6 +51,10 @@
 - [x] Net-a-payer checkout panel now pinned flush to the mobile tab bar via a shared
       `--mobile-tabbar-h` CSS variable instead of 3 independently-hardcoded `64px` literals —
       measured 0px gap post-fix. Shipped to all 7 branches, same push pattern as above.
+- [ ] **Needs real-device confirmation**: scroll-triggered gap (address-bar-collapse desync)
+      mitigated by switching `MobilePOS.tsx`'s root from `h-dvh` to `h-[100svh]` on the 5
+      stores-family branches. Sound reasoning, standard mitigation, but genuinely unverifiable in
+      this headless testing environment — ask the user to confirm on their actual phone.
 - [ ] SaaS/business roadmap requested (self-serve multi-tenant + strict-isolation bespoke tier for
       clients who won't share data) — not yet written, may land in a fresh chat instead.
 - [ ] Broad-scope PATs (`stadium93` `SUBMODULE_PAT`, `stadium94` release token) not narrowed/rotated.
