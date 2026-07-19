@@ -56,6 +56,11 @@
       hold on their real device. Fixed for real by fusing the tab bar directly into MobilePOS's
       own panel (one continuous element) instead of continuing to try to align two separately
       positioned ones — see activeContext.md. Shipped to all 5 stores-family branches.
+- [x] Follow-up: fusion's `h-[100svh]` root caused the fused Caisse tab to float above the true
+      bottom (out of level with Dashboard/Menu, and the mismatch read as a font-size difference).
+      Reverted to `h-dvh` now that fusion means there's nothing left to desync — verified Caisse
+      and Tableau tab labels measure to the identical Y position and font-size. Shipped to all 5
+      stores-family branches.
 - [ ] SaaS/business roadmap requested (self-serve multi-tenant + strict-isolation bespoke tier for
       clients who won't share data) — not yet written, may land in a fresh chat instead.
 - [ ] Broad-scope PATs (`stadium93` `SUBMODULE_PAT`, `stadium94` release token) not narrowed/rotated.
