@@ -155,6 +155,26 @@
   no evidence of the same bug there, and blindly applying the same change risked an unrelated
   regression. Shipped to stores-family only; web pushed+mirrored, desktop held locally.
 
+- **The scroll-triggered gap above (2 prior attempts, both sound, both didn't hold on a real
+  device) was finally closed 2026-07-19 by fusing instead of aligning**: user confirmed on a
+  private tab (ruling out cache) that both the `--mobile-tabbar-h` CSS-variable fix and the
+  `h-dvh`→`h-[100svh]` fix still left a visible gap under real mobile browser conditions this
+  session's testing environment can't reproduce. Their own suggestion — "fuse it to the footer
+  tab" — was the right call: extracted the tab row into a new `MobileBottomTabRow` component (no
+  positioning of its own), and `MobilePOS.tsx` now renders it as the literal last flex child of
+  its own already-fixed bottom panel, one continuous box instead of two independently-positioned
+  elements that merely compute matching numbers. `MobileWorkerLayout.tsx` suppresses its own
+  separately-fixed `<nav>` only when the POS tab is active (every other screen — dashboard, menu —
+  is completely unchanged, still using the standalone fixed nav). Verified structurally, not just
+  numerically: confirmed via computed style that the nav is no longer `position: fixed` and is a
+  DOM descendant of the same screen root as the net-a-payer panel when on the POS tab — this makes
+  the bug categorically impossible rather than hoping the offset math stays right. Also
+  re-verified dashboard/menu tabs are unaffected. Shipped to all 5 stores-family branches (web
+  pushed+mirrored, desktop held locally). **Lesson**: when position-matching between two
+  independently-positioned elements resists two separate, individually-sound fixes, stop trying to
+  calculate a matching offset and fuse them into one element instead — this eliminates the whole
+  class of bug rather than another attempt at the same category of fix.
+
 **Still open**: Edge Functions missing on 2 Supabase projects (`fpvrbxmbrotowdlyebqv`,
 `kvxqutffphaxlhjyyjsw` — need account access not currently available); SaaS/business roadmap
 requested but not yet written (self-serve multi-tenant + strict-isolation bespoke tier for
