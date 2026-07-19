@@ -1,7 +1,12 @@
 # Active Context - Retail Manager
 
-*Last updated: 2026-07-17*
+*Last updated: 2026-07-19*
 *Canonical core file. Consolidates and supersedes `core/context/activeContext.md` (kept for history).*
+
+**→ Start a fresh session by reading `memory-bank/HANDOFF_2026-07-19_security-mobile-fixes-and-roadmap.md`
+first.** It's self-contained: branch topology, standing rules, the broken-CI mirror workaround,
+credential locations, this session's full work log, and a grounded audit of what to tackle next.
+Everything below is the detailed running log it summarizes.
 
 ## Status Update — 2026-07-17 (7-branch restructuring, CI/CD overhaul, critical fixes, security audit)
 
