@@ -179,13 +179,15 @@
     "success": {
       "createWorker": "Personnelw account dara ka ɲɛ",
       "createDeliverer": "Di kɛla account dara ka ɲɛ",
-      "deleteMember": "Mɔgɔ bɔra ka ɲɛ"
+      "deleteMember": "Mɔgɔ bɔra ka ɲɛ",
+      "changeStore": "Magasin falenna ka ɲɛ"
     },
     "errors": {
       "loadTeam": "Jɛkulu kɛli tɛ ɲɛ",
       "createWorker": "Personnelw account dabɔli tɛ ɲɛ",
       "createDeliverer": "Di kɛla account dabɔli tɛ ɲɛ",
-      "deleteMember": "Mɔgɔ bɔli tɛ ɲɛ"
+      "deleteMember": "Mɔgɔ bɔli tɛ ɲɛ",
+      "changeStore": "Magasin falenni tɛ ɲɛ"
     },
     "table": {
       "name": "Tɔgɔ",
@@ -205,7 +207,9 @@
       "addWorkerTitle": "Personnelw kura",
       "addWorkerDescription": "Personnelw kura account dabɔ.",
       "addDelivererTitle": "Di kɛla kura",
-      "addDelivererDescription": "Di kɛla kura account dabɔ."
+      "addDelivererDescription": "Di kɛla kura account dabɔ.",
+      "changeStoreTitle": "Magasin Faliya",
+      "changeStoreDescription": "{{name}} bila magasin wɛrɛ la."
     },
     "form": {
       "fullName": "Tɔgɔ bɛɛ",

@@ -169,13 +169,15 @@
     "success": {
       "deleteMember": "Membre supprimé avec succès",
       "createWorker": "Compte personnel créé avec succès",
-      "createDeliverer": "Compte livreur créé avec succès"
+      "createDeliverer": "Compte livreur créé avec succès",
+      "changeStore": "Magasin réassigné avec succès"
     },
     "errors": {
       "loadTeam": "Échec du chargement de l'équipe",
       "deleteMember": "Échec de la suppression du membre",
       "createWorker": "Échec de la création du compte personnel",
-      "createDeliverer": "Échec de la création du compte livreur"
+      "createDeliverer": "Échec de la création du compte livreur",
+      "changeStore": "Échec de la réassignation du magasin"
     },
     "table": {
       "name": "Nom",
@@ -195,7 +197,9 @@
       "addWorkerTitle": "Ajouter un personnel",
       "addWorkerDescription": "Créer un nouveau compte personnel.",
       "addDelivererTitle": "Ajouter un livreur",
-      "addDelivererDescription": "Créer un nouveau compte livreur."
+      "addDelivererDescription": "Créer un nouveau compte livreur.",
+      "changeStoreTitle": "Changer de magasin",
+      "changeStoreDescription": "Réassigner {{name}} à un autre magasin."
     },
     "form": {
       "fullName": "Nom complet",
