@@ -211,16 +211,19 @@ export function FichiersProduitsModule({ storeId, isMasterView }: FichiersProdui
 
 
   const handleNumChange = (field: keyof typeof initialFormState, index?: number) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Pass the raw string through instead of Number()-coercing on every
+    // keystroke - writing the coerced value back into this controlled
+    // input's value prop is what caused the "can't type successive
+    // digits" bug. Final coercion happens on blur below.
     const val = e.target.value;
-    const finalVal = val === '' ? '' : Number(val);
-    updateField(field, finalVal, index);
+    updateField(field, val, index);
   };
 
   const handleNumBlur = (field: keyof typeof initialFormState, index?: number) => () => {
     if (index !== undefined) {
-        setMultiItems(prev => prev.map((item, i) => i === index ? { ...item, [field]: item[field] === '' ? 0 : item[field] } : item));
+        setMultiItems(prev => prev.map((item, i) => i === index ? { ...item, [field]: item[field] === '' ? 0 : Number(item[field]) } : item));
     } else {
-        setFormData(f => ({ ...f, [field]: f[field] === '' ? 0 : f[field] }));
+        setFormData(f => ({ ...f, [field]: f[field] === '' ? 0 : Number(f[field]) }));
     }
   };
 

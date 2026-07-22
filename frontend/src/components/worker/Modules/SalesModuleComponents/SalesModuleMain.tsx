@@ -558,14 +558,24 @@ export function SalesModule({ storeId, mode }: SalesModuleProps) {
     const item = newItems[index];
     if (!item) return;
     stableValueRef.current = { row: index, col: 5, value: quantity };
-    let numQty = quantity === '' ? 0 : Number(quantity);
+    const numQty = quantity === '' ? 0 : Number(quantity);
     if (numQty > 9999) {
       toast.warning(t('worker.sales.quantityTooHigh') || 'Quantity capped.');
-      numQty = 1;
+      newItems[index] = {
+        ...item,
+        quantity: 1,
+        lineTotal: calculateLineTotal(Number(item.unitPrice) || 0, 1, Number(item.discountPercent) || 0, item.isBox, item.conditionnement),
+      };
+      updateSession(mode, { lineItems: newItems });
+      return;
     }
+    // Store the raw string, not the Number()-coerced value - writing the
+    // coerced value back into this controlled input's value prop on every
+    // keystroke is what caused the "can't type successive digits" bug
+    // (matches the same fix already applied to handleDiscountChange below).
     newItems[index] = {
       ...item,
-      quantity: numQty,
+      quantity,
       lineTotal: calculateLineTotal(Number(item.unitPrice) || 0, numQty, Number(item.discountPercent) || 0, item.isBox, item.conditionnement),
     };
     updateSession(mode, { lineItems: newItems });
