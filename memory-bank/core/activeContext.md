@@ -1,12 +1,70 @@
 # Active Context - Retail Manager
 
-*Last updated: 2026-07-19*
+*Last updated: 2026-07-25*
 *Canonical core file. Consolidates and supersedes `core/context/activeContext.md` (kept for history).*
 
 **→ Start a fresh session by reading `memory-bank/HANDOFF_2026-07-19_security-mobile-fixes-and-roadmap.md`
 first.** It's self-contained: branch topology, standing rules, the broken-CI mirror workaround,
 credential locations, this session's full work log, and a grounded audit of what to tackle next.
 Everything below is the detailed running log it summarizes.
+
+## Status Update — 2026-07-25 (Tauri desktop pipeline hardening, first automated test suite, 2 audit items closed)
+
+Long session on the desktop (`main-stihl-dibidani`) branch first, then closed out two items
+from the 2026-07-19 audit's "highest-leverage" list on the web branches.
+
+**Desktop (`main-stihl-dibidani`, ported to `main-stihl-niamakoro` via cherry-pick, `main-mpm-food`
+partially - see below; `main-niamana-dubai` fully ported but held, not yet pushed per standing rule):**
+- CI pipeline rebuilt: manual-trigger-only (was building on every push), auto-incrementing patch
+  version so published installers never collide, a concurrency guard, and the stadium94/app-releases
+  publish step now accumulates version history instead of force-overwriting the previous build.
+- `/sync/push` and `/sync/pull` were gated on a JWT role (`supabase-sync`) no real login ever has -
+  every sync call 403'd silently on every install, forever. Fixed.
+- The "local bridge unreachable" indicator only ever tested whether the local Node process itself
+  answered, never whether *it* could reach Supabase - a real Supabase outage looked identical to
+  "everything's fine." Now genuinely pings Supabase and rechecks every 30s instead of once at launch.
+- Worker/deliverer accounts created on the desktop app were never provisioned in Supabase Auth at
+  all (documented prior scope cut) - every device kept a siloed local-only account for the same
+  person, which is how login conflicts happened. `POST /auth/workers` now creates a real Supabase
+  Auth user + profile + role and cross-device-checks for existing emails first.
+- Added worker-store reassignment (was write-once at creation, no way to move someone after).
+- **Real security bug found by the new E2E suite** (see below): `verifyMasterPassword`'s
+  local-bridge branch returned `res.ok` instead of reading the response body - the endpoint always
+  answers 200 with `{valid: boolean}`, so on the installed desktop app **any password typed into
+  the MasterPasswordGate unlocked it**. Fixed to check the actual `valid` field.
+- Regenerated the Tauri app icon from the real brand logo (`frontend/src/assets/logo.png`) - it
+  was shipping the default Tauri placeholder icon this whole time.
+
+**Audit item closed: automated test suite (top of the 2026-07-19 "highest-leverage" list).**
+`frontend/e2e/` (Playwright) on `main-stihl-dibidani`: auth, keyboard/number-typing regression,
+master-password gate, team management (promote/delete/store-reassign/create-with-graceful-
+Supabase-failure). Runs against the real Vite dev server + local-bridge (plain HTTP on localhost
+naturally selects local-first mode, same as the desktop app) with a `SEED_E2E=1`-gated fixture set
+in an isolated `.e2e-data` dir so normal dev seeding is untouched. `npm run test:e2e` from
+`frontend/`. `team.spec.ts` opts out of the global retry policy - it mutates shared DB state
+permanently and isn't safe to retry after a passing-but-slow-to-assert attempt. Not yet ported to
+the sibling desktop branches.
+
+**Audit item closed: `devLogin()` wiring** (also flagged 2026-07-19). Was defined on `AuthContext`
+but never called from anywhere - every verification needed a disposable temp `useEffect` hack.
+Added a permanent Master/Worker/Deliverer button group to `AuthPage.tsx`, gated by
+`import.meta.env.DEV` and confirmed tree-shaken out of the production build. Shipped to
+`main-stores-stihl` and `main-stores-dubai` (and their Vercel mirrors, `djati-stihl` /
+`djati-stores-mobile` - both branches are "push freely" per the handoff's access table).
+
+**Also deployed: the 2026-07-20 caisse-overscroll fix.** Per `PLAN_2026-07-20_caisse-overscroll.md`,
+the CSS fix + MobileScreenShell consolidation were committed locally but never actually deployed
+(mirror push was blocked at the time). Both were already committed on `main-stores-stihl` /
+`main-stores-dubai` by the time this session got to it - just needed the mirror force-push, which
+went through cleanly this time. Verified live via
+`gh api repos/mohcly/djati-stihl/contents/frontend/src/index.css` post-push. Real device
+(iOS Safari) retest still needed - headless Chromium can't reproduce that class of bug.
+
+**Still open from the 2026-07-19 audit**: no systematic RLS audit, CI/CD mirror pipeline billing
+issue (needs the user's Vercel/GitHub billing action, not self-serve), mobile screen shell is
+now substantially consolidated (see above) but not verified end-to-end, broad-scope PATs still
+not rotated, SaaS roadmap still just scoped in conversation not written up, `Djati-stores`/
+`Djati-restaurant` pre-monorepo git history still has the old committed secrets.
 
 ## Status Update — 2026-07-17 (7-branch restructuring, CI/CD overhaul, critical fixes, security audit)
 
