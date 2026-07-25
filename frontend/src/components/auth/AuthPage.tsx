@@ -317,6 +317,25 @@ export default function AuthPage() {
                   )}
                 </Button>
               </form>
+
+              {import.meta.env.DEV && (
+                <div className="mt-4 pt-4 border-t border-dashed">
+                  <p className="text-xs text-muted-foreground mb-2 uppercase tracking-wide font-semibold">
+                    Dev Mode (bypasses Supabase auth, local only)
+                  </p>
+                  <div className="flex gap-2">
+                    <Button type="button" variant="outline" size="sm" onClick={() => devLogin('master')}>
+                      Master
+                    </Button>
+                    <Button type="button" variant="outline" size="sm" onClick={() => devLogin('worker')}>
+                      Worker
+                    </Button>
+                    <Button type="button" variant="outline" size="sm" onClick={() => devLogin('deliverer')}>
+                      Deliverer
+                    </Button>
+                  </div>
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="signup">
