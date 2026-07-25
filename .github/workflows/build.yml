@@ -137,6 +137,5 @@ jobs:
           git commit -q -m "Automated build from stadium92/retail-manager @ ${{ github.sha }} (run ${{ github.run_number }})"
           git push origin "HEAD:$branch"
           Pop-Location
->>>>>>> 12d1b71 (fix(ci): publish installer to a plain branch instead of a GitHub Release)
 
 
