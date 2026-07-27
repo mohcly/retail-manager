@@ -29,7 +29,8 @@ export default function POSPage() {
         removeItem,
         setCommandOpen,
         saleType,
-        setSaleType
+        setSaleType,
+        getOrCreatePendingSaleId
     } = usePOSStore();
 
     const { toast } = useToast();
@@ -186,6 +187,7 @@ export default function POSPage() {
             }
 
             const { error } = await OfflineSalesService.createSale({
+                id: getOrCreatePendingSaleId(),
                 store_id: storeId,
                 worker_id: userId,
                 items: cart,

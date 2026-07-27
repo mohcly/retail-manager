@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -41,6 +41,12 @@ export function SalesEntryForm() {
   const [storeId, setStoreId] = useState<string>('');
   const [isScanning, setIsScanning] = useState(false);
   const { isLocalFirst, localBridgeBaseUrl } = getDataClient();
+  // Stable across a retry of the same still-populated sale (e.g. after a
+  // timeout that fired even though the sale had already committed) -
+  // cleared only once the sale actually succeeds. Lets the backend treat
+  // a repeat POST /rest/v1/sales as a no-op instead of creating a second,
+  // fully independent sale that double-deducts stock on retry.
+  const pendingSaleIdRef = useRef<string | null>(null);
 
   const formatCurrency = (amount: number) => {
     return amount.toLocaleString(i18n.language === 'bm' ? 'fr-ML' : i18n.language) + ' XAF';
@@ -205,7 +211,11 @@ export function SalesEntryForm() {
         // Non-local-first direct supabase path removed
         } else {
           if (useLocalBridge) {
+            if (!pendingSaleIdRef.current) {
+              pendingSaleIdRef.current = crypto.randomUUID();
+            }
             const saleResult = await OfflineSalesService.createSale({
+              id: pendingSaleIdRef.current,
               store_id: storeId,
               worker_id: user?.id || '',
               items: selectedItems.map((item) => ({
@@ -251,6 +261,7 @@ export function SalesEntryForm() {
       setCustomerPhone('');
       setNeedsDelivery(false);
       setDeliveryAddress('');
+      pendingSaleIdRef.current = null;
 
       if (!useLocalBridge && OfflineManager.isOnline()) {
         fetchProducts();

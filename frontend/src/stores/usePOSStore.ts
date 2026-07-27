@@ -26,6 +26,12 @@ export interface POSState {
   orderNotes: string;
   serviceType: 'table' | 'emporter' | 'livraison';
   globalDiscount: number; // For cart-level discount
+  // Stable across a retry of the same still-open transaction (e.g. after a
+  // timeout that fired even though the sale had already committed) - only
+  // cleared once the sale actually succeeds via confirmTransaction(). Lets
+  // the backend treat a repeat POST /rest/v1/sales as a no-op instead of
+  // creating a second, fully independent sale that double-deducts stock.
+  pendingSaleId: string | null;
 
   // Actions
   addItem: (product: Product, quantity?: number) => void;
@@ -48,6 +54,7 @@ export interface POSState {
   setSaleType: (type: 'detail' | 'gros') => void;
   setPaymentModalOpen: (open: boolean) => void;
   completeTransaction: (paymentMethod: string) => {
+    id: string;
     items: CartItem[];
     grandTotal: number;
     customerName: string;
@@ -55,6 +62,11 @@ export interface POSState {
     orderNotes: string;
     serviceType: string;
   } | null;
+  // Clears the cart/pendingSaleId - call ONLY after the sale is confirmed
+  // created, not synchronously inside completeTransaction() itself.
+  confirmTransaction: () => void;
+  // For checkout flows that don't go through completeTransaction() at all.
+  getOrCreatePendingSaleId: () => string;
   setOrderNotes: (notes: string) => void;
   setServiceType: (type: 'table' | 'emporter' | 'livraison') => void;
   setGlobalDiscount: (discount: number) => void;
@@ -90,6 +102,7 @@ export const usePOSStore = create<POSState>()(
       orderNotes: '',
       serviceType: 'table',
       globalDiscount: 0,
+      pendingSaleId: null,
       subtotal: 0,
       totalDiscount: 0,
       grandTotal: 0,
@@ -284,6 +297,7 @@ export const usePOSStore = create<POSState>()(
         orderNotes: '',
         serviceType: 'table',
         globalDiscount: 0,
+        pendingSaleId: null,
         subtotal: 0,
         totalDiscount: 0,
         grandTotal: 0,
@@ -347,10 +361,16 @@ export const usePOSStore = create<POSState>()(
       },
 
       completeTransaction: (paymentMethod) => {
-        const { cart, grandTotal, customerName, customerPhone, orderNotes, serviceType, clearCart } = get();
+        const { cart, grandTotal, customerName, customerPhone, orderNotes, serviceType, pendingSaleId } = get();
         if (cart.length === 0) return null;
 
-        const result = {
+        // Reuse the existing pendingSaleId if this is a retry of a still-open
+        // transaction, don't clear the cart here - see confirmTransaction().
+        const id = pendingSaleId || crypto.randomUUID();
+        if (!pendingSaleId) set({ pendingSaleId: id });
+
+        return {
+          id,
           items: [...cart],
           grandTotal,
           customerName,
@@ -359,9 +379,18 @@ export const usePOSStore = create<POSState>()(
           serviceType,
           paymentMethod,
         };
+      },
 
-        clearCart();
-        return result;
+      confirmTransaction: () => {
+        get().clearCart();
+      },
+
+      getOrCreatePendingSaleId: () => {
+        const { pendingSaleId } = get();
+        if (pendingSaleId) return pendingSaleId;
+        const id = crypto.randomUUID();
+        set({ pendingSaleId: id });
+        return id;
       },
 
       getTotal: () => {
@@ -377,6 +406,7 @@ export const usePOSStore = create<POSState>()(
         customerName: state.customerName,
         customerPhone: state.customerPhone,
         serviceType: state.serviceType,
+        pendingSaleId: state.pendingSaleId,
       }),
     }
   )
