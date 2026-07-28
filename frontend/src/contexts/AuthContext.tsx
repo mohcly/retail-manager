@@ -28,6 +28,31 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+/** Every role the app understands, highest privilege first. */
+const ROLE_PRIORITY_ORDER: AppRole[] = [
+  'master', 'worker', 'cashier', 'cook', 'waiter', 'waiters', 'deliverer', 'customer',
+];
+
+/**
+ * SECURITY: the default role for an *unresolved* identity is the LEAST
+ * privileged one, never 'master'.
+ *
+ * Any path that cannot positively establish a role — a user_roles read that
+ * failed or was denied by RLS, missing auth metadata, a transient outage —
+ * must land here. Those failures are indistinguishable from "this account has
+ * no roles", so if the fallback were 'master' a mere network blip would
+ * silently promote any authenticated user to full restaurant owner. Do not
+ * "helpfully" change this back to 'master'.
+ */
+const LEAST_PRIVILEGED_ROLE: AppRole = 'customer';
+
+/** Narrow untrusted metadata to a known AppRole, or null if it is not one. */
+function asAppRole(value: unknown): AppRole | null {
+  return typeof value === 'string' && (ROLE_PRIORITY_ORDER as string[]).includes(value)
+    ? (value as AppRole)
+    : null;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const dataClient = getDataClient();
   console.log('ðŸ” AuthProvider Init - Mode:', dataClient.mode, 'isLocalFirst:', dataClient.isLocalFirst);
@@ -589,10 +614,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      // If STILL no role, fall back to 'master' for new account bootstrap only
+      // Still no role from the authoritative sources — fall back to auth
+      // metadata, which is all that existing installs carry (they have no
+      // user_roles rows yet), so a present, recognised metadata role must keep
+      // working.
       if (!role) {
-        console.warn('[AuthContext] No role found in user_roles or restaurants. Defaulting to master for new account.');
-        role = 'master';
+        const metaRole = asAppRole(metadata.role);
+        if (metaRole) {
+          console.log('[AuthContext] No role in user_roles/restaurants — using auth metadata role:', metaRole);
+          role = metaRole;
+        }
+      }
+
+      // If STILL no role, nothing could establish one — either a query above
+      // failed or the account genuinely has none. Fail CLOSED, not open: this
+      // used to default to 'master', which handed full owner rights to any
+      // authenticated user whenever the user_roles read was denied or dropped.
+      // See LEAST_PRIVILEGED_ROLE — do not restore 'master' here.
+      // A login is still granted rather than refused so a transient outage
+      // cannot lock the owner out; the store_id guard below already rejects the
+      // session when no restaurant can be resolved, and a least-privileged
+      // session grants nothing.
+      if (!role) {
+        console.warn(
+          '[AuthContext][roles] No role in user_roles, restaurants, or metadata — defaulting to least privilege:',
+          LEAST_PRIVILEGED_ROLE
+        );
+        role = LEAST_PRIVILEGED_ROLE;
       }
 
       // Ensure master users have a storeId
