@@ -359,7 +359,24 @@ export class OfflineAuthService {
           })) as any;
         }
 
-        if (path.startsWith('/rest/v1/cash_register_closures')) {
+        // Intercept register closures.
+        //
+        // Both path spellings are matched deliberately. FicheCaisseModule and
+        // MobileFicheCaisse both post to /rest/v1/cash_closings, while only
+        // the legacy /rest/v1/cash_register_closures was intercepted here - so
+        // on the web build the closing fell straight through to PostgREST with
+        // an unmapped French-named body (fonds_caisse, total_billetage,
+        // billets_details...), which no column on cash_closings matches. The
+        // screen still showed success, so a cashier closing the register lost
+        // the whole count with no indication anything had gone wrong. It
+        // worked on the desktop because local-bridge does have that table,
+        // which is why this only ever bit through the web/PostgREST path.
+        //
+        // Matching it here routes both spellings through the mapper below.
+        if (
+          path.startsWith('/rest/v1/cash_register_closures') ||
+          path.startsWith('/rest/v1/cash_closings')
+        ) {
           if (init.method === 'POST') {
             const body = JSON.parse(init.body as string);
             const userRes = await supabase.auth.getUser();
