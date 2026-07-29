@@ -256,7 +256,7 @@ const handleRefresh = (e: any) => {
               unitPrice: unitPrice,
               basePrice: basePrice,
               quantity: Number(item.quantity || 1),
-              discountPercent: Number(item.discount || 0),
+              discountAmount: Number(item.discount || 0),
               lineTotal: Number(item.total || (unitPrice * Number(item.quantity || 1))),
               isBox: !!(item.is_box || (packSize > 1 && unitPrice > (basePrice + 1))),
               unit_type: p.unit_type || 'Piece',
@@ -280,7 +280,7 @@ const handleRefresh = (e: any) => {
           unitPrice: '',
           basePrice: 0,
           quantity: '',
-          discountPercent: '',
+          discountAmount: 0,
           lineTotal: 0,
           isBox: false,
           priceTiers: { 1: 0, 2: 0, 3: 0, 4: 0 }
@@ -381,7 +381,7 @@ const handleRefresh = (e: any) => {
     newItems[index] = {
       ...item,
       unitPrice,
-      lineTotal: calculateLineTotal(numPrice, Number(item.quantity) || 0, Number(item.discountPercent) || 0, item.isBox, item.conditionnement),
+      lineTotal: calculateLineTotal(numPrice, Number(item.quantity) || 0, Number(item.discountAmount) || 0, item.isBox, item.conditionnement),
     };
     updateSession(mode, { lineItems: newItems });
   }, [lineItems, mode, updateSession]);
@@ -399,7 +399,7 @@ const handleRefresh = (e: any) => {
     newItems[index] = {
       ...item,
       quantity: numQty,
-      lineTotal: calculateLineTotal(Number(item.unitPrice) || 0, numQty, Number(item.discountPercent) || 0, item.isBox, item.conditionnement),
+      lineTotal: calculateLineTotal(Number(item.unitPrice) || 0, numQty, Number(item.discountAmount) || 0, item.isBox, item.conditionnement),
     };
     updateSession(mode, { lineItems: newItems });
   }, [lineItems, mode, updateSession, t]);
@@ -460,7 +460,7 @@ const handleRefresh = (e: any) => {
             basePrice: 0,
             unitPrice: 0,
             quantity: 1,
-            discountPercent: 0,
+            discountAmount: 0,
             lineTotal: 0,
             priceTiers: { 1: 0, 2: 0, 3: 0, 4: 0 }
         };
@@ -490,7 +490,7 @@ const handleRefresh = (e: any) => {
     newItems[index] = {
       ...item,
       isBox: newIsBox,
-      lineTotal: calculateLineTotal(item.unitPrice, item.quantity, item.discountPercent, newIsBox, item.conditionnement)
+      lineTotal: calculateLineTotal(item.unitPrice, item.quantity, item.discountAmount, newIsBox, item.conditionnement)
     };
     updateSession(mode, { lineItems: newItems });
   }, [lineItems, mode, updateSession, t]);
@@ -503,7 +503,7 @@ const handleRefresh = (e: any) => {
         return {
             ...item,
             unitPrice: newUnitPrice,
-            lineTotal: calculateLineTotal(newUnitPrice, item.quantity, item.discountPercent, item.isBox, item.conditionnement)
+            lineTotal: calculateLineTotal(newUnitPrice, item.quantity, item.discountAmount, item.isBox, item.conditionnement)
         };
     });
     updateSession(mode, { lineItems: newItems });
@@ -517,7 +517,7 @@ const handleRefresh = (e: any) => {
     newItems[index] = {
         ...item,
         unitPrice: newUnitPrice,
-        lineTotal: calculateLineTotal(newUnitPrice, item.quantity, item.discountPercent, item.isBox, item.conditionnement)
+        lineTotal: calculateLineTotal(newUnitPrice, item.quantity, item.discountAmount, item.isBox, item.conditionnement)
     };
     updateSession(mode, { lineItems: newItems });
   }, [lineItems, mode, updateSession]);

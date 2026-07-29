@@ -19,7 +19,7 @@ const handleGlobalKey = (e: KeyboardEvent) => {
   useEffect(() => {
     if (isLoading) return;
     if (!lineItems.some(i => !i.productId)) {
-      const newItem = { id: crypto.randomUUID(), lineNumber: lineItems.length + 1, designation: '', code: '', conditionnement: 1, stock: 0, unitPrice: '', basePrice: 0, quantity: '', discountPercent: '', lineTotal: 0, isBox: false, priceTiers: { 1: 0, 2: 0, 3: 0, 4: 0 } };
+      const newItem = { id: crypto.randomUUID(), lineNumber: lineItems.length + 1, designation: '', code: '', conditionnement: 1, stock: 0, unitPrice: '', basePrice: 0, quantity: '', discountAmount: 0, lineTotal: 0, isBox: false, priceTiers: { 1: 0, 2: 0, 3: 0, 4: 0 } };
       updateSession(mode, { lineItems: [...lineItems, newItem] });
     }
   }, [lineItems, mode, updateSession, isLoading]);

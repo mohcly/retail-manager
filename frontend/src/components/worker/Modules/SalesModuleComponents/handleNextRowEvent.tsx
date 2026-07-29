@@ -10,7 +10,7 @@ const handleNextRowEvent = (e: any) => {
               store.setMode('hover');
               return;
           }
-          const newItem = { id: crypto.randomUUID(), lineNumber: lineItems.length + 1, designation: '', code: '', conditionnement: 1, stock: 0, unitPrice: '', basePrice: 0, quantity: '', discountPercent: '', lineTotal: 0, isBox: false, priceTiers: { 1: 0, 2: 0, 3: 0, 4: 0 } };
+          const newItem = { id: crypto.randomUUID(), lineNumber: lineItems.length + 1, designation: '', code: '', conditionnement: 1, stock: 0, unitPrice: '', basePrice: 0, quantity: '', discountAmount: 0, lineTotal: 0, isBox: false, priceTiers: { 1: 0, 2: 0, 3: 0, 4: 0 } };
           updateSession(mode, { lineItems: [...lineItems, newItem] });
           setTimeout(() => { store.setActiveCell({ row: lineItems.length, col: 0 }); store.setMode('hover'); }, 50);
       } else {
