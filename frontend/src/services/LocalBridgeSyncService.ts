@@ -1,5 +1,5 @@
 import { LocalDatabase } from './LocalDatabase';
-import { getDataClient } from '@/lib/dataClient';
+import { getDataClient, smartFetch } from '@/lib/dataClient';
 import { OfflineAuthService } from './OfflineAuthService';
 
 interface SyncPushResult {
@@ -94,21 +94,45 @@ export class LocalBridgeSyncService {
     };
   }
 
-  static async pullData(): Promise<{ pulled: number } | null> {
+  static async pullData(storeId?: string): Promise<{ pulled: number } | null> {
     try {
       const dataClient = getDataClient();
       const headers = await OfflineAuthService.getAuthHeaders();
       if (!headers) return null;
 
-      const response = await fetch(`${dataClient.localBridgeBaseUrl}/rest/v1/sync/pull`, {
-        method: 'GET',
+      // This branch pointed at `/rest/v1/sync/pull`, a path the local bridge
+      // has never served - registerSyncRoutes mounts `/sync/pull` with no
+      // prefix - so every pull 404'd here twice over: wrong path AND, on the
+      // other branches, wrong method. Both are corrected; the backend now
+      // answers GET and POST.
+      const query = storeId ? `?store_id=${encodeURIComponent(storeId)}` : '';
+      const response = await smartFetch(`${dataClient.localBridgeBaseUrl}/sync/pull${query}`, {
+        method: 'POST',
         headers
       });
 
       if (!response.ok) return null;
-      
-      const result = await response.json();
-      return { pulled: (result.pulledSales || 0) + (result.pulledInventory || 0) };
+
+      // The old code read `pulledSales`/`pulledInventory`, fields the route has
+      // never returned, so a successful pull always reported 0 - which reads
+      // exactly like a broken pull. Parse what the route actually sends.
+      const result = await response.json().catch(() => null);
+      const pulled = Number(result?.pulled) || 0;
+
+      if (result?.tables?.length) {
+        console.info('[LocalBridgeSyncService] pull:', result.tables);
+      }
+      if (result?.ok === false) {
+        console.warn('[LocalBridgeSyncService] pull completed with failures:', result.tables?.filter((t: any) => t.error));
+      }
+
+      if (pulled > 0) {
+        // Same event the modules already listen for after a local write, so a
+        // pull that hydrates the catalogue does not leave every screen stale.
+        window.dispatchEvent(new CustomEvent('localDbDataUpdated', { detail: { source: 'pull', pulled } }));
+      }
+
+      return { pulled };
     } catch (e) {
       console.error('Failed to pull data', e);
       return null;
