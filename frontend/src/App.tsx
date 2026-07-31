@@ -9,6 +9,7 @@ import { ShortcutsProvider } from "@/contexts/ShortcutsContext";
 import { PrinterProvider } from "@/contexts/PrinterContext";
 import { ScannerProvider } from "@/contexts/ScannerContext";
 import { ShortcutsHelpOverlay } from "@/components/shared/ShortcutsHelpOverlay";
+import { AppUpdater } from "@/components/shared/AppUpdater";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { MasterLayout } from "@/components/master/Layout/MasterLayout";
@@ -56,6 +57,7 @@ const App = () => (
                 <Toaster />
                 <Sonner />
                 <ShortcutsHelpOverlay />
+                <AppUpdater />
                 <TermsOfServiceGate>
                   <HashRouter>
                     <Routes>
