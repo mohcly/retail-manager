@@ -292,7 +292,12 @@ export function MobilePOS({ onBack }: MobilePOSProps) {
                     <div className="flex flex-col items-end">
                         {globalDiscount > 0 && <span className="text-xs text-rs-surface-tint line-through opacity-70 mb-1">{formatCurrency(getTotal())}</span>}
                         <div className="bg-[#0C0C0C] px-5 py-2 rounded border border-rs-surface-container-highest">
-                            <span className="font-mono text-2xl font-bold leading-none text-rs-surface-tint tracking-tight">{formatCurrency(grandTotal > 0 ? grandTotal : getTotal())}</span>
+                            {/* globalDiscount used to be display-only: the dialog
+                                stored it, the strike-through above implied it was
+                                applied, and both checkout paths charged the full
+                                amount. It is now genuinely subtracted here and in
+                                every checkout payload. */}
+                            <span className="font-mono text-2xl font-bold leading-none text-rs-surface-tint tracking-tight">{formatCurrency(Math.max(0, (grandTotal > 0 ? grandTotal : getTotal()) - globalDiscount))}</span>
                         </div>
                     </div>
                 </div>
@@ -300,7 +305,7 @@ export function MobilePOS({ onBack }: MobilePOSProps) {
                     <button 
                         disabled={cart.length === 0}
                         onClick={() => handleCheckout({
-                            amountData: { total: grandTotal > 0 ? grandTotal : getTotal() },
+                            amountData: { total: Math.max(0, (grandTotal > 0 ? grandTotal : getTotal()) - globalDiscount) },
                             paymentMethod: 'cash',
                             saleType: 'proforma'
                         })}
@@ -360,6 +365,7 @@ export function MobilePOS({ onBack }: MobilePOSProps) {
                 onOpenChange={setIsCheckoutOpen}
                 onConfirm={handleCheckout}
                 isLoading={isProcessing}
+                discount={globalDiscount}
             />
         </div>
     );
