@@ -242,7 +242,11 @@ export function useProductSearch(storeId: string, enabled: boolean = true) {
       return { data: mappedData, total };
     },
     enabled: enabled && !!storeId,
-    staleTime: 0, // Always fetch fresh data
+    // Was 0 ("always fetch fresh") - typing a query, backspacing, and
+    // retyping it refired the identical HTTP request each time. 15s of
+    // staleness is invisible at a till, and real changes invalidate through
+    // the localDbDataUpdated listener above anyway.
+    staleTime: 15_000,
   });
 
   return {

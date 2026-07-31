@@ -13,6 +13,16 @@
     <meta property="og:type" content="website" />
 
     <meta name="twitter:card" content="summary_large_image" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Space Grotesk used to arrive via a render-blocking CSS @import at the
+         top of index.css, which stalled first paint until Google Fonts
+         responded - on an offline till that means a blank window until the
+         network stack gave up, at every launch. media="print" + onload swap
+         makes this stylesheet NON-blocking: the page paints immediately with
+         the fallback fonts (every rule already declares one) and upgrades
+         if/when the fetch succeeds. -->
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'"/>
   </head>
 
   <body>
