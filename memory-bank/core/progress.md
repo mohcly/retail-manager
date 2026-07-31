@@ -1,8 +1,16 @@
 # Progress Tracking - Retail Manager
 
-*Last updated: 2026-07-17*
+*Last updated: 2026-07-31*
 *Canonical core file. Consolidates and supersedes `core/progress/progress.md` (kept for history).*
 *Granular task-by-task tracking lives in `core/tasks.md`.*
+
+## 2026-07-31 additions (see activeContext.md "money bugs" section)
+- [x] "Money bugs" commit (`ef532ca`, niamana-dubai) ported to all 4 remaining targets:
+      dibidani `a50c0e1`, niamakoro `e217360` (clean cherry-picks), mpm-food `375db8e`
+      (hand-adapted: fragments layout, no scanner, inlined proforma exclusion, missing
+      supabase import), web Djati-stores `d94d6ae` (frontend-only). All pushed.
+- [x] Web prod deployed via manual mirror: djati-stores-mobile@`1b7c34a`, Vercel READY.
+      Rollback: `e3042462fb4de29c9a41074d2cfe3144edd3fd6e`.
 
 ## 2026-07-17 additions (see `memory-bank/HANDOFF_2026-07-17_saas-roadmap-and-system-state.md` for full detail)
 - [x] `Djati-stores`/`Djati-restaurants` consolidated as branches inside `retail-manager` (7-branch

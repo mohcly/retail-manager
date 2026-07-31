@@ -1,12 +1,40 @@
 # Active Context - Retail Manager
 
-*Last updated: 2026-07-25*
+*Last updated: 2026-07-31*
 *Canonical core file. Consolidates and supersedes `core/context/activeContext.md` (kept for history).*
 
 **→ Start a fresh session by reading `memory-bank/HANDOFF_2026-07-19_security-mobile-fixes-and-roadmap.md`
 first.** It's self-contained: branch topology, standing rules, the broken-CI mirror workaround,
 credential locations, this session's full work log, and a grounded audit of what to tackle next.
 Everything below is the detailed running log it summarizes.
+
+## Status Update — 2026-07-31 ("money bugs" ported to all 4 remaining targets + web prod deploy)
+
+Source commit `ef532ca` on `main-niamana-dubai` (remise theatre, gros-tier pricing, real
+backend profit + em-dash fallback, `amount_paid`/`/settle` end-to-end, analytics+sales
+store-scope pinning, cash-journal `created_at ?? date`, getClients suppliers copy-paste,
+mobile scan `fetchInventory`→`getInventory`+`addToCart`). Ported and pushed everywhere:
+
+- `main-stihl-dibidani` → clean cherry-pick `a50c0e1`, pushed to stadium92. tsc 0 / 3 pre-existing.
+- `main-stihl-niamakoro` → clean cherry-pick `e217360`, pushed to stadium91 (`origin`). Same numbers.
+- `main-mpm-food` → hand-adapted port `375db8e`, pushed to stadium91. Backend nearly clean
+  (getProfit's proforma/deleted exclusion inlined — branch predates `EXCLUDE_NON_SALES` helpers;
+  simpler `getStockValuation` signature kept). Frontend: restaurant MobilePOS has no scanner
+  (scan fix N/A), remise fix applied; Gestion fixes went into
+  `GestionModuleComponents/GestionModuleMain.tsx` (GestionModule.tsx is a re-export; the other
+  fragment files are dead — the 32 syntax errors live there, untouched); this variant never
+  renders totalProfit so no display change; `OfflineDataService` needed the missing
+  `supabase` import added. Verified with a scoped tsconfig against a HEAD-baseline worktree:
+  44 = 44 errors, line shifts only.
+- Web `Djati-stores` → `d94d6ae` on mohcly/main (frontend-only; no backend on web, `/settle`
+  N/A since ReglementsBonsModule refuses settlement without local bridge). Em-dash path
+  verified: cloud analytics fallback builds its object without `total_profit`. tsc app 4→3
+  (fetchInventory error retired). **Deployed to prod** via the manual mirror path:
+  djati-stores-mobile@`1b7c34a` (authored as mohcly — Vercel author-association rule),
+  Vercel `dpl_FqBHWTbzkaQyXuKT21QdHhHdvpng` READY on djati-stores-mobile.vercel.app.
+  Rollback sha: `e3042462fb4de29c9a41074d2cfe3144edd3fd6e`.
+
+No desktop CI builds triggered.
 
 ## Status Update — 2026-07-25 (Tauri desktop pipeline hardening, first automated test suite, 2 audit items closed)
 
