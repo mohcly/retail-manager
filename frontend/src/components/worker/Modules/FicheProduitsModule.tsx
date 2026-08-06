@@ -512,7 +512,7 @@ export function FicheProduitsModule({ storeId }: FicheProduitsModuleProps) {
             </div>
             <Button
               onClick={handleOpenAddPlate}
-              className="h-8 gap-2 bg-primary text-white font-bold text-xs"
+              className="h-8 gap-2 bg-primary text-primary-foreground font-bold text-xs"
             >
               <Plus className="h-3.5 w-3.5" />
               Ajouter un plat
@@ -979,7 +979,7 @@ export function FicheProduitsModule({ storeId }: FicheProduitsModuleProps) {
               <Button variant="outline" className="h-11 px-6 font-bold" onClick={() => setPlateDialogOpen(false)} disabled={savingPlate}>
                 Annuler
               </Button>
-              <Button onClick={handleSavePlate} disabled={savingPlate} className="h-11 px-8 font-black bg-primary hover:bg-primary/90 text-white shadow-lg">
+              <Button onClick={handleSavePlate} disabled={savingPlate} className="h-11 px-8 font-black bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg">
                 {savingPlate ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : (registrationMode === 'multi' ? `Enregistrer ${multiPlates.length} plats` : 'Enregistrer le Plat')}
               </Button>
             </div>

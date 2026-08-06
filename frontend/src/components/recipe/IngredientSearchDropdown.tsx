@@ -273,7 +273,7 @@ export function IngredientSearchDropdown({ storeId, onSelect, excludeIds = [] }:
                   type="submit"
                   size="sm"
                   disabled={creating}
-                  className="h-8 text-xs bg-primary text-white font-bold"
+                  className="h-8 text-xs bg-primary text-primary-foreground font-bold"
                 >
                   {creating ? 'Création...' : 'Créer'}
                 </Button>

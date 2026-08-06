@@ -577,7 +577,7 @@ export function IngredientsPage() {
           <Button variant="outline" onClick={fetchDashboard} className="h-10 px-3 border-2">
             <RefreshCw className="h-4 w-4" />
           </Button>
-          <Button onClick={() => handleOpenForm()} className="h-10 px-6 bg-primary text-white font-black uppercase tracking-widest text-[10px] shadow-lg shadow-primary/20 gap-2">
+          <Button onClick={() => handleOpenForm()} className="h-10 px-6 bg-primary text-primary-foreground font-black uppercase tracking-widest text-[10px] shadow-lg shadow-primary/20 gap-2">
             <Plus className="h-4 w-4" /> Ajouter un ingrédient
           </Button>
         </div>
@@ -724,7 +724,7 @@ export function IngredientsPage() {
                               <History className="h-4 w-4" />
                             </Button>
                             {/* Edit */}
-                            <Button variant="outline" size="icon" onClick={() => handleOpenForm(ing)} className="h-8 w-8 border-primary/20 hover:bg-primary hover:text-white" title="Modifier">
+                            <Button variant="outline" size="icon" onClick={() => handleOpenForm(ing)} className="h-8 w-8 border-primary/20 hover:bg-primary hover:text-primary-foreground" title="Modifier">
                               <Edit3 className="h-4 w-4" />
                             </Button>
                             {/* Delete */}
@@ -837,7 +837,7 @@ export function IngredientsPage() {
 
             <DialogFooter className="pt-4 border-t">
               <Button type="button" variant="outline" onClick={() => setIsFormOpen(false)}>Annuler</Button>
-              <Button type="submit" disabled={saving} className="bg-primary text-white font-black uppercase tracking-widest text-[10px]">
+              <Button type="submit" disabled={saving} className="bg-primary text-primary-foreground font-black uppercase tracking-widest text-[10px]">
                 {saving ? 'Enregistrement...' : 'Enregistrer'}
               </Button>
             </DialogFooter>

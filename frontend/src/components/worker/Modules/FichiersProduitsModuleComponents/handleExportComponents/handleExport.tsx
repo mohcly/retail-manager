@@ -67,7 +67,7 @@ const handleExport = (type: 'soft' | 'full') => {
               size="sm" 
               type="button" 
               onClick={() => { setLookupTargetIndex(index ?? null); setIsLookupOpen(true); }} 
-              className="h-8 uppercase font-black text-[10px] tracking-widest px-4 border-primary/20 hover:bg-primary hover:text-white"
+              className="h-8 uppercase font-black text-[10px] tracking-widest px-4 border-primary/20 hover:bg-primary hover:text-primary-foreground"
             >
               Choisir l'article
             </Button>
