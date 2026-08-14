@@ -8,6 +8,17 @@ first.** It's self-contained: branch topology, standing rules, the broken-CI mir
 credential locations, this session's full work log, and a grounded audit of what to tackle next.
 Everything below is the detailed running log it summarizes.
 
+**→ Consolidation plan (measured, staged): `memory-bank/core/consolidation-plan-2026-08-01.md`.**
+Key measurements: dibidani/niamakoro differ from niamana by only 11/10 files; mpm-food is a
+separate product (188 files) and stays OUT of the trunk; per-client identity is ~5 files
+(profile material); receipts are byte-identical everywhere — "custom per client" must be built
+(registry pattern), not untangled. Entry point: Step 0, the Playwright money-path suite.
+
+**→ Structural roadmap agreed 2026-07-31: `memory-bank/core/roadmap-2026-07-31.md`.**
+Diagnosis (everything fails silently) + the three structural problems (five copies of one
+codebase, no field feedback loop, inverted trust chain) + ordered plan. Agreed, NOT started —
+read it before proposing what to work on next.
+
 ## Status Update — 2026-07-31 ("money bugs" ported to all 4 remaining targets + web prod deploy)
 
 Source commit `ef532ca` on `main-niamana-dubai` (remise theatre, gros-tier pricing, real
