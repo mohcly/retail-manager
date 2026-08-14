@@ -129,9 +129,14 @@ export const createSalesRepo = (db: Database.Database) => {
         });
       }
 
-      // 3. Update Client Balance if credit
-      if (saleData.payment_method === 'credit' && (saleData as any).client_id) {
-        stmts.updateClientBalance.run(saleData.total_price, (saleData as any).client_id);
+      // 3. Update Client Balance if there is unpaid credit on a client account
+      const clientId = (saleData as any).client_id;
+      const totalPrice = Number(saleData.total_price) || 0;
+      const amountPaid = saleData.amount_paid ?? (saleData.payment_method === 'credit' ? 0 : totalPrice);
+      const unpaidAmount = totalPrice - amountPaid;
+
+      if (clientId && unpaidAmount > 0) {
+        stmts.updateClientBalance.run(unpaidAmount, clientId);
       }
     });
 

@@ -149,6 +149,14 @@ export function ReglementsBonsModule({ storeId }: ReglementsBonsModuleProps) {
     };
 
     fetchCreditSales();
+
+    const handleRefresh = (e: any) => {
+      if (e.detail?.type === 'sale') {
+        fetchCreditSales();
+      }
+    };
+    window.addEventListener('localDbDataUpdated', handleRefresh);
+    return () => window.removeEventListener('localDbDataUpdated', handleRefresh);
   }, [storeId, useLocalBridge, localBridgeRequest, t]);
 
   // Filter by search
@@ -183,12 +191,13 @@ export function ReglementsBonsModule({ storeId }: ReglementsBonsModuleProps) {
 
     setIsSaving(true);
     try {
+      let updatedSale: LocalBridgeSale | null = null;
       if (useLocalBridge) {
         // Use the dedicated settle endpoint which:
         // 1. Adds `amount` to existing amount_paid (never overwrites)
         // 2. Deducts from client's current_balance
         // 3. Emits outbox event for Supabase sync
-        await localBridgeRequest(`/rest/v1/sales/${selectedSale.id}/settle`, {
+        updatedSale = await localBridgeRequest<LocalBridgeSale>(`/rest/v1/sales/${selectedSale.id}/settle`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ amount: paymentAmount }),
@@ -200,8 +209,8 @@ export function ReglementsBonsModule({ storeId }: ReglementsBonsModuleProps) {
         return;
       }
 
-      const newAmountPaid = selectedSale.amount_paid + paymentAmount;
-      const newStatus = newAmountPaid >= selectedSale.total_price ? 'paid' : 'partial';
+      const newAmountPaid = updatedSale?.amount_paid != null ? Number((updatedSale as any).amount_paid) : selectedSale.amount_paid + paymentAmount;
+      const newStatus = (updatedSale?.payment_status || (newAmountPaid >= selectedSale.total_price ? 'paid' : 'partial')) as 'pending' | 'partial' | 'paid';
 
       toast.success(t('common.success'));
       
@@ -209,10 +218,10 @@ export function ReglementsBonsModule({ storeId }: ReglementsBonsModuleProps) {
       setCreditSales(sales => 
         sales.map(s => {
           if (s.id === selectedSale.id) {
-            return { ...s, amount_paid: newAmountPaid, payment_status: newStatus as any };
+            return { ...s, amount_paid: newAmountPaid, payment_status: newStatus };
           }
           return s;
-        }).filter(s => s.payment_status !== 'paid') // Remove fully paid from the list
+        }).filter(s => s.payment_status !== 'paid') // Keep partial payments, remove fully paid
       );
 
       // Notify other modules (EditionModule, FicheCaisseModule, etc.) to refresh
