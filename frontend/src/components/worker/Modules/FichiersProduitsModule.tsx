@@ -95,7 +95,7 @@ export function FichiersProduitsModule({ storeId, isMasterView }: FichiersProdui
         setLocalProducts(mapped);
       }
       if (familiesRes.data) {
-        console.log('[FichiersProduits] Families fetched:', familiesRes.data.length);
+        console.log('[FichiersProduits] Families fetched:', familiesRes.data?.length || 0);
         setFamilies(familiesRes.data as any);
       }
     } catch (err) {

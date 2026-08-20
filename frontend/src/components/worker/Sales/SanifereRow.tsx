@@ -147,7 +147,7 @@ export function SanifereRow({
                 onKeyDown={(e) => {
                   // SELECTION GUARD: If a scanner is typing AND the text is highlighted, 
                   // block the key so the highlight isn't deleted.
-                  if ((window as any).isScannerTyping && window.getSelection()?.toString().length) {
+                  if ((window as any).isScannerTyping && (window.getSelection()?.toString() || '').length > 0) {
                     e.preventDefault();
                   }
                 }}
@@ -179,7 +179,7 @@ export function SanifereRow({
           onKeyDown={(e) => {
             // SELECTION GUARD: If a scanner is typing AND the text is highlighted, 
             // block the key so the highlight (e.g., '1') isn't deleted.
-            if ((window as any).isScannerTyping && window.getSelection()?.toString().length) {
+            if ((window as any).isScannerTyping && (window.getSelection()?.toString() || '').length > 0) {
               e.preventDefault();
             }
           }}
