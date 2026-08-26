@@ -720,6 +720,7 @@ export function SalesModule({ storeId, mode }: SalesModuleProps) {
       if (error) throw error;
       toast.success(t('worker.sales.saleRecorded'));
       window.dispatchEvent(new CustomEvent('localDbDataUpdated', { detail: { type: 'sale' } }));
+      window.dispatchEvent(new CustomEvent('localDbDataUpdated', { detail: { type: 'client' } }));
       updateSession(mode, { lineItems: [], customerCode: '', customerName: '', customerAddress: '', orderRef: '', invoiceNumber: generateInvoiceNumber(), pendingSaleId: undefined });
       setSelectedIndex(-1);
     } catch (error) { console.error('[SalesModule] Sale recording failed:', error); toast.error(explainSaleError(error), { duration: 10000 }); }

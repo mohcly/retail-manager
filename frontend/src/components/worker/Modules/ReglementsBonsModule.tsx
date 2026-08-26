@@ -224,8 +224,9 @@ export function ReglementsBonsModule({ storeId }: ReglementsBonsModuleProps) {
         }).filter(s => s.payment_status !== 'paid') // Keep partial payments, remove fully paid
       );
 
-      // Notify other modules (EditionModule, FicheCaisseModule, etc.) to refresh
+      // Notify other modules (EditionModule, FicheCaisseModule, FichiersClientsModule, etc.) to refresh
       window.dispatchEvent(new CustomEvent('localDbDataUpdated', { detail: { type: 'sale' } }));
+      window.dispatchEvent(new CustomEvent('localDbDataUpdated', { detail: { type: 'client' } }));
       
       setIsDialogOpen(false);
       setSelectedSale(null);
