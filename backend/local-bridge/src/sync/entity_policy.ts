@@ -48,6 +48,7 @@ const LEDGER_ENTITIES = new Set([
   'sale_item',
   'cash_transaction',
   'inventory_movement',
+  'stock_adjustment',
   'purchase_item',
 ]);
 
