@@ -26,6 +26,11 @@ export class MonitoringService {
       Sentry.init({
         dsn: activeDsn,
         environment,
+        ignoreErrors: [
+          'ResizeObserver loop completed with undelivered notifications.',
+          'ResizeObserver loop limit exceeded',
+          /^ResizeObserver loop/,
+        ],
       });
       this.isInitialized = true;
       console.log('[MonitoringService] Sentry initialized successfully.');
