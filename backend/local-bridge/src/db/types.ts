@@ -284,6 +284,18 @@ export interface LocalInventoryMovement {
   created_by?: string | null;
 }
 
+export interface LocalStockAdjustment {
+  id: string;
+  store_id: string;
+  worker_id?: string | null;
+  product_id: string;
+  product_name?: string | null;
+  adjustment_type: 'loss' | 'damage' | 'inventory_count' | 'other' | string;
+  quantity_adjusted: number;
+  reason?: string | null;
+  created_at: string;
+}
+
 
 export interface LocalPendingMutation {
   id: string;
