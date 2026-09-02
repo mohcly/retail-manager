@@ -64,8 +64,20 @@
         return false;
       }
 
+      function isResizeObserverError(message, err) {
+        var strMsg = String(message || '');
+        var strErr = (err && (err.message || err.stack)) ? String(err.message || err.stack) : '';
+        return (
+          strMsg.indexOf('ResizeObserver loop') !== -1 ||
+          strErr.indexOf('ResizeObserver loop') !== -1
+        );
+      }
+
       window.onerror = function(message, source, lineno, colno, error) {
         if (handleChunkLoadError(message, error)) {
+          return true;
+        }
+        if (isResizeObserverError(message, error)) {
           return true;
         }
         var errDiv = document.createElement('div');
@@ -88,6 +100,10 @@
         var reason = event.reason || '';
         var reasonStr = typeof reason === 'object' ? (reason.message || '') : String(reason);
         if (handleChunkLoadError(reasonStr, reason)) {
+          event.preventDefault();
+          return;
+        }
+        if (isResizeObserverError(reasonStr, reason)) {
           event.preventDefault();
           return;
         }

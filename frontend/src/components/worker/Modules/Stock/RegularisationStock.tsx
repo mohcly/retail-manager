@@ -271,10 +271,10 @@ export function RegularisationStock({ storeId }: RegularisationStockProps) {
                     <Label className="text-[10px] font-bold uppercase text-muted-foreground">{t('menu.program.reason')}</Label>
                     <Select value={regReason} onValueChange={setRegReason}>
                       <SelectTrigger className="h-10 border-2 font-bold uppercase">
-                        <SelectValue placeholder={t('common.filter')} />
+                        <SelectValue placeholder={t('menu.program.reason') || 'Motif'} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Trouvé" className="uppercase font-bold text-success">{t('common.success')}</SelectItem>
+                        <SelectItem value="Trouvé" className="uppercase font-bold text-success">Trouvé</SelectItem>
                         <SelectItem value="Don / Cadeau" className="uppercase font-bold">{t('menu.program.reasonGiftDonation')}</SelectItem>
                         <SelectItem value="Erreur de comptage" className="uppercase font-bold">{t('menu.program.reasonCountingError')}</SelectItem>
                         <SelectItem value="Retour client" className="uppercase font-bold">{t('menu.program.reasonCustomerReturn')}</SelectItem>
