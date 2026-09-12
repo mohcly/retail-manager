@@ -74,15 +74,8 @@ export function FichiersClientsModule({ storeId }: FichiersClientsModuleProps) {
     return amount.toLocaleString(i18n.language === 'bm' ? 'fr-ML' : i18n.language) + ' XAF';
   };
 
-  useEffect(() => {
-    if (storeId) {
-      fetchClients();
-      fetchServices();
-    }
-  }, [storeId]);
-
-  const fetchClients = async () => {
-    if (!useLocalBridge) return;
+  const fetchClients = useCallback(async () => {
+    if (!useLocalBridge || !storeId) return;
     setLoading(true);
     try {
       const data = await localBridgeRequest<Client[]>(
@@ -95,10 +88,10 @@ export function FichiersClientsModule({ storeId }: FichiersClientsModuleProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [storeId, useLocalBridge, localBridgeRequest, setClients, setLoading, t]);
 
-  const fetchServices = async () => {
-    if (!useLocalBridge) return;
+  const fetchServices = useCallback(async () => {
+    if (!useLocalBridge || !storeId) return;
     try {
       const data = await localBridgeRequest<ClientService[]>(
         `/rest/v1/client_services?${new URLSearchParams({ store_id: storeId }).toString()}`
@@ -107,7 +100,24 @@ export function FichiersClientsModule({ storeId }: FichiersClientsModuleProps) {
     } catch (error) {
       console.error('Failed to fetch services:', error);
     }
-  };
+  }, [storeId, useLocalBridge, localBridgeRequest, setServices]);
+
+  useEffect(() => {
+    if (storeId) {
+      fetchClients();
+      fetchServices();
+    }
+  }, [storeId, fetchClients, fetchServices]);
+
+  useEffect(() => {
+    const handleRefresh = (e: any) => {
+      if (e.detail?.type === 'client' || e.detail?.type === 'sale') {
+        fetchClients();
+      }
+    };
+    window.addEventListener('localDbDataUpdated', handleRefresh);
+    return () => window.removeEventListener('localDbDataUpdated', handleRefresh);
+  }, [fetchClients]);
 
   const filteredClients = useMemo(() => {
     return clients.filter((c) =>

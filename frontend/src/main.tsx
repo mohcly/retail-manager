@@ -8,6 +8,21 @@ import "./i18n/config";
 // Initialize Sentry Monitoring Service
 MonitoringService.init();
 
+// Suppress benign ResizeObserver loop notifications from triggering runtime error screens
+const resizeObserverLoopErr = /ResizeObserver loop/;
+window.addEventListener('error', (e) => {
+  if (e.message && resizeObserverLoopErr.test(e.message)) {
+    e.stopImmediatePropagation();
+    e.preventDefault();
+  }
+});
+window.addEventListener('unhandledrejection', (e) => {
+  if (e.reason && typeof e.reason.message === 'string' && resizeObserverLoopErr.test(e.reason.message)) {
+    e.stopImmediatePropagation();
+    e.preventDefault();
+  }
+});
+
 console.log('🚀 Bootstrapping Djati...');
 
 // Emergency: Wipe browser storage once to clear corrupt data

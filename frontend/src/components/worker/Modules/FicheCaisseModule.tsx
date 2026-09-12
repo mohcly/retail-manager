@@ -90,9 +90,10 @@ export function FicheCaisseModule({ storeId }: FicheCaisseModuleProps) {
       const headers = await OfflineAuthService.getAuthHeaders();
       if (!headers) return;
 
-      // Fetch Sales
+      // Fetch Sales, Payments and Cash Transactions
       const sales = await OfflineAuthService.localBridgeRequest<any[]>(`/rest/v1/sales?store_id=${storeId}`, { method: 'GET' });
       const payments = await OfflineAuthService.localBridgeRequest<any[]>(`/rest/v1/supplier_payments?store_id=${storeId}`, { method: 'GET' });
+      const cashTxs = await OfflineAuthService.localBridgeRequest<any[]>(`/rest/v1/cash_transactions?store_id=${storeId}`, { method: 'GET' }).catch(() => []);
       
       const salesRes = { ok: true }; // Mock to keep the rest of the logic intact
 
@@ -118,30 +119,32 @@ export function FicheCaisseModule({ storeId }: FicheCaisseModuleProps) {
           .filter(p => p.created_at && new Date(p.created_at) >= todayStart)
           .reduce((sum, p) => sum + (p.amount || 0), 0);
 
-        // Cash actually received TODAY against credit sales - i.e. settlements
-        // (partial or full) made in ReglementsBonsModule during this session's
-        // day. Covers a credit sale opened on any earlier date but paid today,
-        // which is why it filters on updated_at (the settlement touches the
-        // sale row) rather than created_at.
-        //
-        // This used to filter on payment_method only, with NO date bound at
-        // all - the variable was even named allSales - so it summed
-        // amount_paid across every credit sale in the store's entire history
-        // and reported it as a single day's takings. On a real till that read
-        // 42,659,500 FCFA of "Règlt. CREDIT" for a day with no sales at all,
-        // which also inflated Total ENCAISSEMENTS and the ORDINATEUR column
-        // it feeds, making the closing sheet impossible to reconcile.
-        const creditSettledToday = (sales as any[]).filter(
-          s =>
-            s.payment_method === 'credit' &&
-            s.sale_type !== 'proforma' &&
-            s.updated_at &&
-            new Date(s.updated_at) >= todayStart
+        // Cash actually received TODAY against credit sales from cash_transactions ledger.
+        // Every settlement via /settle inserts a cash_transaction with category='client_payment'.
+        const creditTxToday = (cashTxs || []).filter(
+          tx =>
+            tx.category === 'client_payment' &&
+            tx.type === 'in' &&
+            tx.created_at &&
+            new Date(tx.created_at) >= todayStart
         );
-        const settlementTotal = creditSettledToday.reduce((sum, s) => {
-          const paid = Number(s.amount_paid) || 0;
-          return sum + paid;
-        }, 0);
+
+        let settlementTotal = creditTxToday.reduce((sum, tx) => sum + (Number(tx.amount) || 0), 0);
+
+        // Fallback for legacy records prior to cash_transaction logging
+        if (creditTxToday.length === 0) {
+          const creditSettledToday = (sales as any[]).filter(
+            s =>
+              s.payment_method === 'credit' &&
+              s.sale_type !== 'proforma' &&
+              s.updated_at &&
+              new Date(s.updated_at) >= todayStart
+          );
+          settlementTotal = creditSettledToday.reduce((sum, s) => {
+            const paid = Number(s.amount_paid) || 0;
+            return sum + paid;
+          }, 0);
+        }
 
         setDayData(prev => ({ 
           ...prev, 

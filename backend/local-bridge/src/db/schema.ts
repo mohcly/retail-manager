@@ -421,6 +421,21 @@ export const initializeSchema = (db: Database.Database) => {
     CREATE INDEX IF NOT EXISTS idx_deliveries_store ON deliveries(store_id);
     CREATE INDEX IF NOT EXISTS idx_sales_store ON sales(store_id);
     CREATE INDEX IF NOT EXISTS idx_sale_items_sale ON sale_items(sale_id);
+    CREATE TABLE IF NOT EXISTS stock_adjustments (
+      id TEXT PRIMARY KEY,
+      store_id TEXT NOT NULL,
+      worker_id TEXT,
+      product_id TEXT NOT NULL,
+      adjustment_type TEXT NOT NULL,
+      quantity_adjusted REAL NOT NULL,
+      reason TEXT,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (store_id) REFERENCES stores(id),
+      FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_stock_adjustments_store ON stock_adjustments(store_id);
+    CREATE INDEX IF NOT EXISTS idx_stock_adjustments_product ON stock_adjustments(product_id);
     CREATE INDEX IF NOT EXISTS idx_inventory_movements_store ON inventory_movements(store_id);
     CREATE INDEX IF NOT EXISTS idx_inventory_movements_product ON inventory_movements(product_id);
     CREATE INDEX IF NOT EXISTS idx_pending_mutations_status ON pending_mutations(status);

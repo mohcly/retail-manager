@@ -57,6 +57,7 @@ export const SUPABASE_TABLE_MAP: Record<string, string> = {
   // existing "Retry failed" button releases - rather than being silently
   // dropped for a reason nobody can see.
   inventory_movement: 'inventory_movements',
+  stock_adjustment: 'stock_adjustments',
 };
 
 type PayloadBuilder = (raw: Record<string, unknown>) => Record<string, unknown>;
@@ -193,6 +194,11 @@ const PAYLOAD_BUILDERS: Record<string, PayloadBuilder> = {
   inventory_movement: (raw) => pick(raw, [
     'id', 'store_id', 'product_id', 'product_name', 'movement_type',
     'quantity', 'reason', 'source', 'created_at',
+  ]),
+
+  stock_adjustment: (raw) => pick(raw, [
+    'id', 'store_id', 'product_id', 'adjustment_type',
+    'quantity_adjusted', 'reason', 'created_at',
   ]),
 };
 

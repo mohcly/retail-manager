@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import crypto from 'crypto';
 import { db } from '../db/index.js';
+import { emitOutbox } from '../db/repositories/sync_helpers.js';
 import { authenticateRequest } from './utils/auth.js';
 
 const listQuerySchema = z.object({
@@ -371,6 +372,124 @@ export async function registerProductRoutes(app: FastifyInstance) {
     });
 
     return reply.status(201).send({ id: movementId });
+  });
+
+  app.get('/rest/v1/stock_adjustments', async (request, reply) => {
+    const claims = authenticateRequest(request, reply);
+    if (!claims) return;
+
+    const query = z
+      .object({
+        store_id: z.string().optional(),
+        limit: z.string().transform(Number).optional(),
+      })
+      .safeParse(request.query ?? {});
+
+    const storeId = query.success && query.data.store_id ? query.data.store_id : claims.store_id;
+    const limit = query.success && query.data.limit ? query.data.limit : 100;
+
+    if (!storeId && claims.role !== 'master') {
+      return reply.status(400).send({ error: 'StoreRequired', message: 'Store is required.' });
+    }
+
+    const adjustments = db.listStockAdjustments(storeId || undefined, limit);
+    return reply.send(adjustments);
+  });
+
+  app.post('/rest/v1/stock_adjustments', async (request, reply) => {
+    const claims = authenticateRequest(request, reply, ['master', 'worker']);
+    if (!claims) return;
+
+    const parsed = z
+      .object({
+        id: z.string().optional(),
+        store_id: z.string().optional(),
+        worker_id: z.string().nullable().optional(),
+        product_id: z.string().min(1),
+        adjustment_type: z.enum(['loss', 'damage', 'inventory_count', 'other']),
+        quantity_adjusted: z.number(),
+        reason: z.string().nullable().optional(),
+      })
+      .safeParse(request.body ?? {});
+
+    if (!parsed.success) {
+      return reply.status(400).send({ error: 'ValidationFailed', details: parsed.error.flatten() });
+    }
+
+    const storeId = parsed.data.store_id ?? claims.store_id;
+    if (!storeId) {
+      return reply.status(400).send({ error: 'StoreRequired', message: 'Store is required.' });
+    }
+
+    const product = db.getProductById(parsed.data.product_id);
+    if (!product) {
+      return reply.status(404).send({ error: 'NotFound', message: 'Product not found.' });
+    }
+
+    const adjId = parsed.data.id || crypto.randomUUID();
+    const now = new Date().toISOString();
+    const delta = parsed.data.quantity_adjusted;
+    const nextQuantity = Math.max(0, (product.quantity ?? 0) + delta);
+
+    const tx = db.db.transaction(() => {
+      // 1. Insert stock adjustment record
+      db.insertStockAdjustment({
+        id: adjId,
+        store_id: storeId,
+        worker_id: parsed.data.worker_id ?? claims.sub ?? null,
+        product_id: parsed.data.product_id,
+        adjustment_type: parsed.data.adjustment_type,
+        quantity_adjusted: delta,
+        reason: parsed.data.reason ?? null,
+        created_at: now,
+      });
+
+      // 2. Update product quantity & bump version
+      db.updateProduct(parsed.data.product_id, {
+        quantity: nextQuantity,
+        updated_at: now,
+        updated_by: claims.sub,
+      });
+
+      // 3. Log inventory movement for audit/movement tracking
+      db.insertInventoryMovement({
+        id: crypto.randomUUID(),
+        store_id: storeId,
+        product_id: parsed.data.product_id,
+        product_name: product.name,
+        movement_type: delta >= 0 ? 'in' : 'out',
+        quantity: Math.abs(delta),
+        reason: parsed.data.reason || `Ajustement de stock (${parsed.data.adjustment_type})`,
+        source: 'manual_adjustment',
+        created_at: now,
+        created_by: claims.sub,
+      });
+    });
+
+    tx();
+
+    // 4. Emit outbox sync event
+    emitOutbox(db.db, storeId, 'stock_adjustment', adjId, 'create', {
+      id: adjId,
+      store_id: storeId,
+      worker_id: parsed.data.worker_id ?? claims.sub ?? null,
+      product_id: parsed.data.product_id,
+      adjustment_type: parsed.data.adjustment_type,
+      quantity_adjusted: delta,
+      reason: parsed.data.reason ?? null,
+      created_at: now,
+    });
+
+    return reply.status(201).send({
+      id: adjId,
+      store_id: storeId,
+      product_id: parsed.data.product_id,
+      product_name: product.name,
+      adjustment_type: parsed.data.adjustment_type,
+      quantity_adjusted: delta,
+      reason: parsed.data.reason,
+      created_at: now,
+    });
   });
 
   app.get('/rest/v1/product_families', async (request, reply) => {

@@ -452,11 +452,12 @@ export function SalesModule({ storeId, mode }: SalesModuleProps) {
   }, [lineItems, mode, updateSession]);
 
   const addProduct = useCallback((product: Product) => {
+    if (!product || !product.id) return;
     const clientDiscount = currentSession.clientDiscount || 0;
     let targetRow = -1;
 
     const price = getProductPrice(product, mode, activeTier);
-    const packSize = parseInt(product.packaging?.match(/\d+/)?.[0] || '1') || 1;
+    const packSize = parseInt(String(product.packaging || '1').match(/\d+/)?.[0] || '1', 10) || 1;
     const priceTiers = {
       1: product.unit_price || 0,
       2: product.selling_price_2 || product.unit_price || 0,
@@ -468,7 +469,7 @@ export function SalesModule({ storeId, mode }: SalesModuleProps) {
       id: crypto.randomUUID(),
       lineNumber: lineItems.length + 1,
       productId: product.id,
-      designation: product.name,
+      designation: product.name || '',
       code: product.sku || '',
       conditionnement: packSize,
       isBox: false,
@@ -706,7 +707,7 @@ export function SalesModule({ storeId, mode }: SalesModuleProps) {
         total_price: netTotal,
         amount_paid: amountPaid,
         payment_method: paymentMethod as 'cash' | 'card' | 'credit',
-        payment_status: paymentMethod === 'credit' ? 'pending' : 'paid',
+        payment_status: paymentMethod === 'credit' ? (amountPaid >= netTotal ? 'paid' : amountPaid > 0 ? 'partial' : 'pending') : 'paid',
         sale_type: saleType,
         customer_name: customerName || undefined,
         customer_phone: currentSession.customerPhone || matchedClient?.phone || undefined,
@@ -719,6 +720,7 @@ export function SalesModule({ storeId, mode }: SalesModuleProps) {
       if (error) throw error;
       toast.success(t('worker.sales.saleRecorded'));
       window.dispatchEvent(new CustomEvent('localDbDataUpdated', { detail: { type: 'sale' } }));
+      window.dispatchEvent(new CustomEvent('localDbDataUpdated', { detail: { type: 'client' } }));
       updateSession(mode, { lineItems: [], customerCode: '', customerName: '', customerAddress: '', orderRef: '', invoiceNumber: generateInvoiceNumber(), pendingSaleId: undefined });
       setSelectedIndex(-1);
     } catch (error) { console.error('[SalesModule] Sale recording failed:', error); toast.error(explainSaleError(error), { duration: 10000 }); }

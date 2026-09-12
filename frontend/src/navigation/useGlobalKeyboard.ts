@@ -86,7 +86,7 @@ export function useGlobalKeyboard() {
           return;
         }
         scanBufferRef.current = '';
-      } else if (e.key.length === 1) {
+      } else if (e.key && e.key.length === 1) {
         const isSuperHumanSpeed = timeSinceLastKey < 35;
         if (isSuperHumanSpeed) {
           scanBufferRef.current += e.key;
@@ -161,7 +161,7 @@ export function useGlobalKeyboard() {
       // ---------------------------------------------------------------
       if (state.mode === 'hover' && !isInput && state.activeCell) {
         // --- Type-to-Edit Capture ---
-        if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        if (e.key && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
           e.preventDefault();
           store.getState().setMode('edit');
           

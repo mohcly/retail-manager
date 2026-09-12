@@ -53,12 +53,21 @@ export function PaymentDialog({
 
   const isCredit = selectedMethod === 'credit';
   const change = amountReceived - totalAmount;
-  const remaining = isCredit ? totalAmount - partialPayment : 0;
+  const remaining = isCredit ? Math.max(0, totalAmount - (Number(partialPayment) || 0)) : 0;
+
+  const handleMethodChange = (method: PaymentMethod) => {
+    setSelectedMethod(method);
+    if (method === 'credit') {
+      setPartialPayment(0); // Default down payment is 0 CFA for credit sales
+    } else {
+      setAmountReceived(totalAmount);
+    }
+  };
 
   const handleConfirm = async () => {
     if (isProcessing) return;
     setIsProcessing(true);
-    const amountPaid = isCredit ? partialPayment : amountReceived;
+    const amountPaid = isCredit ? Number(partialPayment) || 0 : Number(amountReceived) || 0;
     try {
       await onConfirm(selectedMethod, amountPaid, isCredit);
       onOpenChange(false);
@@ -70,24 +79,17 @@ export function PaymentDialog({
   // Auto-select text when dialog opens
   useEffect(() => {
     if (open) {
-      console.log('[PaymentDialog] Dialog opened, resetting amount and triggering auto-select...');
       setAmountReceived(totalAmount);
-      setPartialPayment(totalAmount);
+      setPartialPayment(0); // For credit, start at 0 down payment
       
       const timer = setTimeout(() => {
         if (inputRef.current) {
-          // NumericInput selects its own text on focus (see numeric-input.tsx)
-          // via .select() - do NOT also call setSelectionRange() here: it's
-          // redundant, and the input is type="number", which does not support
-          // setSelectionRange at all (throws InvalidStateError, crashing the
-          // payment dialog the instant a worker opens it).
           inputRef.current.focus();
-          console.log('[PaymentDialog] Input focused');
         }
       }, 150);
       return () => clearTimeout(timer);
     }
-  }, [open]);
+  }, [open, totalAmount]);
 
   const quickAmounts = getCurrencyConfig(currency).quickAmounts;
 
@@ -122,7 +124,7 @@ export function PaymentDialog({
             {paymentMethods.map((method) => (
               <button
                 key={method.id}
-                onClick={() => setSelectedMethod(method.id)}
+                onClick={() => handleMethodChange(method.id)}
                 className={cn(
                   'p-3 rounded border-2 font-mono text-sm flex flex-col items-center gap-1 transition-all',
                   selectedMethod === method.id

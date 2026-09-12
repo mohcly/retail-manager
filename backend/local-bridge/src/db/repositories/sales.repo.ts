@@ -129,9 +129,41 @@ export const createSalesRepo = (db: Database.Database) => {
         });
       }
 
-      // 3. Update Client Balance if credit
-      if (saleData.payment_method === 'credit' && (saleData as any).client_id) {
-        stmts.updateClientBalance.run(saleData.total_price, (saleData as any).client_id);
+      // 3. Update Client Balance if there is unpaid credit on a client account
+      const clientId = (saleData as any).client_id;
+      const totalPrice = Number(saleData.total_price) || 0;
+      const amountPaid = saleData.amount_paid != null ? Number(saleData.amount_paid) : (saleData.payment_method === 'credit' ? 0 : totalPrice);
+      const unpaidAmount = totalPrice - amountPaid;
+      const now = new Date().toISOString();
+
+      if (clientId && unpaidAmount > 0) {
+        db.prepare(`
+          UPDATE clients
+          SET current_balance = current_balance + ?, updated_at = ?, version = version + 1
+          WHERE id = ?
+        `).run(unpaidAmount, now, clientId);
+      }
+
+      if (amountPaid > 0 && saleData.payment_method === 'credit') {
+        // Record down payment in cash ledger
+        db.prepare(`
+          INSERT INTO cash_transactions (
+            id, store_id, worker_id, type, amount, category, description, reference, created_at, updated_at
+          ) VALUES (
+            @id, @store_id, @worker_id, @type, @amount, @category, @description, @reference, @created_at, @updated_at
+          )
+        `).run({
+          id: crypto.randomUUID(),
+          store_id: saleData.store_id,
+          worker_id: saleData.worker_id ?? null,
+          type: 'in',
+          amount: amountPaid,
+          category: 'client_payment',
+          description: `Acompte vente ${saleData.invoice_number || saleData.id.slice(0, 8)}`,
+          reference: clientId || saleData.id,
+          created_at: saleData.created_at || now,
+          updated_at: saleData.created_at || now,
+        });
       }
     });
 
@@ -141,6 +173,14 @@ export const createSalesRepo = (db: Database.Database) => {
     emitOutbox(db, sale.store_id, 'sale', sale.id, 'create', sale as unknown as Record<string, unknown>);
     for (const item of items) {
       emitOutbox(db, sale.store_id, 'sale_item', item.id, 'create', item as unknown as Record<string, unknown>);
+    }
+
+    const clientId = (sale as any).client_id;
+    if (clientId) {
+      const clientRow = db.prepare('SELECT * FROM clients WHERE id = ? LIMIT 1').get(clientId) as any;
+      if (clientRow) {
+        emitOutbox(db, clientRow.store_id, 'client', clientRow.id, 'update', clientRow as unknown as Record<string, unknown>, (clientRow.version || 1) - 1);
+      }
     }
   },
 

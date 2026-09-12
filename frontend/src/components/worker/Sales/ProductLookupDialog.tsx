@@ -79,10 +79,11 @@ export function ProductLookupDialog({
   }, [mode]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!e.key) return;
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
-        setSelectedIndex(i => Math.min(i + 1, results.length - 1));
+        setSelectedIndex(i => Math.min(i + 1, Math.max(0, (results?.length || 0) - 1)));
         break;
       case 'ArrowUp':
         e.preventDefault();
@@ -90,7 +91,7 @@ export function ProductLookupDialog({
         break;
       case 'Enter':
         e.preventDefault();
-        if (results[selectedIndex]) {
+        if (results && results[selectedIndex]) {
           onSelect(results[selectedIndex] as any as Product);
           onOpenChange(false);
         }
@@ -104,7 +105,7 @@ export function ProductLookupDialog({
 
   const getStoreName = (sId?: string) => {
     if (!sId) return '-';
-    return stores.find(s => s.id === sId)?.name || sId.slice(0, 8);
+    return (stores || []).find(s => s.id === sId)?.name || sId.slice(0, 8);
   };
 
   return (
@@ -128,7 +129,7 @@ export function ProductLookupDialog({
                 <Input
                     autoFocus
                     placeholder={t('common.search')}
-                    value={search}
+                    value={search || ''}
                     onChange={(e) => setSearch(e.target.value)}
                     className={cn("bg-white border-2 font-mono h-12 text-lg", standalone ? "border-primary/20" : "border-[hsl(180,60%,40%)]")}
                 />
@@ -158,11 +159,11 @@ export function ProductLookupDialog({
                 <RefreshCw className="h-8 w-8 animate-spin text-primary" />
                 <p className="font-black uppercase tracking-widest text-xs">{t('common.searching')}</p>
               </div>
-            ) : search.length < 2 ? (
+            ) : (search || '').length < 2 ? (
               <div className="py-20 text-center text-muted-foreground font-black uppercase tracking-[0.2em] opacity-40">
                 {t('pos.searchPrompt') || 'Type at least 2 letters to search...'}
               </div>
-            ) : results.length === 0 ? (
+            ) : (results || []).length === 0 ? (
               <div className="py-20 text-center text-muted-foreground font-black uppercase tracking-[0.2em] opacity-20">
                 {t('common.noData')}
               </div>
@@ -235,7 +236,7 @@ export function ProductLookupDialog({
             <span>{t('common.enterConfirm')}</span>
             <span>{t('common.escClose')}</span>
           </div>
-          <span>{t('common.itemsFound', { count: results.length })}</span>
+          <span>{t('common.itemsFound', { count: results?.length || 0 })}</span>
         </div>
       </DialogContent>
     </Dialog>
