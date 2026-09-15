@@ -27,6 +27,7 @@ read it before proposing what to work on next.
 - **Payload Pruning**: Added `npm prune --production` to `scripts/prepare-sidecar-payload.ps1` to prevent shipping 15,000+ devDependency files in the sidecar zip.
 - Verified: `cargo check` clean on wrapper, `npm run build` clean on both local-bridge and frontend.
 - Committed as `2c345ce` and pushed to `stadium91/retail-manager` on branch `main-stihl-niamakoro`.
+- Triggered Windows CI workflow (`build.yml`) via `workflow_dispatch` on `main-stihl-niamakoro`: GitHub Actions Run [34975549482](https://github.com/stadium91/retail-manager/actions/runs/34975549482).
 
 ## Status Update — 2026-09-14 (Dibidani desktop build triggered + auth endpoints ported)
 
