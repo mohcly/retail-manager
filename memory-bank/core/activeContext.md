@@ -19,6 +19,22 @@ Diagnosis (everything fails silently) + the three structural problems (five copi
 codebase, no field feedback loop, inverted trust chain) + ordered plan. Agreed, NOT started —
 read it before proposing what to work on next.
 
+## Status Update — 2026-09-14 (Niamakoro desktop sidecar path mismatch & launcher extraction fix)
+
+- Root-caused the Niamakoro desktop app failure (`Cloud: Invalid login credentials. Local: Failed to fetch (127.0.0.1:8787)` and absence of Windows Defender Firewall port-binding prompt).
+- **Capability / Path Mismatch**: `src-tauri/capabilities/sidecar.json` authorized only `"binaries/local-bridge"`, while `src-tauri/src/lib.rs` invoked `shell.sidecar("local-bridge")`, causing Tauri v2 to deny/fail sidecar creation before spawning. Updated `src-tauri/capabilities/sidecar.json` to allow both and `src-tauri/src/lib.rs` to fallback: `shell.sidecar("binaries/local-bridge").or_else(|_| shell.sidecar("local-bridge"))`.
+- **Sidecar-Wrapper Hardening**: In `backend/sidecar-wrapper/src/main.rs`, replaced the blocking PowerShell cleanup with `sysinfo`-based termination of any stale processes in `%TEMP%\retail-manager-sidecar`, made zip extraction resilient to individual non-fatal file errors, wrote `version.txt` only upon complete extraction, and added `CREATE_NO_WINDOW` flag for node execution.
+- **Payload Pruning**: Added `npm prune --production` to `scripts/prepare-sidecar-payload.ps1` to prevent shipping 15,000+ devDependency files in the sidecar zip.
+- Verified: `cargo check` clean on wrapper, `npm run build` clean on both local-bridge and frontend.
+- Committed as `2c345ce` and pushed to `stadium91/retail-manager` on branch `main-stihl-niamakoro`.
+
+## Status Update — 2026-09-14 (Dibidani desktop build triggered + auth endpoints ported)
+
+- Ported `/auth/sync-cloud-login`, `/auth/bootstrap-cloud`, and `/health` `isBootstrapped` to `main-stihl-dibidani` (`backend/local-bridge/src/routes/auth.ts` and `src/index.ts`).
+- Clean local build verified (`npm run build` passing for both backend and frontend).
+- Committed as `5ab4529` and pushed to `stadium91/retail-manager`.
+- Triggered Windows CI workflow (`build.yml`) via `workflow_dispatch` on `main-stihl-dibidani`: GitHub Actions Run [34842673413](https://github.com/stadium91/retail-manager/actions/runs/34842673413).
+
 ## Status Update — 2026-07-31 ("money bugs" ported to all 4 remaining targets + web prod deploy)
 
 Source commit `ef532ca` on `main-niamana-dubai` (remise theatre, gros-tier pricing, real
