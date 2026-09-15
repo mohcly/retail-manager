@@ -5,7 +5,7 @@ use std::env;
 use std::path::PathBuf;
 
 fn get_log_path() -> PathBuf {
-    let mut path = if let Ok(local_app_data) = env::var("LOCALAPPDATA") {
+    let path = if let Ok(local_app_data) = env::var("LOCALAPPDATA") {
         PathBuf::from(local_app_data).join("retail-manager-logs")
     } else {
         env::temp_dir().join("retail-manager-logs")
@@ -32,22 +32,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     let log_path = get_log_path();
     let mut log_file = OpenOptions::new().create(true).append(true).open(log_path)?;
 
-    writeln!(log_file, "--- Wrapper Starting (v2.1) ---")?;
-
-    // EMERGENCY CLEANUP: Kill any process on 8787
-    #[cfg(windows)]
-    {
-        writeln!(log_file, "Cleaning up port 8787...")?;
-        let _ = Command::new("powershell")
-            .args(["-Command", "Get-NetTCPConnection -LocalPort 8787 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }"])
-            .status();
-    }
-
-    // Embed the architecture-specific payload zip
-    // The PAYLOAD_FILE env var is set by the build script
-    let payload = include_bytes!(env!("PAYLOAD_FILE"));
-    let reader = std::io::Cursor::new(payload);
-    let mut archive = zip::ZipArchive::new(reader)?;
+    writeln!(log_file, "--- Wrapper Starting (v2.2) ---")?;
 
     // Extract to a known temp directory
     let temp_dir = env::temp_dir().join("retail-manager-sidecar");
@@ -61,22 +46,69 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         writeln!(log_file, "Temp dir exists.")?;
     }
 
+    // PROCESS & PORT CLEANUP
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+
+        let _ = writeln!(log_file, "Cleaning up existing sidecar processes and port 8787...");
+
+        // 1. Terminate any stale processes running from temp_dir
+        let mut sys = sysinfo::System::new_all();
+        sys.refresh_all();
+        for (_pid, process) in sys.processes() {
+            if let Some(exe) = process.exe() {
+                if exe.starts_with(&temp_dir) {
+                    let _ = writeln!(log_file, "Killing stale process from temp_dir: {:?}", exe);
+                    process.kill();
+                }
+            }
+        }
+
+        // 2. Kill any process holding port 8787 via PowerShell
+        let _ = Command::new("powershell")
+            .args([
+                "-NoProfile",
+                "-NonInteractive",
+                "-ExecutionPolicy", "Bypass",
+                "-Command",
+                "Get-NetTCPConnection -LocalPort 8787 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }"
+            ])
+            .creation_flags(CREATE_NO_WINDOW)
+            .status();
+    }
+
+    // Embed the architecture-specific payload zip
+    // The PAYLOAD_FILE env var is set by the build script
+    let payload = include_bytes!(env!("PAYLOAD_FILE"));
+    let reader = std::io::Cursor::new(payload);
+    let mut archive = zip::ZipArchive::new(reader)?;
+
+    // Read version from zip if present
+    let mut zip_version_str = None;
+    if let Ok(mut zip_version_file) = archive.by_name("version.txt") {
+        let mut ver = String::new();
+        use std::io::Read;
+        if zip_version_file.read_to_string(&mut ver).is_ok() {
+            zip_version_str = Some(ver.trim().to_string());
+        }
+    }
+
     // VERSION CHECK: Compare version.txt in zip with version.txt in temp_dir
     let mut needs_extraction = true;
     let local_version_path = temp_dir.join("version.txt");
+    let node_path = temp_dir.join("node.exe");
+    let script_path = temp_dir.join("dist").join("index.js");
     
-    if local_version_path.exists() {
-        if let Ok(mut zip_version_file) = archive.by_name("version.txt") {
-            let mut zip_version = String::new();
-            use std::io::Read;
-            if zip_version_file.read_to_string(&mut zip_version).is_ok() {
-                if let Ok(local_version) = fs::read_to_string(&local_version_path) {
-                    if zip_version.trim() == local_version.trim() {
-                        needs_extraction = false;
-                        writeln!(log_file, "Version matches ({}). Skipping extraction.", zip_version.trim())?;
-                    } else {
-                        writeln!(log_file, "Version mismatch (Local: {}, Zip: {}). Re-extracting...", local_version.trim(), zip_version.trim())?;
-                    }
+    if local_version_path.exists() && node_path.exists() && script_path.exists() {
+        if let Some(ref z_ver) = zip_version_str {
+            if let Ok(local_version) = fs::read_to_string(&local_version_path) {
+                if z_ver == local_version.trim() {
+                    needs_extraction = false;
+                    writeln!(log_file, "Version matches ({}). Skipping extraction.", z_ver)?;
+                } else {
+                    writeln!(log_file, "Version mismatch (Local: {}, Zip: {}). Re-extracting...", local_version.trim(), z_ver)?;
                 }
             }
         }
@@ -92,32 +124,51 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
                 None => continue,
             };
 
+            // Don't extract version.txt during the loop; write it only when all files finish
+            if outpath == local_version_path {
+                continue;
+            }
+
             // Check for directory (handles both / and \)
             if (*file.name()).ends_with('/') || (*file.name()).ends_with('\\') {
-                fs::create_dir_all(&outpath)?;
+                let _ = fs::create_dir_all(&outpath);
             } else {
                 if let Some(p) = outpath.parent() {
                     if !p.exists() {
-                        fs::create_dir_all(p)?;
+                        let _ = fs::create_dir_all(p);
                     }
                 }
-                let mut outfile = fs::File::create(&outpath)?;
-                io::copy(&mut file, &mut outfile)?;
+                match fs::File::create(&outpath) {
+                    Ok(mut outfile) => {
+                        if let Err(e) = io::copy(&mut file, &mut outfile) {
+                            let _ = writeln!(log_file, "Warning: failed to write {:?}: {}", outpath, e);
+                        }
+                    }
+                    Err(e) => {
+                        let _ = writeln!(log_file, "Warning: failed to create {:?}: {}", outpath, e);
+                    }
+                }
             }
         }
-    }
 
-    // Path to the entry script
-    let script_path = temp_dir.join("dist").join("index.js");
-    // Path to the bundled node executable
-    let node_path = temp_dir.join("node.exe");
+        // Write version.txt only after full extraction loop completes
+        if let Some(ref z_ver) = zip_version_str {
+            let _ = fs::write(&local_version_path, z_ver);
+            let _ = writeln!(log_file, "Extraction complete. Wrote version: {}", z_ver);
+        }
+    }
 
     writeln!(log_file, "Node Path: {:?}", node_path)?;
     writeln!(log_file, "Script Path: {:?}", script_path)?;
 
     if !node_path.exists() {
-        writeln!(log_file, "CRITICAL: node.exe not found!")?;
+        writeln!(log_file, "CRITICAL: node.exe not found at {:?}", node_path)?;
         return Err(format!("Critical Error: node.exe not found at {:?}", node_path).into());
+    }
+
+    if !script_path.exists() {
+        writeln!(log_file, "CRITICAL: script not found at {:?}", script_path)?;
+        return Err(format!("Critical Error: script not found at {:?}", script_path).into());
     }
 
     // Collect args passed to this executable
@@ -126,20 +177,6 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
 
     writeln!(log_file, "Starting backend server via bundled Node...")?;
     writeln!(log_file, "Wrapper Architecture: {}", std::env::consts::ARCH)?;
-    
-    // WATCHDOG: Start a thread to monitor if the parent process dies
-    let parent_pid = {
-        #[cfg(windows)]
-        {
-            use std::os::windows::io::AsRawHandle;
-            // On Windows, we can use the current process to find our parent
-            // But a simpler way is to just let the child die when the job object closes.
-            // However, a dedicated thread is safer.
-            std::process::id()
-        }
-        #[cfg(not(windows))]
-        { std::process::id() }
-    };
 
     // Baked in at compile time from the SUPABASE_SERVICE_KEY_BUILD build-time
     // env var (set by CI from a repo secret) — the sidecar has no other way
@@ -148,12 +185,21 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     let supabase_service_key = option_env!("SUPABASE_SERVICE_KEY_BUILD").unwrap_or("");
 
     // Spawn the node process
-    let mut child = Command::new(&node_path)
-        .arg(&script_path)
-        .args(args)
-        .current_dir(&temp_dir) // Important for require() resolution
-        .env("SUPABASE_SERVICE_KEY", supabase_service_key)
-        .spawn();
+    #[cfg(windows)]
+    use std::os::windows::process::CommandExt;
+    #[cfg(windows)]
+    const CREATE_NO_WINDOW: u32 = 0x08000000;
+
+    let mut cmd = Command::new(&node_path);
+    cmd.arg(&script_path)
+       .args(args)
+       .current_dir(&temp_dir) // Important for require() resolution
+       .env("SUPABASE_SERVICE_KEY", supabase_service_key);
+
+    #[cfg(windows)]
+    cmd.creation_flags(CREATE_NO_WINDOW);
+
+    let child = cmd.spawn();
 
     match child {
         Ok(mut child) => {

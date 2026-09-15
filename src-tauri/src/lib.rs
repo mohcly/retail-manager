@@ -74,9 +74,13 @@ pub fn run() {
       let mut file = OpenOptions::new().create(true).append(true).open(log_path).unwrap();
       let _ = writeln!(file, "App starting... {}", std::env::consts::ARCH);
 
-      match shell.sidecar("local-bridge") {
-        Ok(sidecar_command) => {
-          match sidecar_command.spawn() {
+      let sidecar_command = shell
+        .sidecar("binaries/local-bridge")
+        .or_else(|_| shell.sidecar("local-bridge"));
+
+      match sidecar_command {
+        Ok(cmd) => {
+          match cmd.spawn() {
             Ok((mut rx, _child)) => {
               let _ = writeln!(file, "Sidecar spawn command successful.");
               // Create a background task to pipe sidecar logs to Tauri logs
