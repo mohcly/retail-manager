@@ -13,3 +13,18 @@
 - Verification: Ran `cargo check` in `src-tauri`; validated clean compilation without warnings or errors.
 - Status: FIXED
 - Tags: tauri, windows, sidecar, local-bridge, nsis, networking
+
+### [2026-09-25] Store Attribution & Random Store UUID Fallback on New Client Installations
+- Symptom: When installing the app on a new device (e.g. family laptop) and signing in with an account having no pre-configured store_id in user_roles (such as a master account), the system generated a random UUID and created a generic 'Retail Store', isolating the device from the target store (STIHL Niamakoro) and causing empty sync pulls.
+- Files involved: `frontend/src/contexts/AuthContext.tsx`, `frontend/src/services/OfflineAuthService.ts`, `backend/local-bridge/src/routes/auth.ts`
+- Root cause:
+  1. `AuthContext.tsx` and `OfflineAuthService.ts` lacked logic to resolve default target store from Supabase when `store_id` was absent on the user metadata/role, defaulting instead to `crypto.randomUUID()`.
+  2. `backend/local-bridge/src/routes/auth.ts` created fallback stores titled generic `'Store'` with random UUIDs.
+- Fix applied:
+  1. Updated `AuthContext.tsx` to query cloud stores from Supabase and specifically resolve to the Niamakoro store (`/niamakoro/i`) before falling back.
+  2. Updated `OfflineAuthService.ts` (`localBridgeSignIn` and session restore) to resolve the Niamakoro store from Supabase when `store_id` is missing.
+  3. Updated `backend/local-bridge/src/routes/auth.ts` fallback store names to `'STIHL Niamakoro'`.
+- Verification: Ran both `npm --prefix frontend run build` (vite build passed in 12.32s) and `npm --prefix backend/local-bridge run build` (tsc passed cleanly).
+- Status: FIXED
+- Tags: auth, multi-device, store-attribution, niamakoro, supabase, local-bridge
+
