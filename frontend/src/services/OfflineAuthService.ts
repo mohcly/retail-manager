@@ -674,16 +674,21 @@ export class OfflineAuthService {
         
       let finalRole = userRole || undefined;
       
-      if (!store_object && !store_id && finalRole === 'master') {
-          const { data: stores } = await supabase
-            .from('stores')
-            .select('*')
-            .eq('owner_id', data.user.id)
-            .limit(1);
-          
-          if (stores && stores.length > 0) {
-             store_id = stores[0].id;
-             store_object = stores[0];
+      if (!store_object && !store_id) {
+          try {
+            const { data: stores } = await supabase
+              .from('stores')
+              .select('*')
+              .order('name');
+            
+            if (stores && stores.length > 0) {
+               const niamakoroStore = stores.find((s: any) => /niamakoro/i.test(s.name));
+               const target = niamakoroStore || stores[0];
+               store_id = target.id;
+               store_object = target;
+            }
+          } catch (e) {
+            console.warn('[OfflineAuth] Failed to resolve Niamakoro store from Supabase:', e);
           }
       }
 
@@ -1270,11 +1275,16 @@ export class OfflineAuthService {
             // (an explicit store switcher is the real long-term answer for
             // masters overseeing multiple stores, not in scope here).
             if (!storeId && roles.some(r => r.role === 'master')) {
-              const { data: visibleStores } = await supabase
-                .from('stores')
-                .select('id')
-                .limit(1);
-              storeId = visibleStores?.[0]?.id;
+              try {
+                const { data: visibleStores } = await supabase
+                  .from('stores')
+                  .select('*')
+                  .order('name');
+                const niamakoroStore = visibleStores?.find((s: any) => /niamakoro/i.test(s.name));
+                storeId = (niamakoroStore || visibleStores?.[0])?.id;
+              } catch (e) {
+                console.warn('[OfflineAuth] Failed to resolve visible stores for Niamakoro fallback:', e);
+              }
             }
 
             if (storeId) {
