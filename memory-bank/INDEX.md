@@ -53,6 +53,8 @@ Located in: `core/` — **populated 2026-07-13**. Canonical Cline-style context 
 - **[`core/productContext.md`](core/productContext.md)** — why it exists, problems solved, four-sided users, monetization.
 - **[`core/activeContext.md`](core/activeContext.md)** — current branch/versions, focus (monorepo, Edition/Sales refactor, STIHL builds, PRD-014 sync), blockers, next steps.
 - **[`core/systemPatterns.md`](core/systemPatterns.md)** — repo/submodule topology, Tauri sidecar + repository patterns, offline-first, Windows-VM safety protocols.
+- **[`core/SENTRY_CI_CD_AUTO_HEAL_SPEC.md`](core/SENTRY_CI_CD_AUTO_HEAL_SPEC.md)** — **CRITICAL**: Sentry multi-branch tagging, headless GitHub Actions CI/CD auto-heal, and automated build verification.
+- **[`errors/ERRORS_INDEX.md`](errors/ERRORS_INDEX.md)** — **FIELD ERROR FEEDBACK HUB**: Per-branch and per-computer error logs across Dibidani, Niamakoro, Dubai, and MPM Food.
 - **[`core/techContext.md`](core/techContext.md)** — stack, versions, backend layout, multi-platform build.
 - **[`core/progress.md`](core/progress.md)** — done / in-progress / backlog snapshot.
 - **[`core/tasks.md`](core/tasks.md)** — detailed granular roadmap (see 2026-07-13 status reconciliation at top).

@@ -1,0 +1,15 @@
+# Retail Manager - Cursor Rules (.cursorrules)
+
+# Architecture & Discipline Constraints
+- Always search before writing code. Extend existing functions instead of duplicating.
+- Delete obsolete code immediately in the same change.
+- Never claim a task is completed without running real build tests:
+  - Backend: `cd backend/local-bridge && npm run build`
+  - Frontend: `cd frontend && npm run build`
+  - Types: `npx tsc --noEmit`
+- Multi-Branch Architecture:
+  - `main-stihl-dibidani` (STIHL Dibidani Store)
+  - `main-stihl-niamakoro` (STIHL Niamakoro Store)
+  - `main-stores-dubai` (Dubai / Niamana Store)
+  - `main-mpm-food` (MPM Food Restaurant)
+- When fixing an error from Sentry or CI/CD, document the issue in `memory-bank/errors/ERRORS_<BRANCH>.md` including the Computer Role, Organization, Operating System, and Verification output.

@@ -19,6 +19,16 @@ Diagnosis (everything fails silently) + the three structural problems (five copi
 codebase, no field feedback loop, inverted trust chain) + ordered plan. Agreed, NOT started —
 read it before proposing what to work on next.
 
+## Status Update — 2026-09-27 (Sentry + Autonomous CI/CD Error-Healing & Per-Branch Tracking System)
+
+- **Comprehensive Field Observability & Closed-Loop Healing Architecture Designed & Committed**:
+  - Solves the "blind field feedback loop" and "everything fails silently" bottleneck across the 4 field business targets (`main-stihl-dibidani`, `main-stihl-niamakoro`, `main-stores-dubai`, `main-mpm-food`).
+  - **Rules & Entrypoints Created**: Root `GEMINI.md`, `CLAUDE.md`, and `.cursorrules` now actively mandate engineering discipline, anti-duplication, and non-interactive build verification.
+  - **Headless Non-Interactive CI/CD Workflow**: Added `.github/workflows/auto-heal-and-test.yml` running on Sentry-labeled issues using `GEMINI_API_KEY` and `${{ secrets.GITHUB_TOKEN }}` with zero terminal prompts or copy-paste keys.
+  - **Automated Verification Loop**: The workflow verifies `backend/local-bridge` build, `frontend` build, and `npx tsc --noEmit` before proposing any Pull Request.
+  - **Per-Branch Error Documentation**: Created `memory-bank/errors/` with `ERRORS_INDEX.md` and dedicated per-branch logs (`ERRORS_STIHL_DIBIDANI.md`, `ERRORS_STIHL_NIAMAKORO.md`, `ERRORS_STORES_DUBAI.md`, `ERRORS_MPM_FOOD.md`) tracking errors by Organization, Computer Role (Caisse 1/2, Bureau), OS (Windows 11 POS, Android, macOS), and Runtime Layer.
+  - **Full Blueprint**: Documented in `memory-bank/core/SENTRY_CI_CD_AUTO_HEAL_SPEC.md`.
+
 ## Status Update — 2026-09-14 (Niamakoro desktop sidecar path mismatch & launcher extraction fix)
 
 - Root-caused the Niamakoro desktop app failure (`Cloud: Invalid login credentials. Local: Failed to fetch (127.0.0.1:8787)` and absence of Windows Defender Firewall port-binding prompt).
