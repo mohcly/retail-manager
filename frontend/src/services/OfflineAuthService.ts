@@ -674,16 +674,21 @@ export class OfflineAuthService {
         
       let finalRole = userRole || undefined;
       
-      if (!store_object && !store_id && finalRole === 'master') {
-          const { data: stores } = await supabase
-            .from('stores')
-            .select('*')
-            .eq('owner_id', data.user.id)
-            .limit(1);
-          
-          if (stores && stores.length > 0) {
-             store_id = stores[0].id;
-             store_object = stores[0];
+      if (!store_object && !store_id) {
+          try {
+            const { data: stores } = await supabase
+              .from('stores')
+              .select('*')
+              .order('name');
+            
+            if (stores && stores.length > 0) {
+               const dibidaniStore = stores.find((s: any) => /dibidani/i.test(s.name));
+               const target = dibidaniStore || stores[0];
+               store_id = target.id;
+               store_object = target;
+            }
+          } catch (e) {
+            console.warn('[OfflineAuth] Failed to resolve Dibidani store from Supabase:', e);
           }
       }
 
@@ -1270,11 +1275,16 @@ export class OfflineAuthService {
             // (an explicit store switcher is the real long-term answer for
             // masters overseeing multiple stores, not in scope here).
             if (!storeId && roles.some(r => r.role === 'master')) {
-              const { data: visibleStores } = await supabase
-                .from('stores')
-                .select('id')
-                .limit(1);
-              storeId = visibleStores?.[0]?.id;
+              try {
+                const { data: visibleStores } = await supabase
+                  .from('stores')
+                  .select('*')
+                  .order('name');
+                const dibidaniStore = visibleStores?.find((s: any) => /dibidani/i.test(s.name));
+                storeId = (dibidaniStore || visibleStores?.[0])?.id;
+              } catch (e) {
+                console.warn('[OfflineAuth] Failed to resolve visible stores for Dibidani fallback:', e);
+              }
             }
 
             if (storeId) {

@@ -420,7 +420,7 @@ export async function registerAuthRoutes(app: FastifyInstance) {
       if (!db.getStoreById(finalStoreId)) {
         db.insertStore({
           id: finalStoreId,
-          name: store_object.name || 'Store',
+          name: store_object.name || 'STIHL Dibidani',
           owner_id: store_object.owner_id ?? (primaryRole === 'master' ? userId : null),
           default_price_tier: store_object.default_price_tier ?? 1,
           created_at: store_object.created_at || now,
@@ -430,7 +430,7 @@ export async function registerAuthRoutes(app: FastifyInstance) {
     } else if (finalStoreId && !db.getStoreById(finalStoreId)) {
       db.insertStore({
         id: finalStoreId,
-        name: 'Store',
+        name: 'STIHL Dibidani',
         owner_id: primaryRole === 'master' ? userId : null,
         default_price_tier: 1,
         created_at: now,
@@ -447,7 +447,7 @@ export async function registerAuthRoutes(app: FastifyInstance) {
         finalStoreId = crypto.randomUUID();
         db.insertStore({
           id: finalStoreId,
-          name: 'Store',
+          name: 'STIHL Dibidani',
           owner_id: userId,
           default_price_tier: 1,
           created_at: now,
@@ -559,7 +559,7 @@ export async function registerAuthRoutes(app: FastifyInstance) {
     if (!db.getStoreById(finalStoreId)) {
       db.insertStore({
         id: finalStoreId,
-        name: store_name || 'Store',
+        name: store_name || 'STIHL Dibidani',
         owner_id: role === 'master' ? userId : null,
         default_price_tier: 1,
         created_at: now,
