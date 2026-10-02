@@ -819,16 +819,21 @@ export class OfflineAuthService {
         
       let finalRole = userRole || undefined;
       
-      if (!store_object && !store_id && finalRole === 'master') {
-          const { data: stores } = await supabase
-            .from('restaurants')
-            .select('*')
-            .eq('owner_id', data.user.id)
-            .limit(1);
-          
-          if (stores && stores.length > 0) {
-             store_id = stores[0].id;
-             store_object = stores[0];
+      if (!store_object && !store_id) {
+          try {
+            const { data: stores } = await supabase
+              .from('restaurants')
+              .select('*')
+              .order('name');
+            
+            if (stores && stores.length > 0) {
+               const mpmStore = stores.find((s: any) => /mpm|food/i.test(s.name));
+               const target = mpmStore || stores[0];
+               store_id = target.id;
+               store_object = target;
+            }
+          } catch (e) {
+            console.warn('[OfflineAuth] Failed to resolve MPM Food restaurant from Supabase:', e);
           }
       }
 
@@ -1297,9 +1302,22 @@ export class OfflineAuthService {
           const isMasterUser = roles.some(r => r.role === 'master') || user.user_metadata?.role === 'master';
           if (!storeId && isMasterUser) {
             // Account-level masters have a role row but no directly-linked store_id.
-            // Fall back to whatever store RLS makes visible to them instead of leaving them storeless.
-            const { data: visibleStores } = await supabase.from('stores').select('id').limit(1);
-            storeId = visibleStores?.[0]?.id;
+            // Fall back to whatever restaurant RLS makes visible to them instead of leaving them storeless.
+            try {
+              const { data: visibleStores } = await supabase
+                .from('restaurants')
+                .select('*')
+                .order('name');
+              const mpmStore = visibleStores?.find((s: any) => /mpm|food/i.test(s.name));
+              storeId = (mpmStore || visibleStores?.[0])?.id;
+              if (!storeId) {
+                const { data: v2 } = await supabase.from('stores').select('*').order('name');
+                const mpmStore2 = v2?.find((s: any) => /mpm|food/i.test(s.name));
+                storeId = (mpmStore2 || v2?.[0])?.id;
+              }
+            } catch (e) {
+              console.warn('[OfflineAuth] Failed to resolve visible restaurants for MPM fallback:', e);
+            }
           }
           if (storeId) {
             for (const r of roles) {
@@ -1349,9 +1367,22 @@ export class OfflineAuthService {
       let storeId = localRoles.find(r => r.store_id)?.store_id;
       if (!storeId && roles.some(r => r.role === 'master')) {
         // Account-level masters have a role row but no directly-linked store_id.
-        // Fall back to whatever store RLS makes visible to them instead of leaving them storeless.
-        const { data: visibleStores } = await supabase.from('stores').select('id').limit(1);
-        storeId = visibleStores?.[0]?.id;
+        // Fall back to whatever restaurant RLS makes visible to them instead of leaving them storeless.
+        try {
+          const { data: visibleStores } = await supabase
+            .from('restaurants')
+            .select('*')
+            .order('name');
+          const mpmStore = visibleStores?.find((s: any) => /mpm|food/i.test(s.name));
+          storeId = (mpmStore || visibleStores?.[0])?.id;
+          if (!storeId) {
+            const { data: v2 } = await supabase.from('stores').select('*').order('name');
+            const mpmStore2 = v2?.find((s: any) => /mpm|food/i.test(s.name));
+            storeId = (mpmStore2 || v2?.[0])?.id;
+          }
+        } catch (e) {
+          console.warn('[OfflineAuth] Failed to resolve visible restaurants for MPM fallback:', e);
+        }
       }
       if (storeId) {
         session.user.user_metadata.store_id = storeId;

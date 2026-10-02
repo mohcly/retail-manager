@@ -116,10 +116,20 @@ async function start() {
     });
   });
 
-  app.get('/health', async () => ({
-    status: 'ok',
-    dataPath: db.dbFile,
-  }));
+  app.get('/health', async () => {
+    let isBootstrapped = true;
+    try {
+      isBootstrapped = !!db.getMasterUser();
+    } catch (err) {
+      log(`/health: could not determine bootstrap state: ${err}`);
+    }
+
+    return {
+      status: 'ok',
+      dataPath: db.dbFile,
+      isBootstrapped,
+    };
+  });
 
   await registerAuthRoutes(app);
   await registerProductRoutes(app);

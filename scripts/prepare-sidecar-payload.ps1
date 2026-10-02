@@ -25,6 +25,7 @@ if (Test-Path "dist") { Remove-Item "dist" -Recurse -Force }
 # Ensure dependencies match
 npm install better-sqlite3@$BS3_VERSION --save-exact
 npm run build 
+npm prune --production
 Pop-Location
 
 # 2. Architectures to process (Strictly x64 and ARM64)

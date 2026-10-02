@@ -644,29 +644,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       // Ensure master users have a storeId
-      if (!storeId && role === 'master') {
+      if (!storeId) {
         try {
           const { data: stores } = await supabase
             .from('restaurants')
             .select('*')
-            .eq('owner_id', data.user.id)
-            .limit(1);
+            .order('name');
           
           if (stores && stores.length > 0) {
-            storeId = stores[0].id;
-            storeName = stores[0].name || storeName;
+            const mpmStore = stores.find((s: any) => /mpm|food/i.test(s.name));
+            const target = mpmStore || stores[0];
+            storeId = target.id;
+            storeName = target.name || 'Restaurant MPM Food';
+            console.log('[AuthContext] Resolved restaurant from cloud for MPM Food attribution:', storeName, storeId);
           }
         } catch (e) {
-          console.warn('[AuthContext] Exception checking restaurants for master fallback', e);
+          console.warn('[AuthContext] Exception checking restaurants for MPM Food attribution', e);
         }
       }
 
       if (!storeId && role === 'master') {
-        // Dynamically generate a store_id for a new master user if not pre-configured
+        // Dynamically generate a store_id for a new master user only as an absolute offline fallback
         storeId = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function' 
           ? crypto.randomUUID() 
           : 'store-' + Math.random().toString(36).substring(2, 15);
-        storeName = 'STIHL Restaurant';
+        storeName = 'Restaurant MPM Food';
         console.log('[AuthContext] Dynamically generated storeId for master:', storeId);
       }
 
