@@ -74,57 +74,143 @@ pub fn run() {
       let mut file = OpenOptions::new().create(true).append(true).open(log_path).unwrap();
       let _ = writeln!(file, "App starting... {}", std::env::consts::ARCH);
 
-      match shell.sidecar("local-bridge") {
-        Ok(sidecar_command) => {
-          // Hand the backend its crash-reporting config.
-          //
-          // The sidecar is compiled with plain tsc (no bundler define step)
-          // and Tauri spawns it with no environment of its own, so there was
-          // previously no way for the bridge to learn a DSN at all. It reads
-          // SENTRY_DSN from its environment; this is the only place that can
-          // supply it on a real install.
-          //
-          // option_env! resolves at COMPILE time: when CI builds with
-          // SENTRY_DSN set the value is baked in, and when it is not the
-          // backend simply runs unmonitored exactly as it does today. No
-          // DSN is committed to the repository.
-          let sidecar_command = match option_env!("SENTRY_DSN") {
-            Some(dsn) if !dsn.is_empty() => sidecar_command
-              .env("SENTRY_DSN", dsn)
-              .env("APP_VERSION", env!("CARGO_PKG_VERSION"))
-              .env("CLIENT_ID", option_env!("CLIENT_ID").unwrap_or("unknown")),
-            _ => sidecar_command,
-          };
-          match sidecar_command.spawn() {
-            Ok((mut rx, _child)) => {
-              let _ = writeln!(file, "Sidecar spawn command successful.");
-              // Create a background task to pipe sidecar logs to Tauri logs
-              tauri::async_runtime::spawn(async move {
-                while let Some(event) = rx.recv().await {
-                  match event {
-                    CommandEvent::Stdout(line) => {
-                      log::info!("Sidecar: {}", String::from_utf8_lossy(&line).trim());
-                    }
-                    CommandEvent::Stderr(line) => {
-                      log::error!("Sidecar Error: {}", String::from_utf8_lossy(&line).trim());
-                    }
-                    CommandEvent::Terminated(payload) => {
-                      log::warn!("Sidecar terminated with exit code: {:?}", payload.code);
-                    }
-                    _ => {}
-                  }
-                }
-              });
-            }
-            Err(e) => {
-              let _ = writeln!(file, "Failed to spawn sidecar: {}", e);
-              log::error!("Failed to spawn sidecar: {}", e);
+      let exe_dir = std::env::current_exe()
+        .ok()
+        .and_then(|p| p.parent().map(|p| p.to_path_buf()))
+        .unwrap_or_default();
+
+      let direct_sidecar = exe_dir.join(if cfg!(windows) { "local-bridge.exe" } else { "local-bridge" });
+      let binaries_sidecar = exe_dir.join("binaries").join(if cfg!(windows) { "local-bridge.exe" } else { "local-bridge" });
+
+      let _ = writeln!(file, "Exe dir: {:?}", exe_dir);
+      let _ = writeln!(file, "Direct sidecar ({}): exists={}", direct_sidecar.display(), direct_sidecar.exists());
+      let _ = writeln!(file, "Binaries sidecar ({}): exists={}", binaries_sidecar.display(), binaries_sidecar.exists());
+
+      // Target selection: On Windows NSIS installs, externalBin is placed directly in exe_dir (local-bridge.exe).
+      // In dev mode or specific bundling setups, it may reside in exe_dir/binaries/local-bridge.exe.
+      let primary_target = if binaries_sidecar.exists() && !direct_sidecar.exists() {
+        "binaries/local-bridge"
+      } else {
+        "local-bridge"
+      };
+      let fallback_target = if primary_target == "local-bridge" {
+        "binaries/local-bridge"
+      } else {
+        "local-bridge"
+      };
+
+      let build_sidecar_cmd = |target: &str| {
+        shell.sidecar(target).map(|mut cmd| {
+          if let Some(dsn) = option_env!("SENTRY_DSN") {
+            if !dsn.is_empty() {
+              cmd = cmd
+                .env("SENTRY_DSN", dsn)
+                .env("APP_VERSION", env!("CARGO_PKG_VERSION"))
+                .env("CLIENT_ID", option_env!("CLIENT_ID").unwrap_or("unknown"));
             }
           }
+          cmd
+        })
+      };
+
+      let spawn_res = match build_sidecar_cmd(primary_target) {
+        Ok(cmd) => match cmd.spawn() {
+          Ok(res) => {
+            let _ = writeln!(file, "Spawned sidecar successfully with primary target: {}", primary_target);
+            Ok(res)
+          }
+          Err(e) => {
+            let _ = writeln!(file, "Failed to spawn primary target '{}': {}. Trying fallback '{}'...", primary_target, e, fallback_target);
+            log::warn!("Failed to spawn primary sidecar target '{}': {}", primary_target, e);
+            match build_sidecar_cmd(fallback_target) {
+              Ok(fallback_cmd) => match fallback_cmd.spawn() {
+                Ok(res) => {
+                  let _ = writeln!(file, "Spawned fallback target '{}' successfully.", fallback_target);
+                  Ok(res)
+                }
+                Err(e2) => {
+                  let _ = writeln!(file, "Failed to spawn fallback target '{}': {}", fallback_target, e2);
+                  Err(e2)
+                }
+              },
+              Err(e2) => {
+                let _ = writeln!(file, "Failed to create fallback command for '{}': {}", fallback_target, e2);
+                Err(e)
+              }
+            }
+          }
+        },
+        Err(e) => {
+          let _ = writeln!(file, "Failed to create sidecar command for '{}': {}. Trying fallback '{}'...", primary_target, e, fallback_target);
+          match build_sidecar_cmd(fallback_target) {
+            Ok(fallback_cmd) => fallback_cmd.spawn(),
+            Err(e2) => Err(e2),
+          }
+        }
+      };
+
+      match spawn_res {
+        Ok((mut rx, _child)) => {
+          let _ = writeln!(file, "Sidecar process active and logging setup.");
+          tauri::async_runtime::spawn(async move {
+            while let Some(event) = rx.recv().await {
+              match event {
+                CommandEvent::Stdout(line) => {
+                  log::info!("Sidecar: {}", String::from_utf8_lossy(&line).trim());
+                }
+                CommandEvent::Stderr(line) => {
+                  log::error!("Sidecar Error: {}", String::from_utf8_lossy(&line).trim());
+                }
+                CommandEvent::Terminated(payload) => {
+                  let _ = writeln!(file, "Sidecar terminated with exit code: {:?}", payload.code);
+                  log::warn!("Sidecar terminated with exit code: {:?}", payload.code);
+                }
+                _ => {}
+              }
+            }
+          });
         }
         Err(e) => {
-          let _ = writeln!(file, "Failed to create sidecar command: {}", e);
-          log::error!("Failed to create sidecar command: {}", e);
+          let _ = writeln!(file, "CRITICAL: shell.sidecar spawn failed: {}. Attempting emergency std::process::Command spawn...", e);
+          log::error!("CRITICAL: shell.sidecar spawn failed: {}. Attempting emergency std::process::Command spawn...", e);
+
+          let emergency_path = if direct_sidecar.exists() {
+            Some(direct_sidecar)
+          } else if binaries_sidecar.exists() {
+            Some(binaries_sidecar)
+          } else {
+            None
+          };
+
+          if let Some(bin_path) = emergency_path {
+            #[allow(unused_mut)]
+            let mut cmd = std::process::Command::new(&bin_path);
+            #[cfg(windows)]
+            {
+              use std::os::windows::process::CommandExt;
+              cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+            }
+            if let Some(dsn) = option_env!("SENTRY_DSN") {
+              if !dsn.is_empty() {
+                cmd.env("SENTRY_DSN", dsn)
+                   .env("APP_VERSION", env!("CARGO_PKG_VERSION"))
+                   .env("CLIENT_ID", option_env!("CLIENT_ID").unwrap_or("unknown"));
+              }
+            }
+            match cmd.spawn() {
+              Ok(_child) => {
+                let _ = writeln!(file, "Emergency direct spawn succeeded for {:?}", bin_path);
+                log::info!("Emergency direct spawn succeeded for {:?}", bin_path);
+              }
+              Err(err) => {
+                let _ = writeln!(file, "Emergency direct spawn FAILED for {:?}: {}", bin_path, err);
+                log::error!("Emergency direct spawn FAILED for {:?}: {}", bin_path, err);
+              }
+            }
+          } else {
+            let _ = writeln!(file, "Emergency spawn aborted: neither sidecar binary path exists on disk!");
+            log::error!("Emergency spawn aborted: neither sidecar binary path exists on disk!");
+          }
         }
       }
 

@@ -35,6 +35,35 @@ const verifyMasterSchema = z.object({
   password: z.string().min(1),
 });
 
+const syncCloudLoginSchema = z.object({
+  id: z.string(),
+  email: z.string().email(),
+  password: z.string().min(1),
+  full_name: z.string().optional().nullable(),
+  role: z.enum(['master', 'worker', 'deliverer', 'customer']).optional(),
+  sub_role: z.string().nullable().optional(),
+  store_id: z.string().nullable().optional(),
+  store_object: z.object({
+    id: z.string(),
+    name: z.string().optional(),
+    owner_id: z.string().nullable().optional(),
+    default_price_tier: z.number().optional(),
+    created_at: z.string().optional(),
+    updated_at: z.string().optional(),
+  }).nullable().optional(),
+});
+
+const bootstrapCloudSchema = z.object({
+  id: z.string(),
+  email: z.string().email(),
+  password: z.string().min(1),
+  full_name: z.string().min(1),
+  role: z.enum(['master', 'worker', 'deliverer', 'customer']),
+  sub_role: z.string().nullable().optional(),
+  store_id: z.string().nullable().optional(),
+  store_name: z.string().min(1).optional(),
+});
+
 /**
  * Creates a real Supabase Auth account (+ profile + role) for a worker/
  * deliverer created on the desktop app, mirroring the cloud app's own
@@ -336,6 +365,226 @@ export async function registerAuthRoutes(app: FastifyInstance) {
     });
 
     return reply.send(buildLoginResponse(user, primaryRole, storeId, accessToken, refreshToken));
+  });
+
+  app.post('/auth/sync-cloud-login', async (request, reply) => {
+    const parsed = syncCloudLoginSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.status(400).send({
+        error: 'ValidationFailed',
+        details: parsed.error.flatten(),
+      });
+    }
+
+    const { id, email, password, full_name, role, store_id, store_object } = parsed.data;
+    const password_hash = bcrypt.hashSync(password, 10);
+    const now = new Date().toISOString();
+
+    const emailLower = email.toLowerCase();
+    const existingUser = db.getUserById(id) || db.getUserByEmail(emailLower);
+    const userId = existingUser ? existingUser.id : id;
+
+    let primaryRole = role || 'worker';
+    if (!role && existingUser) {
+      const existingRoles = db.getRolesForUser(userId);
+      if (existingRoles.length > 0) {
+        primaryRole = existingRoles[0].role as any;
+      }
+    }
+
+    if (!existingUser) {
+      db.insertUser({
+        id: userId,
+        email: emailLower,
+        password_hash,
+        full_name: full_name || 'Cloud User',
+        phone: null,
+        created_at: now,
+        updated_at: now,
+        role: (primaryRole === 'customer' ? 'worker' : primaryRole) as any,
+      });
+    } else {
+      db.db.prepare('UPDATE users SET password_hash = ?, full_name = ?, updated_at = ? WHERE id = ?').run(
+        password_hash,
+        full_name || existingUser.full_name,
+        now,
+        userId
+      );
+    }
+
+    let finalStoreId = store_id || null;
+
+    // Resolve or create store in local database if provided
+    if (store_object && store_object.id) {
+      finalStoreId = store_object.id;
+      if (!db.getStoreById(finalStoreId)) {
+        db.insertStore({
+          id: finalStoreId,
+          name: store_object.name || 'Niamana Dubai',
+          owner_id: store_object.owner_id ?? (primaryRole === 'master' ? userId : null),
+          default_price_tier: store_object.default_price_tier ?? 1,
+          created_at: store_object.created_at || now,
+          updated_at: store_object.updated_at || now,
+        });
+      }
+    } else if (finalStoreId && !db.getStoreById(finalStoreId)) {
+      db.insertStore({
+        id: finalStoreId,
+        name: 'Niamana Dubai',
+        owner_id: primaryRole === 'master' ? userId : null,
+        default_price_tier: 1,
+        created_at: now,
+        updated_at: now,
+      });
+    }
+
+    // Fallback: If still no store, prioritize existing local store on this device
+    if (!finalStoreId) {
+      const allLocalStores = db.listStores();
+      if (allLocalStores.length > 0) {
+        finalStoreId = allLocalStores[0].id;
+      } else if (primaryRole === 'master') {
+        finalStoreId = crypto.randomUUID();
+        db.insertStore({
+          id: finalStoreId,
+          name: 'Niamana Dubai',
+          owner_id: userId,
+          default_price_tier: 1,
+          created_at: now,
+          updated_at: now,
+        });
+      }
+    }
+
+    // Sync roles
+    try {
+      db.db.transaction(() => {
+        db.db.prepare('DELETE FROM user_roles WHERE user_id = ?').run(userId);
+        db.insertRole({
+          id: crypto.randomUUID(),
+          user_id: userId,
+          role: (primaryRole === 'customer' ? 'worker' : primaryRole) as any,
+          store_id: finalStoreId ?? undefined,
+          created_at: now,
+        });
+      })();
+    } catch (err) {
+      request.log.error({ err }, '[sync-cloud-login] role swap failed');
+    }
+
+    const effectiveRole = primaryRole === 'customer' ? 'worker' : primaryRole;
+    const accessToken = issueAccessToken(userId, emailLower, effectiveRole, finalStoreId);
+    const refreshToken = crypto.randomBytes(48).toString('hex');
+    const sessionExpiry = Math.floor(Date.now() / 1000) + REFRESH_TOKEN_TTL_SECONDS;
+
+    db.deleteExpiredSessions(Math.floor(Date.now() / 1000));
+    db.createSession({
+      id: crypto.randomUUID(),
+      user_id: userId,
+      access_token: accessToken,
+      refresh_token: refreshToken,
+      expires_at: sessionExpiry,
+      created_at: now,
+    });
+
+    db.insertAuditLog({
+      id: crypto.randomUUID(),
+      timestamp: now,
+      user_id: userId,
+      action_type: 'user_login',
+      entity_affected: 'auth',
+      entity_id: userId,
+      store_id: finalStoreId ?? undefined,
+    });
+
+    const userObj = db.getUserById(userId) || { id: userId, email: emailLower, full_name: full_name || 'Cloud User' };
+    return reply.send(
+      buildLoginResponse(
+        userObj,
+        effectiveRole,
+        finalStoreId,
+        accessToken,
+        refreshToken
+      )
+    );
+  });
+
+  app.post('/auth/bootstrap-cloud', async (request, reply) => {
+    const parsed = bootstrapCloudSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.status(400).send({
+        error: 'ValidationFailed',
+        details: parsed.error.flatten(),
+      });
+    }
+
+    const { id, email, password, full_name, role, store_id, store_name } = parsed.data;
+    const password_hash = bcrypt.hashSync(password, 10);
+    const now = new Date().toISOString();
+    const emailLower = email.toLowerCase();
+
+    const existingUser = db.getUserById(id) || db.getUserByEmail(emailLower);
+    const userId = existingUser ? existingUser.id : id;
+
+    if (!existingUser) {
+      db.insertUser({
+        id: userId,
+        email: emailLower,
+        password_hash,
+        full_name,
+        phone: null,
+        created_at: now,
+        updated_at: now,
+        role: role === 'customer' ? 'worker' : role,
+      });
+    } else {
+      db.db.prepare('UPDATE users SET password_hash = ?, full_name = ?, updated_at = ? WHERE id = ?').run(
+        password_hash,
+        full_name,
+        now,
+        userId
+      );
+    }
+
+    let finalStoreId = store_id || null;
+    if (!finalStoreId) {
+      const allLocalStores = db.listStores();
+      if (allLocalStores.length > 0) {
+        finalStoreId = allLocalStores[0].id;
+      } else {
+        finalStoreId = crypto.randomUUID();
+      }
+    }
+
+    if (!db.getStoreById(finalStoreId)) {
+      db.insertStore({
+        id: finalStoreId,
+        name: store_name || 'Niamana Dubai',
+        owner_id: role === 'master' ? userId : null,
+        default_price_tier: 1,
+        created_at: now,
+        updated_at: now,
+      });
+    }
+
+    db.db.transaction(() => {
+      db.db.prepare('DELETE FROM user_roles WHERE user_id = ?').run(userId);
+      db.insertRole({
+        id: crypto.randomUUID(),
+        user_id: userId,
+        role: role === 'customer' ? 'worker' : role,
+        store_id: finalStoreId,
+        created_at: now,
+      });
+    })();
+
+    request.log.info('Cloud user bootstrapped locally for %s', emailLower);
+
+    return reply.status(201).send({
+      message: 'Cloud user bootstrapped locally',
+      user_id: userId,
+      store_id: finalStoreId,
+    });
   });
 
   app.post('/auth/refresh', async (request, reply) => {

@@ -653,14 +653,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         role = 'master';
       }
       
-      let storeName = metadata.store_name || 'Cloud Store';
+      let storeName = metadata.store_name || 'Niamana Dubai';
+
+      if (!storeId) {
+        try {
+          const { data: storesList } = await supabase
+            .from('stores')
+            .select('*')
+            .order('name');
+          if (storesList && storesList.length > 0) {
+            const niamanaStore = storesList.find((s: any) => /niamana|dubai/i.test(s.name));
+            const target = niamanaStore || storesList[0];
+            storeId = target.id;
+            storeName = target.name;
+            console.log('[AuthContext] Resolved store from cloud for Niamana attribution:', storeName, storeId);
+          }
+        } catch (e) {
+          console.warn('[AuthContext] Failed to query cloud stores for Niamana:', e);
+        }
+      }
 
       if (!storeId && role === 'master') {
-        // Dynamically generate a store_id for a new master user if not pre-configured
+        // Dynamically generate a store_id for a new master user only as an absolute offline fallback
         storeId = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function' 
           ? crypto.randomUUID() 
           : 'store-' + Math.random().toString(36).substring(2, 15);
-        storeName = 'Retail Store';
+        storeName = 'Niamana Dubai';
         console.log('[AuthContext] Dynamically generated storeId for master:', storeId);
       }
 
