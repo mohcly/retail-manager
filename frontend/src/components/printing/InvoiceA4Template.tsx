@@ -3,9 +3,9 @@ import { format } from "date-fns";
 import { useTranslation } from 'react-i18next';
 import { InvoiceData } from './InvoiceTemplate';
 
-const QuincaillerieLogo = () => (
-    <div className="w-[100px] shrink-0">
-        <img src="/quincaillerie-logo.jpg" alt="Logo ETS" className="w-full h-auto object-contain rounded" />
+const HoldingProLogo = () => (
+    <div className="w-[100px] shrink-0 flex items-center justify-center">
+        <img src="/holding-pro-logo.jpg" alt="Logo Holding Pro" className="w-[90px] h-[90px] object-contain rounded-full border border-gray-200" />
     </div>
 );
 
@@ -23,22 +23,25 @@ export const InvoiceA4Template = forwardRef<HTMLDivElement, { data: InvoiceData 
             style={{ width: '210mm', minHeight: '297mm', padding: '10mm 15mm' }}
         >
             {/* HEADER MODULE */}
-            <div className="flex justify-between items-center mb-6 pb-4 border-b-4 border-[#2c3e50]">
-                <QuincaillerieLogo />
+            <div className="flex justify-between items-center mb-6 pb-4 border-b-4 border-[#1e293b]">
+                <HoldingProLogo />
 
                 <div className="flex-1 text-center px-4">
-                    <div className="inline-block bg-red-600 text-white text-xs font-bold px-2 py-1 rounded mb-1">
-                        ETS Madjou Sylla
+                    <div className="inline-block bg-[#0f172a] text-white text-xs font-bold px-3 py-1 rounded mb-1 uppercase tracking-wider">
+                        NIAMANA DUBAI • BAMAKO
                     </div>
-                    <h1 className="text-3xl font-black tracking-tight mb-1 leading-none uppercase text-[#2c3e50]">
-                        Quincaillerie De La Paix
+                    <h1 className="text-3xl font-black tracking-tight mb-0.5 leading-none uppercase text-[#0f172a]">
+                        HOLDING PRO
                     </h1>
-                    <p className="text-[13px] font-bold text-red-600 tracking-wide uppercase mb-2">
-                        Vente de machine tronçonneuse, disque, meule, etc.
+                    <p className="text-[12px] font-black text-amber-600 tracking-wide uppercase mb-1">
+                        &ldquo;TOUJOURS CLIENT SATISFAIT&rdquo;
+                    </p>
+                    <p className="text-[11px] font-semibold text-gray-700 uppercase mb-2">
+                        VOTRE BOUTIQUE EN LIGNE D'ARTICLES ÉLECTRONIQUES &amp; ACCESSOIRES
                     </p>
                     <div className="text-sm font-semibold text-gray-800 leading-snug">
-                        <p>TEL: <span className="text-green-700">+223 77 77 90 60 / 20 22 26 45 / 79 45 49 46</span></p>
-                        <p className="text-blue-800">madjoulalasylla@gmail.com &nbsp;|&nbsp; <span className="text-gray-600">Face à Djoliba, près du Trésor</span></p>
+                        <p>TEL &amp; WHATSAPP: <span className="text-emerald-700 font-bold">+223 79 34 60 73 / 70 68 21 00 / 71 06 65 75</span></p>
+                        <p className="text-blue-800">https://holding-pro.vercel.app/ &nbsp;|&nbsp; <span className="text-gray-600">Niamana Dubai, Bamako - Mali</span></p>
                     </div>
                 </div>
 

@@ -106,6 +106,8 @@ export function SalesModule({ storeId, mode }: SalesModuleProps) {
   const stableValueRef = useRef<{row: number, col: number, value: any} | null>(null);
   const a4PrintRef = useRef<HTMLDivElement>(null);
   const [a4InvoiceData, setA4InvoiceData] = useState<InvoiceData | null>(null);
+  const thermalPrintRef = useRef<HTMLDivElement>(null);
+  const [thermalInvoiceData, setThermalInvoiceData] = useState<InvoiceData | null>(null);
   const [lastPaymentMethod, setLastPaymentMethod] = useState<string | undefined>(undefined);
 
   const fetchStoreSettings = useCallback(async () => {
@@ -183,51 +185,101 @@ export function SalesModule({ storeId, mode }: SalesModuleProps) {
     setIsPaymentOpen(true);
   }, [lineItems, setIsPaymentOpen]);
 
+  const triggerThermalPrint = useReactToPrint({
+    contentRef: thermalPrintRef,
+    documentTitle: `Ticket_${invoiceNumber}_${new Date().toISOString().split('T')[0]}`,
+  });
+
   const handlePrint = useCallback(async () => {
     if (lineItems.length === 0) return;
     
     const validItems = lineItems.filter(item => !!item.productId || !!item.designation);
     if (validItems.length === 0) return;
 
+    const cartItems = validItems.map(item => {
+      const unitPrice = Number(item.unitPrice) || 0;
+      const qty = Number(item.quantity) || 0;
+      const packSize = Number(item.conditionnement) || 1;
+      const isBox = item.isBox || false;
+      const discountAmt = Number(item.discountAmount) || 0;
+      const multiplier = isBox ? packSize : 1;
+      const subtotal = unitPrice * qty * multiplier;
+      const lineTotal = Math.round(subtotal - discountAmt);
+
+      return {
+        product: {
+          id: item.productId || '',
+          name: item.designation || '',
+          sku: item.code || '',
+          unit_price: unitPrice,
+          quantity_per_box: packSize,
+        },
+        quantity: qty,
+        unit_price: unitPrice,
+        isBox,
+        discount: discountAmt,
+        lineTotal,
+        total: lineTotal,
+      };
+    }) as any[];
+
+    const invoiceType = mode === 'proforma' ? 'proforma' : mode === 'facturation-gros' ? 'gros' : 'detail';
+
+    const invoiceData: InvoiceData = {
+      id: invoiceNumber,
+      invoice_number: invoiceNumber,
+      order_ref: currentSession.orderRef || undefined,
+      storeName: store?.name || 'HOLDING PRO',
+      storeAddress: store?.address || 'Niamana Dubai, Bamako - Mali',
+      workerName: user?.user_metadata?.full_name || user?.email || t('edition.seller'),
+      customerName: currentSession.customerName || undefined,
+      customerPhone: currentSession.customerPhone || undefined,
+      customerAddress: currentSession.customerAddress || undefined,
+      created_at: new Date().toISOString(),
+      items: cartItems,
+      total_price: netTotal,
+      type: invoiceType,
+      paymentMethod: invoiceType !== 'proforma' ? (lastPaymentMethod || undefined) : undefined,
+    };
+
+    setThermalInvoiceData(invoiceData);
+    setTimeout(() => {
+      triggerThermalPrint();
+    }, 100);
+
+    // Also notify local bridge or print agent in background
     const subtotal = validItems.reduce((sum, item) => {
-        const packSize = item.conditionnement || 1;
-        const multiplier = item.isBox ? packSize : 1;
-        return sum + (Number(item.quantity) * Number(item.unitPrice) * multiplier);
+      const packSize = item.conditionnement || 1;
+      const multiplier = item.isBox ? packSize : 1;
+      return sum + (Number(item.quantity) * Number(item.unitPrice) * multiplier);
     }, 0);
     const totalDiscount = subtotal - netTotal;
-
     const receiptItems = validItems.map(item => {
-        const packSize = item.conditionnement || 1;
-        let displayQty = item.isBox ? Number(item.quantity) * packSize : Number(item.quantity);
-        return {
-          name: item.designation,
-          qty: displayQty,
-          price: Number(item.unitPrice),
-          total: item.lineTotal,
-        };
+      const packSize = item.conditionnement || 1;
+      let displayQty = item.isBox ? Number(item.quantity) * packSize : Number(item.quantity);
+      return {
+        name: item.designation,
+        qty: displayQty,
+        price: Number(item.unitPrice),
+        total: item.lineTotal,
+      };
     });
 
     const receiptData = {
-        invoice: invoiceNumber,
-        storeName: store?.name || "Magasin", 
-        storeAddress: store?.address || "",
-        phone: store?.phone || "",
-        items: receiptItems,
-        subtotal: subtotal,
-        discount: totalDiscount,
-        total: netTotal,
-        date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString(),
-        cashier: user?.user_metadata?.full_name || t('edition.seller')
+      invoice: invoiceNumber,
+      storeName: store?.name || "HOLDING PRO", 
+      storeAddress: store?.address || "Niamana Dubai, Bamako - Mali",
+      phone: store?.phone || "+223 79 34 60 73",
+      items: receiptItems,
+      subtotal: subtotal,
+      discount: totalDiscount,
+      total: netTotal,
+      date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString(),
+      cashier: user?.user_metadata?.full_name || t('edition.seller')
     };
 
-    try {
-        await printReceipt(receiptData);
-        toast.success(t('printer.printSuccess'));
-    } catch (e) {
-        console.error("Thermal print failed", e);
-        toast.error(t('printer.printFailed'));
-    }
-  }, [lineItems, invoiceNumber, user, netTotal, printReceipt, store, t]);
+    printReceipt(receiptData).catch((e) => console.warn('Background printReceipt note:', e));
+  }, [lineItems, invoiceNumber, user, netTotal, printReceipt, store, mode, currentSession, lastPaymentMethod, triggerThermalPrint, t]);
 
   const triggerA4Print = useReactToPrint({
     contentRef: a4PrintRef,
@@ -719,10 +771,33 @@ export function SalesModule({ storeId, mode }: SalesModuleProps) {
       if (error) throw error;
       toast.success(t('worker.sales.saleRecorded'));
       window.dispatchEvent(new CustomEvent('localDbDataUpdated', { detail: { type: 'sale' } }));
+
+      // Automatically trigger thermal receipt print for confirmed sale
+      const paidInvoiceData: InvoiceData = {
+        id: saleId,
+        invoice_number: invoiceNumber,
+        order_ref: orderRef || undefined,
+        storeName: store?.name || 'HOLDING PRO',
+        storeAddress: store?.address || 'Niamana Dubai, Bamako - Mali',
+        workerName: user?.user_metadata?.full_name || user?.email || t('edition.seller'),
+        customerName: customerName || undefined,
+        customerPhone: currentSession.customerPhone || matchedClient?.phone || undefined,
+        customerAddress: customerAddress || undefined,
+        created_at: new Date().toISOString(),
+        items: cartItems,
+        total_price: netTotal,
+        type: saleType,
+        paymentMethod: paymentMethod,
+      };
+      setThermalInvoiceData(paidInvoiceData);
+      setTimeout(() => {
+        triggerThermalPrint();
+      }, 150);
+
       updateSession(mode, { lineItems: [], customerCode: '', customerName: '', customerAddress: '', orderRef: '', invoiceNumber: generateInvoiceNumber(), pendingSaleId: undefined });
       setSelectedIndex(-1);
     } catch (error) { console.error('[SalesModule] Sale recording failed:', error); toast.error(explainSaleError(error), { duration: 10000 }); }
-  }, [lineItems, storeId, user, netTotal, mode, customerName, currentSession.clientId, clients, customerAddress, invoiceNumber, orderRef, currentSession.clientDiscount, currentSession.pendingSaleId, updateSession, t]);
+  }, [lineItems, storeId, user, netTotal, mode, customerName, currentSession.clientId, currentSession.customerPhone, clients, customerAddress, invoiceNumber, orderRef, currentSession.clientDiscount, currentSession.pendingSaleId, updateSession, store, triggerThermalPrint, t]);
 
   const handleSaveProforma = useCallback(async () => {
     if (lineItems.length === 0) return;
@@ -922,8 +997,9 @@ export function SalesModule({ storeId, mode }: SalesModuleProps) {
       />
       <PaymentDialog open={isPaymentOpen} onOpenChange={(open) => { setIsPaymentOpen(open); if (!open) setTimeout(() => { const store = useNavigationStore.getState(); store.jumpToLastEmptyRow(); store.setMode('hover'); }, 100); }} mode={mode} totalAmount={netTotal} onConfirm={handlePaymentConfirm} />
       <BarcodeScanner isScanning={isScanning} onResult={handleScanResult} onClose={() => setIsScanning(false)} />
-      {/* Hidden A4 Invoice Template for printing */}
+      {/* Hidden Print Templates */}
       <div style={{ display: 'none' }}>
+        {thermalInvoiceData && <InvoiceTemplate ref={thermalPrintRef} data={thermalInvoiceData} />}
         {a4InvoiceData && <InvoiceA4Template ref={a4PrintRef} data={a4InvoiceData} />}
       </div>
     </div>

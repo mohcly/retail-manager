@@ -1,6 +1,5 @@
 import React, { forwardRef } from 'react';
 import { format } from "date-fns";
-import { CartItem } from '@/stores/usePOSStore';
 import { useTranslation } from 'react-i18next';
 
 export interface InvoiceData {
@@ -20,114 +19,221 @@ export interface InvoiceData {
     paymentMethod?: string;
 }
 
-
-const QuincaillerieLogo = () => (
-    <div className="flex items-center justify-center self-start shrink-0 mr-4">
-        {/* Make sure 'quincaillerie-logo.jpg' exists in frontend/public */}
-        <img src="/quincaillerie-logo.jpg" alt="Quincaillerie Logo" className="h-[121px] w-[121px] object-contain rounded-md" />
-    </div>
-);
-
 export const InvoiceTemplate = forwardRef<HTMLDivElement, { data: InvoiceData }>(({ data }, ref) => {
     const isProforma = data.type === 'proforma';
     const { t } = useTranslation();
 
+    const formattedDate = (() => {
+        try {
+            return format(new Date(data.created_at || Date.now()), 'dd/MM/yyyy HH:mm');
+        } catch {
+            return new Date().toLocaleString('fr-FR');
+        }
+    })();
+
     return (
-        <div ref={ref} className="p-8 max-w-[800px] mx-auto bg-white text-black font-sans hidden print:block">
-            {/* Header */}
-            <div className="flex justify-between items-start border-b pb-4 mb-4 border-black border-b-2">
-                <div className="flex items-center gap-4">
-                    <QuincaillerieLogo />
-                    <div>
-                        {/* Title adjusts based on template mode */}
-                        <h1 className="text-2xl font-bold uppercase tracking-wider text-gray-900">
-                            JATE
-                        </h1>
-                        <p className="text-sm text-gray-700 font-bold mb-1">ETS Madjou Sylla - QUINCAILLERIE DE LA PAIX</p>
-                        <p className="text-[11px] text-gray-600 font-medium tracking-tight mb-1 uppercase">Vente de machine tronçonneuse, disque, meule bosch</p>
-                        <p className="text-sm text-gray-600 leading-tight">{data.storeAddress || t('invoice.defaultStore')}</p>
-                        <p className="text-sm text-gray-600 leading-tight">Tel: +223 77 77 90 60 / 20 22 26 45 / 79 45 49 46</p>
-                        <p className="text-xs text-gray-500 leading-tight mt-1">Face centre Djoliba, BP 2844, Bamako</p>
-                    </div>
+        <div
+            ref={ref}
+            className="bg-white text-black font-sans hidden print:block mx-auto text-left"
+            style={{
+                width: '74mm',
+                maxWidth: '74mm',
+                margin: '0 auto',
+                padding: '3mm 2mm 8mm 2mm',
+                boxSizing: 'border-box',
+                fontSize: '11px',
+                lineHeight: 1.25,
+                color: '#000',
+                backgroundColor: '#fff',
+            }}
+        >
+            <style>{`
+                @media print {
+                    @page {
+                        size: 80mm auto;
+                        margin: 0;
+                    }
+                    body {
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        background: #fff !important;
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                    }
+                }
+            `}</style>
+
+            {/* Header / Branding */}
+            <div className="text-center mb-2">
+                <div className="flex justify-center mb-1">
+                    <img
+                        src="/holding-pro-logo.jpg"
+                        alt="Holding Pro Logo"
+                        className="h-14 w-14 object-contain rounded-full border border-gray-300"
+                    />
                 </div>
-                <div className="text-right">
-                    <h2 className="text-xl font-bold uppercase text-gray-800">
-                        {isProforma ? t('invoice.proforma') : (data.paymentMethod === 'credit' ? 'FACTURE À CRÉDIT' : t('invoice.cashReceipt'))}
-                    </h2>
-                    <p className="text-sm text-gray-500 font-mono mt-2">
-                        {t('menu.program.invoice')}: {data.invoice_number || data.id.slice(0, 8)}
-                    </p>
-                    {data.order_ref && (
-                        <p className="text-sm text-gray-500 font-mono">
-                            {t('menu.program.orderRef')}: {data.order_ref}
-                        </p>
-                    )}
-                    <p className="text-sm mt-1 text-gray-500">{format(new Date(data.created_at), 'dd/MM/yyyy HH:mm')}</p>
-                    {data.workerName && (
-                        <p className="text-sm mt-1 text-gray-500 font-medium">Caissier: {data.workerName}</p>
-                    )}
-                    {data.paymentMethod && !isProforma && (
-                        <p className="text-sm mt-1 text-gray-500 font-medium uppercase">Paiement: {data.paymentMethod}</p>
-                    )}
-                </div>
+                <h1 className="text-base font-black tracking-wider uppercase text-black leading-tight">
+                    HOLDING PRO
+                </h1>
+                <p className="text-xs font-bold uppercase text-black">
+                    NIAMANA DUBAI
+                </p>
+                <p className="text-[10px] font-semibold italic text-black my-0.5">
+                    &ldquo;TOUJOURS CLIENT SATISFAIT&rdquo;
+                </p>
+                <p className="text-[9px] font-medium uppercase text-gray-800">
+                    Articles Électroniques &amp; Accessoires
+                </p>
+                <p className="text-[10px] font-bold text-black mt-0.5">
+                    Tél: 79 34 60 73 / 70 68 21 00 / 71 06 65 75
+                </p>
+                <p className="text-[9px] text-gray-700">
+                    {data.storeAddress || 'Niamana Dubai, Bamako - Mali'}
+                </p>
+                <p className="text-[9px] text-gray-700 underline font-mono">
+                    https://holding-pro.vercel.app/
+                </p>
             </div>
 
-            {/* Bill To */}
-            <div className="mb-6">
-                <h3 className="text-xs uppercase font-bold text-gray-500 mb-1">{t('invoice.billedTo')}:</h3>
-                <p className="font-bold">{data.customerName || t('customer.counterClient')}</p>
-                {data.customerPhone && <p className="text-sm">{data.customerPhone}</p>}
-                {data.customerAddress && <p className="text-sm italic">{data.customerAddress}</p>}
+            {/* Dashed Separator */}
+            <div className="border-b border-dashed border-black my-1.5" />
+
+            {/* Document Title & Meta */}
+            <div className="text-center mb-1.5">
+                <span className="inline-block font-black text-xs uppercase tracking-wide border border-black px-2 py-0.5 rounded">
+                    {isProforma
+                        ? t('invoice.proforma', 'DEVIS / PROFORMA')
+                        : (data.paymentMethod === 'credit'
+                            ? 'FACTURE À CRÉDIT'
+                            : t('invoice.cashReceipt', 'TICKET DE CAISSE'))}
+                </span>
             </div>
+
+            <div className="text-[10px] space-y-0.5 mb-1.5">
+                <div className="flex justify-between">
+                    <span className="font-semibold">N° Ticket:</span>
+                    <span className="font-mono font-bold">{data.invoice_number || data.id?.slice(0, 8)}</span>
+                </div>
+                {data.order_ref && (
+                    <div className="flex justify-between">
+                        <span className="font-semibold">Réf Cmd:</span>
+                        <span className="font-mono">{data.order_ref}</span>
+                    </div>
+                )}
+                <div className="flex justify-between">
+                    <span className="font-semibold">Date:</span>
+                    <span>{formattedDate}</span>
+                </div>
+                {data.workerName && (
+                    <div className="flex justify-between">
+                        <span className="font-semibold">Caissier:</span>
+                        <span className="font-medium">{data.workerName}</span>
+                    </div>
+                )}
+                <div className="flex justify-between">
+                    <span className="font-semibold">Client:</span>
+                    <span className="font-medium">{data.customerName || t('customer.counterClient', 'Client Comptoir')}</span>
+                </div>
+                {data.customerPhone && (
+                    <div className="flex justify-between">
+                        <span className="font-semibold">Tél Client:</span>
+                        <span>{data.customerPhone}</span>
+                    </div>
+                )}
+                {data.customerAddress && (
+                    <div className="flex justify-between">
+                        <span className="font-semibold">Adresse:</span>
+                        <span className="truncate max-w-[45mm]">{data.customerAddress}</span>
+                    </div>
+                )}
+            </div>
+
+            {/* Dashed Separator */}
+            <div className="border-b border-dashed border-black my-1.5" />
 
             {/* Items Table */}
-            <table className="w-full text-sm mb-6">
+            <table className="w-full text-[10px] border-collapse mb-1.5">
                 <thead>
-                    <tr className="border-b-2 border-black">
-                        <th className="text-left py-2">{t('invoice.designation')}</th>
-                        <th className="text-right py-2">{t('invoice.unitPrice')}</th>
-                        <th className="text-center py-2">{t('invoice.qty')}</th>
-                        <th className="text-right py-2">{t('invoice.total')}</th>
+                    <tr className="border-b border-dashed border-black text-[9px] uppercase font-bold">
+                        <th className="text-left pb-1">Article</th>
+                        <th className="text-center pb-1 w-6">Qté</th>
+                        <th className="text-right pb-1 w-12">P.U</th>
+                        <th className="text-right pb-1 w-14">Total</th>
                     </tr>
                 </thead>
-                <tbody>
-                    {data.items.map((item, idx) => (
-                        <tr key={idx} className="border-b border-gray-100">
-                            <td className="py-2">
-                                <span className="font-medium block">{item.product.name}</span>
-                            </td>
-                            <td className="text-right py-2">{item.product.unit_price.toLocaleString()}</td>
-                            <td className="text-center py-2">{item.quantity}</td>
-                            <td className="text-right py-2">{item.total.toLocaleString()}</td>
-                        </tr>
-                    ))}
+                <tbody className="divide-y divide-gray-200">
+                    {data.items?.map((item: any, idx: number) => {
+                        const name = item.product?.name || item.name || item.designation || 'Article';
+                        const qty = Number(item.quantity ?? item.qty ?? 1);
+                        const price = Number(item.unit_price ?? item.price ?? item.product?.unit_price ?? 0);
+                        const total = Number(item.lineTotal ?? item.total ?? (qty * price));
+                        const discount = Number(item.discount ?? item.discountAmount ?? 0);
+                        const packSize = Number(item.product?.quantity_per_box ?? item.conditionnement ?? 1);
+                        const isBox = Boolean(item.isBox);
+
+                        return (
+                            <tr key={idx} className="align-top">
+                                <td className="py-1 pr-1">
+                                    <div className="font-semibold leading-tight break-words">{name}</div>
+                                    {isBox && packSize > 1 && (
+                                        <div className="text-[8px] text-gray-600">Boîte de {packSize}</div>
+                                    )}
+                                    {discount > 0 && (
+                                        <div className="text-[8px] text-gray-600">Remise: -{discount}%</div>
+                                    )}
+                                </td>
+                                <td className="py-1 text-center font-bold">{qty}</td>
+                                <td className="py-1 text-right whitespace-nowrap">{price.toLocaleString('fr-FR')}</td>
+                                <td className="py-1 text-right font-bold whitespace-nowrap">{total.toLocaleString('fr-FR')}</td>
+                            </tr>
+                        );
+                    })}
                 </tbody>
             </table>
 
+            {/* Dashed Separator */}
+            <div className="border-b border-dashed border-black my-1.5" />
+
             {/* Totals */}
-            <div className="flex justify-end mb-8">
-                <div className="w-48">
-                    <div className="flex justify-between py-1 border-t border-black mt-2 font-bold text-lg">
-                        <span>{t('invoice.total')}</span>
-                        <span>{data.total_price.toLocaleString()} FCFA</span>
-                    </div>
+            <div className="space-y-1 mb-2 text-[11px]">
+                <div className="flex justify-between items-center text-xs font-black border-t-2 border-black pt-1">
+                    <span className="uppercase">NET À PAYER:</span>
+                    <span className="text-sm font-black whitespace-nowrap">
+                        {Number(data.total_price || 0).toLocaleString('fr-FR')} FCFA
+                    </span>
                 </div>
+                {data.paymentMethod && !isProforma && (
+                    <div className="flex justify-between text-[10px] pt-0.5">
+                        <span className="font-semibold">Règlement:</span>
+                        <span className="font-bold uppercase">{data.paymentMethod}</span>
+                    </div>
+                )}
             </div>
 
-            {/* Footer / Disclaimer */}
-            <div className="flex justify-between items-center text-xs text-gray-500 mt-12 border-t pt-4">
-                <div className="flex flex-col items-start opacity-75 mr-4">
-                    <img src="/jati-icon.png" alt="Jati Logo" className="h-[40px] object-contain mb-0.5 grayscale" />
-                    <span className="text-[10px] font-medium tracking-wide">Propulsé par JATE</span>
-                </div>
-                <div className="text-center flex-1 pr-16">
-                    {isProforma ? (
-                        <p className="italic font-medium text-black">
-                            {t('invoice.proformaNote')}
+            {/* Dashed Separator */}
+            <div className="border-b border-dashed border-black my-1.5" />
+
+            {/* Footer */}
+            <div className="text-center text-[9px] text-gray-800 space-y-1 pt-1">
+                {isProforma ? (
+                    <p className="italic font-medium">
+                        {t('invoice.proformaNote', 'Ce devis est valable 15 jours.')}
+                    </p>
+                ) : (
+                    <>
+                        <p className="font-bold">Merci pour votre confiance et à bientôt !</p>
+                        <p className="text-[8px] text-gray-600">Les marchandises vendues ne sont ni reprises ni échangées.</p>
+                        <p className="text-[8px] font-semibold text-black pt-0.5">
+                            TikTok • Facebook • Instagram • YouTube
                         </p>
-                    ) : (
-                        <p className="font-medium text-gray-800">{t('invoice.thankYou')}</p>
-                    )}
+                        <p className="text-[8px] font-black text-black">
+                            @HOLDING PRO NIAMANA DUBAI
+                        </p>
+                    </>
+                )}
+                <div className="flex items-center justify-center gap-1 opacity-50 grayscale pt-2">
+                    <span className="text-[8px] font-semibold tracking-wide text-gray-500 uppercase">Propulsé par JATE</span>
+                    <img src="/jati-icon.png" alt="JATE" className="h-3 object-contain" />
                 </div>
             </div>
         </div>
