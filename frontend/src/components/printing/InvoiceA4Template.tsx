@@ -9,6 +9,12 @@ const QuincaillerieLogo = () => (
     </div>
 );
 
+const StihlLogo = () => (
+    <div className="w-[110px] shrink-0 text-right flex justify-end">
+        <img src="/stihl-logo.jpg" alt="STIHL" className="w-full h-auto object-contain" />
+    </div>
+);
+
 export const InvoiceA4Template = forwardRef<HTMLDivElement, { data: InvoiceData }>(({ data }, ref) => {
     const { t } = useTranslation();
 
@@ -16,21 +22,51 @@ export const InvoiceA4Template = forwardRef<HTMLDivElement, { data: InvoiceData 
         return amount.toLocaleString('fr-FR') + ' FCFA';
     };
 
+    const hasStihlProduct = data.items.some(item =>
+        item.product?.name?.toLowerCase().includes('stihl') ||
+        item.product?.name?.toLowerCase().includes('steel')
+    );
+
+    const hasNonStihlProduct = data.items.some(item =>
+        !(item.product?.name?.toLowerCase().includes('stihl') ||
+          item.product?.name?.toLowerCase().includes('steel'))
+    );
+
+    const onlyStihl = hasStihlProduct && !hasNonStihlProduct;
+    const both = hasStihlProduct && hasNonStihlProduct;
+    const onlyQuincaillerie = hasNonStihlProduct && !hasStihlProduct;
+
     return (
         <div
             ref={ref}
-            className="bg-white text-black font-sans hidden print:flex print:flex-col mx-auto"
+            className="bg-white text-black font-sans hidden print:flex print:flex-col mx-auto relative"
             style={{ width: '210mm', minHeight: '297mm', padding: '10mm 15mm' }}
         >
+            {/* Watermark Logos */}
+            <div className="absolute inset-0 z-0 pointer-events-none flex flex-col justify-center items-center opacity-[0.15]">
+                {onlyStihl && (
+                    <img src="/stihl-logo.jpg" alt="Watermark STIHL" className="w-[60%] h-auto object-contain grayscale contrast-200" />
+                )}
+                {both && (
+                    <>
+                        <img src="/quincaillerie-logo.jpg" alt="Watermark Quincaillerie" className="w-[55%] h-auto object-contain grayscale contrast-200" />
+                        <img src="/stihl-logo.jpg" alt="Watermark STIHL" className="w-[45%] h-auto object-contain grayscale contrast-200 -mt-2" />
+                    </>
+                )}
+                {(!hasStihlProduct || onlyQuincaillerie) && !both && !onlyStihl && (
+                    <img src="/quincaillerie-logo.jpg" alt="Watermark Quincaillerie" className="w-[70%] h-auto object-contain grayscale contrast-200" />
+                )}
+            </div>
+
             {/* HEADER MODULE */}
-            <div className="flex justify-between items-center mb-6 pb-4 border-b-4 border-[#2c3e50]">
+            <div className={`relative z-10 flex justify-between items-center mb-6 pb-4 border-b-4 ${hasStihlProduct ? 'border-[#f04e23]' : 'border-[#2c3e50]'}`}>
                 <QuincaillerieLogo />
 
                 <div className="flex-1 text-center px-4">
                     <div className="inline-block bg-red-600 text-white text-xs font-bold px-2 py-1 rounded mb-1">
                         ETS Madjou Sylla
                     </div>
-                    <h1 className="text-3xl font-black tracking-tight mb-1 leading-none uppercase text-[#2c3e50]">
+                    <h1 className={`text-3xl font-black tracking-tight mb-1 leading-none uppercase ${hasStihlProduct ? 'text-[#f04e23]' : 'text-[#2c3e50]'}`}>
                         Quincaillerie De La Paix
                     </h1>
                     <p className="text-[13px] font-bold text-red-600 tracking-wide uppercase mb-2">
@@ -38,11 +74,13 @@ export const InvoiceA4Template = forwardRef<HTMLDivElement, { data: InvoiceData 
                     </p>
                     <div className="text-sm font-semibold text-gray-800 leading-snug">
                         <p>TEL: <span className="text-green-700">+223 77 77 90 60 / 20 22 26 45 / 79 45 49 46</span></p>
-                        <p className="text-blue-800">madjoulalasylla@gmail.com &nbsp;|&nbsp; <span className="text-gray-600">Face à Djoliba, près du Trésor</span></p>
+                        <p className="text-blue-800">madjoulalasylla@gmail.com &nbsp;|&nbsp; <span className="text-gray-600">Niamakoro près de SONEF, Bamako</span></p>
                     </div>
                 </div>
 
-                <div className="w-[100px] shrink-0"></div>
+                <div className="w-[110px] shrink-0 text-right flex justify-end">
+                    {hasStihlProduct ? <StihlLogo /> : <div className="w-full"></div>}
+                </div>
             </div>
 
             {/* INVOICE METADATA */}
@@ -162,8 +200,11 @@ export const InvoiceA4Template = forwardRef<HTMLDivElement, { data: InvoiceData 
                 </div>
             </div>
 
-            {/* FOOTER: JATE Watermark */}
-            <div className="flex justify-end items-end mt-auto pt-4 border-t border-gray-200">
+            {/* FOOTER: JATE Watermark & Store attribution */}
+            <div className="flex justify-between items-end mt-auto pt-4 border-t border-gray-200">
+                <div className="text-[10px] text-gray-500 font-semibold uppercase">
+                    NIAMAKORO • PRÈS DE SONEF • BAMAKO
+                </div>
                 <div className="flex items-center gap-2 opacity-50 grayscale">
                     <span className="text-xs font-semibold tracking-widest text-gray-500 uppercase">Propulsé par JATE</span>
                     <img src="/jati-icon.png" alt="Jate" className="h-6 object-contain" />
