@@ -7,6 +7,9 @@ import { db } from '../db/index.js';
 import { env } from '../env.js';
 import { authenticateRequest, type Role } from './utils/auth.js';
 
+const DEFAULT_BRANCH_STORE_ID = 'bb2546ae-a2b3-47da-ae46-22b9b2914304';
+const DEFAULT_BRANCH_STORE_NAME = 'STIHL Dibidani';
+
 const bootstrapSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8, 'Password must be at least 8 characters'),
@@ -253,8 +256,8 @@ export async function registerAuthRoutes(app: FastifyInstance) {
 
     const userId = crypto.randomUUID();
     const now = new Date().toISOString();
-    const storeId = crypto.randomUUID();
-    const storeLabel = store_name?.trim() || 'Magasin principal';
+    const storeId = DEFAULT_BRANCH_STORE_ID;
+    const storeLabel = store_name?.trim() || DEFAULT_BRANCH_STORE_NAME;
 
     db.insertUser({
       id: userId,
@@ -443,12 +446,12 @@ export async function registerAuthRoutes(app: FastifyInstance) {
       const allLocalStores = db.listStores();
       if (allLocalStores.length > 0) {
         finalStoreId = allLocalStores[0].id;
-      } else if (primaryRole === 'master') {
-        finalStoreId = crypto.randomUUID();
+      } else {
+        finalStoreId = DEFAULT_BRANCH_STORE_ID;
         db.insertStore({
           id: finalStoreId,
-          name: 'STIHL Dibidani',
-          owner_id: userId,
+          name: DEFAULT_BRANCH_STORE_NAME,
+          owner_id: primaryRole === 'master' ? userId : null,
           default_price_tier: 1,
           created_at: now,
           updated_at: now,
@@ -552,14 +555,14 @@ export async function registerAuthRoutes(app: FastifyInstance) {
       if (allLocalStores.length > 0) {
         finalStoreId = allLocalStores[0].id;
       } else {
-        finalStoreId = crypto.randomUUID();
+        finalStoreId = DEFAULT_BRANCH_STORE_ID;
       }
     }
 
     if (!db.getStoreById(finalStoreId)) {
       db.insertStore({
         id: finalStoreId,
-        name: store_name || 'STIHL Dibidani',
+        name: store_name || DEFAULT_BRANCH_STORE_NAME,
         owner_id: role === 'master' ? userId : null,
         default_price_tier: 1,
         created_at: now,
