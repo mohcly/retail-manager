@@ -65,6 +65,9 @@ jobs:
 
       - name: Build Frontend
         working-directory: frontend
+        env:
+          VITE_SUPABASE_URL: https://onsqvduklnwffugsiybs.supabase.co
+          VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_FA5r0_p7i7YQb4p7HkkiBQ_Y8rGmIIW
         run: |
           npm install
           npm run build
