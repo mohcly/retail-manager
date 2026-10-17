@@ -19,37 +19,44 @@ export const InvoiceA4Template = forwardRef<HTMLDivElement, { data: InvoiceData 
     return (
         <div
             ref={ref}
-            className="bg-white text-black font-sans hidden print:flex print:flex-col mx-auto"
+            className="bg-white text-black font-sans hidden print:flex print:flex-col mx-auto relative"
             style={{ width: '210mm', minHeight: '297mm', padding: '10mm 15mm' }}
         >
-            {/* HEADER MODULE */}
-            <div className="flex justify-between items-center mb-6 pb-4 border-b-4 border-[#1e293b]">
-                <HoldingProLogo />
+            {/* Watermark Logo */}
+            <div className="absolute inset-0 z-0 pointer-events-none flex flex-col justify-center items-center opacity-[0.05]">
+                <img src="/holding-pro-logo.png" alt="Watermark Holding Pro" className="w-[60%] h-auto object-contain" />
+            </div>
 
-                <div className="flex-1 text-center px-4">
-                    <div className="inline-block bg-[#0f172a] text-white text-xs font-bold px-3 py-1 rounded mb-1 uppercase tracking-wider">
-                        NIAMANA DUBAI • BAMAKO
-                    </div>
-                    <h1 className="text-3xl font-black tracking-tight mb-0.5 leading-none uppercase text-[#0f172a]">
-                        HOLDING PRO
-                    </h1>
-                    <p className="text-[12px] font-black text-amber-600 tracking-wide uppercase mb-1">
-                        &ldquo;TOUJOURS CLIENT SATISFAIT&rdquo;
-                    </p>
-                    <p className="text-[11px] font-semibold text-gray-700 uppercase mb-2">
-                        VOTRE BOUTIQUE EN LIGNE D'ARTICLES ÉLECTRONIQUES &amp; ACCESSOIRES
-                    </p>
-                    <div className="text-sm font-semibold text-gray-800 leading-snug">
-                        <p>TEL &amp; WHATSAPP: <span className="text-emerald-700 font-bold">+223 79 34 60 73 / 70 68 21 00 / 71 06 65 75</span></p>
-                        <p className="text-blue-800">https://holding-pro.vercel.app/ &nbsp;|&nbsp; <span className="text-gray-600">Niamana Dubai, Bamako - Mali</span></p>
+            {/* Rainbow Top Bar */}
+            <div className="rainbow-bar mb-4 z-10" style={{ background: 'linear-gradient(90deg, #f97316, #ec4899, #a855f7, #3b82f6, #22c55e, #eab308, #f97316)', height: '5px', width: '100%', borderRadius: '3px' }} />
+
+            {/* HEADER MODULE */}
+            <div className="relative z-10 flex justify-between items-center mb-6 pb-4 border-b border-gray-200">
+                <div className="flex items-center gap-4">
+                    <img src="/holding-pro-logo.png" alt="Logo Holding Pro" style={{ width: '70px', height: '70px', objectFit: 'contain', borderRadius: '50%', border: '2px solid #e5e7eb' }} />
+                    <div>
+                        <div className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-gray-400">Commerce Général &amp; Services</div>
+                        <h1 className="text-3xl font-black tracking-tight leading-none" style={{ background: 'linear-gradient(90deg, #f97316, #a855f7, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+                            HOLDING PRO
+                        </h1>
+                        <div className="text-xs font-bold text-gray-700 tracking-wider uppercase mt-0.5">Niamana Dubaï — Bamako, Mali</div>
+                        <div className="text-[11px] text-blue-600 font-medium">https://holding-pro.vercel.app/</div>
                     </div>
                 </div>
 
-                <div className="w-[100px] shrink-0"></div>
+                <div className="text-right">
+                    <div className="inline-block bg-gray-900 text-white text-[10px] font-black px-3 py-1 rounded-full mb-1.5 tracking-wider uppercase shadow-sm">
+                        TOUJOURS CLIENT SATISFAIT
+                    </div>
+                    <div className="text-xs font-semibold text-gray-800 leading-relaxed">
+                        <p>📞 <span className="text-emerald-700 font-bold">+223 79 34 60 73 / 70 68 21 00 / 71 06 65 75</span></p>
+                        <p className="text-gray-500 text-[11px]">{data.storeAddress || 'Niamana Dubaï, en face station Shell'}</p>
+                    </div>
+                </div>
             </div>
 
             {/* INVOICE METADATA */}
-            <div className="flex justify-between items-start mb-8">
+            <div className="relative z-10 flex justify-between items-start mb-8">
                 <div className="w-1/2">
                     <h2 className="text-3xl font-black text-gray-800 uppercase tracking-widest mb-4">
                         {data.type === 'proforma' ? 'Proforma' : 'Facture'}
@@ -95,14 +102,14 @@ export const InvoiceA4Template = forwardRef<HTMLDivElement, { data: InvoiceData 
             </div>
 
             {/* TABLE OF ITEMS */}
-            <div className="flex-grow">
+            <div className="flex-grow relative z-10">
                 <table className="w-full text-sm border-collapse mb-6">
                     <thead>
-                        <tr className="bg-[#2c3e50] text-white">
-                            <th className="py-2 px-3 text-left border border-[#2c3e50] font-semibold">Désignation</th>
-                            <th className="py-2 px-3 text-center border border-[#2c3e50] font-semibold w-20">Qté</th>
-                            <th className="py-2 px-3 text-right border border-[#2c3e50] font-semibold w-28">Prix U.</th>
-                            <th className="py-2 px-3 text-right border border-[#2c3e50] font-semibold w-32">Montant</th>
+                        <tr className="bg-[#1a1a2e] text-white">
+                            <th className="py-2.5 px-3 text-left border border-[#1a1a2e] font-semibold">Désignation</th>
+                            <th className="py-2.5 px-3 text-center border border-[#1a1a2e] font-semibold w-20">Qté</th>
+                            <th className="py-2.5 px-3 text-right border border-[#1a1a2e] font-semibold w-28">Prix U.</th>
+                            <th className="py-2.5 px-3 text-right border border-[#1a1a2e] font-semibold w-32">Montant</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -145,16 +152,18 @@ export const InvoiceA4Template = forwardRef<HTMLDivElement, { data: InvoiceData 
                     </div>
 
                     <div className="w-[45%]">
-                        <div className="flex justify-between items-center py-2 px-3 font-bold text-lg bg-gray-100 border border-gray-300 rounded whitespace-nowrap">
+                        <div className="flex justify-between items-center py-2.5 px-3 font-black text-sm text-white rounded-lg border border-gray-300 shadow-sm" style={{ background: 'linear-gradient(135deg, #1a1a2e, #2d1b69)' }}>
                             <span className="mr-4">NET À PAYER :</span>
-                            <span>{formatCurrency(data.total_price)}</span>
+                            <span className="text-lg font-extrabold" style={{ background: 'linear-gradient(90deg, #f97316, #ec4899, #a855f7)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+                                {formatCurrency(data.total_price)}
+                            </span>
                         </div>
                     </div>
                 </div>
             </div>
 
             {/* SIGNATURES */}
-            <div className="flex justify-between mt-12 px-8">
+            <div className="flex justify-between mt-12 px-8 relative z-10">
                 <div className="text-center w-48">
                     <p className="font-bold text-gray-800 mb-12">Le Client</p>
                     <div className="border-b border-gray-400"></div>
@@ -166,7 +175,7 @@ export const InvoiceA4Template = forwardRef<HTMLDivElement, { data: InvoiceData 
             </div>
 
             {/* FOOTER: JATE Watermark */}
-            <div className="flex justify-end items-end mt-auto pt-4 border-t border-gray-200">
+            <div className="flex justify-end items-end mt-auto pt-4 border-t border-gray-200 relative z-10">
                 <div className="flex items-center gap-2 opacity-50 grayscale">
                     <span className="text-xs font-semibold tracking-widest text-gray-500 uppercase">Propulsé par JATE</span>
                     <img src="/jati-icon.png" alt="Jate" className="h-6 object-contain" />
