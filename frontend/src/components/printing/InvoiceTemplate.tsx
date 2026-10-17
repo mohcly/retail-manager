@@ -67,9 +67,9 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, { data: InvoiceData }>
             <div className="text-center mb-2">
                 <div className="flex justify-center mb-1">
                     <img
-                        src="/holding-pro-logo.jpg"
+                        src="/holding-pro-logo.png"
                         alt="Holding Pro Logo"
-                        className="h-14 w-14 object-contain rounded-full border border-gray-300"
+                        className="h-14 w-14 object-contain mx-auto"
                     />
                 </div>
                 <h1 className="text-base font-black tracking-wider uppercase text-black leading-tight">

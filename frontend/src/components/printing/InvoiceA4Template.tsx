@@ -5,7 +5,7 @@ import { InvoiceData } from './InvoiceTemplate';
 
 const HoldingProLogo = () => (
     <div className="w-[100px] shrink-0 flex items-center justify-center">
-        <img src="/holding-pro-logo.jpg" alt="Logo Holding Pro" className="w-[90px] h-[90px] object-contain rounded-full border border-gray-200" />
+        <img src="/holding-pro-logo.png" alt="Logo Holding Pro" className="w-[90px] h-[90px] object-contain" />
     </div>
 );
 
