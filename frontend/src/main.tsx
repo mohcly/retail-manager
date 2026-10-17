@@ -25,19 +25,6 @@ window.addEventListener('unhandledrejection', (e) => {
 
 console.log('🚀 Bootstrapping Djati...');
 
-// Emergency: Wipe browser storage once to clear corrupt data
-if (!localStorage.getItem('system_reset_v3')) {
-  console.log('System reset requested: Clearing browser storage...');
-  localStorage.clear();
-  // Clear all IndexedDB databases
-  indexedDB.databases().then(databases => {
-    databases.forEach(db => {
-      if (db.name) indexedDB.deleteDatabase(db.name);
-    });
-  });
-  localStorage.setItem('system_reset_v3', 'true');
-  window.location.reload();
-}
 
 createRoot(document.getElementById("root")!).render(
   <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
