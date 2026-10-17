@@ -15,14 +15,30 @@ export function AppUpdater() {
         const update = await check();
         if (!update) return;
 
-        const shouldInstall = await ask(
-          `Une nouvelle version (${update.version}) est disponible. Installer maintenant ?`,
-          { title: 'Mise a jour disponible', kind: 'info' }
-        );
+        let shouldInstall = false;
+        try {
+          const { ask } = await import('@tauri-apps/plugin-dialog');
+          shouldInstall = await ask(
+            `Une nouvelle version (${update.version}) est disponible. Installer maintenant ?`,
+            { title: 'Mise a jour disponible', kind: 'info' }
+          );
+        } catch {
+          shouldInstall = window.confirm(
+            `Une nouvelle version (${update.version}) est disponible. Installer maintenant ?`
+          );
+        }
+
         if (!shouldInstall) return;
 
         await update.downloadAndInstall();
-        await message('Mise a jour installee. L\'application va redemarrer.', { title: 'Mise a jour', kind: 'info' });
+
+        try {
+          const { message } = await import('@tauri-apps/plugin-dialog');
+          await message("Mise a jour installee. L'application va redemarrer.", { title: 'Mise a jour', kind: 'info' });
+        } catch {
+          window.alert("Mise a jour installee. L'application va redemarrer.");
+        }
+
         await relaunch();
       } catch (e) {
         console.error('[AppUpdater] update check failed:', e);
