@@ -1247,7 +1247,7 @@ export class OfflineAuthService {
             // and still a reasonable default if there's ever more than one
             // (an explicit store switcher is the real long-term answer for
             // masters overseeing multiple stores, not in scope here).
-            if (!storeId && roles.some(r => r.role === 'master')) {
+            if (!storeId) {
               const { data: visibleStores } = await supabase
                 .from('stores')
                 .select('id')
@@ -1256,9 +1256,11 @@ export class OfflineAuthService {
             }
 
             if (storeId) {
-              session.user.user_metadata.store_id = storeId;
+              if (session.user.user_metadata) {
+                session.user.user_metadata.store_id = storeId;
+              }
               for (const r of roles) {
-                if (r.role === 'master' && !r.store_id) r.store_id = storeId;
+                if (!r.store_id) r.store_id = storeId;
               }
             }
 
@@ -1331,9 +1333,20 @@ export class OfflineAuthService {
         created_at: r.created_at,
       }));
 
-      const storeId = localRoles.find(r => r.store_id)?.store_id;
+      let storeId = localRoles.find(r => r.store_id)?.store_id;
+      if (!storeId) {
+        const localStores = await LocalDatabase.getAllStores();
+        if (localStores.length > 0) {
+          storeId = localStores[0].id;
+        }
+      }
       if (storeId) {
-        session.user.user_metadata.store_id = storeId;
+        if (session.user.user_metadata) {
+          session.user.user_metadata.store_id = storeId;
+        }
+        for (const r of roles) {
+          if (!r.store_id) r.store_id = storeId;
+        }
       }
 
       return {
