@@ -50,7 +50,7 @@ Merchants in Bamako buy solutions for only four reasons:
 > À tout moment, depuis votre téléphone ou le bureau, vous savez exactement combien de marchandises il reste dans votre boutique, article par article. »*
 
 ### Step 4: The Investment Comparison (The No-Brainer ROI)
-> *« Ce pack complet — matériel neuf garanti 1 an, logiciel à vie sans abonnement mensuel obligatoire, saisie de tous vos articles par notre équipe, et formation complète de vos caissiers — représente un investissement unique de **685 000 FCFA**.  
+> *« Ce pack complet — matériel neuf garanti 1 an, logiciel Retail Manager à vie (licence 150 000 FCFA sans abonnement mensuel obligatoire), saisie de tous vos articles par notre équipe, et formation complète de vos caissiers — représente un investissement unique de **715 000 FCFA**.  
 > Réfléchissez-y : si le système vous évite simplement de perdre 150 000 FCFA par mois en coulage de stock et en erreurs de caisse, **en moins de 5 mois, votre matériel est totalement amorti**. À partir du 6ème mois, c'est du bénéfice net pur qui reste dans votre poche. »*
 
 ---
@@ -85,9 +85,9 @@ Je passe vous voir demain pour caler la date d'installation si vous êtes dispon
 
 ## 5. Objection Handling Playbook
 
-### Objection 1: "685 000 FCFA is too expensive for me right now."
+### Objection 1: "715 000 FCFA is too expensive for me right now."
 - **Response:** *"Patron, ce n'est pas une dépense, c'est un cadenas sur votre argent. Actuellement, combien perdez-vous chaque mois en produits qui disparaissent ou en monnaie mal rendue ? Même 5 000 FCFA par jour, ça fait 150 000 FCFA le mois et 1,8 million par an qui part en fumée.  
-Pour vous faciliter la trésorerie, nous proposons un échelonnement : 40% à la commande pour réserver le matériel, 40% à la livraison et installation dans votre magasin, et les 20% restants uniquement après que vos employés ont été formés et que tout tourne parfaitement."*
+Pour vous faciliter la trésorerie, nous proposons un échelonnement : 40% à la commande pour réserver le matériel (286 000 FCFA), 40% à la livraison et installation dans votre magasin (286 000 FCFA), et les 20% restants uniquement après que vos employés ont été formés et que tout tourne parfaitement (143 000 FCFA)."*
 
 ### Objection 2: "My cashiers don't know anything about computers, it's too complicated."
 - **Response:** *"Nos écrans fonctionnent exactement comme un smartphone avec des boutons tactiles et des photos d'articles. Pour vendre, votre caissier a juste à scanner le code-barres avec le pistolet, et appuyer sur 'Valider'. En 30 minutes de formation, même un apprenti qui n'a jamais touché d'ordinateur sait encaisser et rendre la monnaie."*
