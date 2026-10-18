@@ -46,9 +46,17 @@ export function MobilePOS({ onBack }: MobilePOSProps) {
     const [storeId, setStoreId] = useState<string>('');
 
     useEffect(() => {
-        OfflineAuthService.getOfflineSession().then(offlineSession => {
-            if (offlineSession?.user?.user_metadata?.store_id) {
-                setStoreId(offlineSession.user.user_metadata.store_id);
+        OfflineAuthService.getOfflineSession().then(async offlineSession => {
+            let sid = offlineSession?.roles?.find((r: any) => r.store_id)?.store_id || offlineSession?.user?.user_metadata?.store_id;
+            if (!sid) {
+                const { OfflineStoreService } = await import('@/services/OfflineStoreService');
+                const { data: stores } = await OfflineStoreService.getStores();
+                if (stores && stores.length > 0) {
+                    sid = stores[0].id;
+                }
+            }
+            if (sid) {
+                setStoreId(sid);
             }
         });
     }, []);
@@ -71,7 +79,15 @@ export function MobilePOS({ onBack }: MobilePOSProps) {
             const offlineSession = await OfflineAuthService.getOfflineSession();
             if (offlineSession?.user) {
                 userId = offlineSession.user.id;
-                sid = offlineSession.user.user_metadata?.store_id;
+                sid = offlineSession.roles?.find((r: any) => r.store_id)?.store_id || offlineSession.user.user_metadata?.store_id || storeId;
+            }
+
+            if (!sid) {
+                const { OfflineStoreService } = await import('@/services/OfflineStoreService');
+                const { data: stores } = await OfflineStoreService.getStores();
+                if (stores && stores.length > 0) {
+                    sid = stores[0].id;
+                }
             }
 
             if (!sid) {

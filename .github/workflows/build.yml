@@ -1,16 +1,6 @@
 name: "CI/CD Pipeline: Build Windows Application"
 
 on:
-  push:
-    branches:
-      - main
-      - frontend-test-1
-      - main-restaurants
-  pull_request:
-    branches:
-      - main
-      - frontend-test-1
-      - main-restaurants
   workflow_dispatch:
 
 jobs:
