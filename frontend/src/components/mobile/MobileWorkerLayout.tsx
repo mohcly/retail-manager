@@ -165,7 +165,14 @@ export function MobileWorkerLayout({ onOpenDesktopModule }: MobileWorkerLayoutPr
     const fetchStore = async () => {
       const { OfflineAuthService } = await import('@/services/OfflineAuthService');
       const offlineSession = await OfflineAuthService.getOfflineSession();
-      const resolvedStoreId = offlineSession?.roles?.find(r => r.store_id)?.store_id || offlineSession?.user?.user_metadata?.store_id;
+      let resolvedStoreId = offlineSession?.roles?.find(r => r.store_id)?.store_id || offlineSession?.user?.user_metadata?.store_id;
+      if (!resolvedStoreId) {
+        const { OfflineStoreService } = await import('@/services/OfflineStoreService');
+        const { data: stores } = await OfflineStoreService.getStores();
+        if (stores && stores.length > 0) {
+          resolvedStoreId = stores[0].id;
+        }
+      }
       if (resolvedStoreId) {
         setStoreId(resolvedStoreId);
       }
