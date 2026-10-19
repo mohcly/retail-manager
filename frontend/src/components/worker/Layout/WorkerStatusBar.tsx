@@ -138,6 +138,7 @@ export function WorkerStatusBar({ storeName, userEmail, activeModule, onLogout, 
         <HardDrive className={cn('h-3.5 w-3.5', subRole === 'cashier' ? 'text-[#F5C518]/70' : 'text-primary-foreground/70 dark:text-primary')} />
         <span className={cn('font-medium truncate', subRole === 'cashier' ? 'text-white' : 'text-primary-foreground dark:text-foreground')}>
           {storeName || t('index.title')}
+          <span className="font-mono opacity-50 ml-2 text-[10px]">v{import.meta.env.VITE_APP_VERSION || 'dev'}</span>
         </span>
       </div>
 
