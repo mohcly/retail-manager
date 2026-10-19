@@ -84,3 +84,26 @@
   - Margin verification: `Delta = 0px` (Left=82px, Right=82px, Top=35px, Bottom=39px) on both PDFs.
 - Status: FIXED
 - Tags: ssd-256gb, paper-rolls, sovereign-backup, tier-ladder, standalone-offer, chrome-headless, pdf-centering
+
+### [2026-10-19] GIE MOUNA Legal Credentials Rectification: Authentic RCCM & Pending NIF
+- Symptom:
+  - Previous documents referenced registration number 5170919619941R, which was identified as an individual NINA card number rather than the official commercial registry.
+  - Documents also referred to "GROUPE GIE MOUNA SARL", combining incompatible OHADA forms, and asserted an active NIF when GIE MOUNA is still awaiting its DGI tax card.
+- Files involved:
+  - `docs/PROFORMA_RETAIL_MANAGER_PACK_BAMAKO.html`
+  - `docs/PROFORMA_RETAIL_MANAGER_PACK_BAMAKO.pdf`
+  - `docs/OFFRE_COMMERCIALE_TIERS_RETAIL_MANAGER.html`
+  - `docs/OFFRE_COMMERCIALE_TIERS_RETAIL_MANAGER.pdf`
+  - `docs/COMMERCIAL_PITCH_RETAIL_MANAGER_BAMAKO.md`
+- Root cause:
+  - Inadvertent use of individual NINA identity number in place of the Greffe du Tribunal de Commerce registration, and premature claim of active NIF.
+- Fix applied:
+  - Rectified commercial registry to authentic court registration: `MA.BKO.2017.C.8036`.
+  - Updated tax status to: `NIF : En cours d'attribution DGI`.
+  - Cleaned entity styling to "GROUPE GIE MOUNA & JATI TECHNOLOGIES".
+- Verification:
+  - Recompiled and verified PDFs (Pages = 1, Delta = 0px).
+  - Verified zero occurrences of 5170919619941R.
+- Status: FIXED
+- Tags: legal-credentials, rccm, nif-attribution-dgi, gie-mouna, tribunal-commerce-bamako
+
