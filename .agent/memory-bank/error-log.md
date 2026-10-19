@@ -186,6 +186,41 @@
 - Status: FIXED
 - Tags: typography, parties-box, phone-number-nowrap, line-balance, tier-ladder
 
+### [2026-10-19] STIHL Web Portal: Fallback URL Poisoning, Analytics Store Duplication & Cloud Inventory Valuation
+- Symptom:
+  - Navigating to `https://djati-stihl.vercel.app` failed to load dashboard metrics, stores list, and inventory data; only Analytics loaded.
+  - In Analytics, stores were duplicated: one store displayed sales data while an empty duplicate store card rendered underneath with 0 data.
+  - The Niamakoro store showed zero sales, creating confusion regarding whether it was broken or unpopulated.
+- Files involved:
+  - `frontend/src/lib/supabase.ts`
+  - `frontend/src/lib/dataClient.ts`
+  - `frontend/src/services/AIService.ts`
+  - `frontend/src/services/OfflineAuthService.ts`
+  - `frontend/src/services/OfflineInventoryService.ts`
+  - `frontend/src/services/OfflineDataService.ts`
+  - `frontend/src/pages/master/Analytics.tsx`
+- Root cause:
+  1. `frontend/src/lib/supabase.ts` and related service files in the `main-stores-stihl` branch had hardcoded fallback strings pointing to Niamana Dubai's Supabase project (`onsqvduklnwffugsiybs`) instead of STIHL (`fpvrbxmbrotowdlyebqv`). When Vercel ran without injected build env vars, all queries fell back to Niamana Dubai's database, failing auth and returning empty datasets.
+  2. `OfflineInventoryService.ts` (`getStockValuation()` and `getLowStockItems()`) attempted to read from IndexedDB tables (`products`, `sales`, etc.) which are only populated in local-first desktop environments, resulting in zero valuation on web portals.
+  3. `OfflineDataService.ts` threw unhandled errors on missing `cash_transactions` table (`PGRST205`).
+  4. In `Analytics.tsx`, the master view mapped over all active store IDs and rendered a separate `<GestionModule />` block for each store stacked vertically, producing two dashboards (Dibidani with 30,000 F CFA and Niamakoro with empty charts).
+  5. Niamakoro's 0 sales stemmed from physical store setup: all 133 recorded sales were registered under Dibidani (`bb2546ae-a2b3-47da-ae46-22b9b2914304`), while Niamakoro has 278 distinct hardware products without recorded sales.
+- Fix applied:
+  1. Cleaned out all Niamana Dubai URLs and hardcoded STIHL Supabase URL (`https://fpvrbxmbrotowdlyebqv.supabase.co`) and anon key fallbacks across `supabase.ts`, `dataClient.ts`, `AIService.ts`, and `OfflineAuthService.ts`.
+  2. Updated `OfflineInventoryService.ts` to query Supabase directly for inventory valuation across all price tiers and low stock when running in cloud web mode (`!dc.isLocalFirst && navigator.onLine`).
+  3. Made `storeId` optional in `getCashTransactions()` and safely handled `PGRST205` error code.
+  4. Updated `Analytics.tsx` to render a single unified "TOUS LES MAGASINS" dashboard (`storeId=""`) when all stores are selected, eliminating duplicate store dashboards.
+  5. Built and deployed live to Vercel production (`djati-stihl.vercel.app`).
+- Verification:
+  - Headless browser verification via Playwright on `https://djati-stihl.vercel.app`:
+    - `/master/dashboard` loaded today's sales (30,000 F CFA) and weekly sales without hanging.
+    - `/master/analytics` rendered a single unified dashboard without duplicate store sections.
+    - `/master/stores` cleanly displayed both stores (STIHL Dibidani and STIHL Niamakoro).
+    - Worker login (`blaisetienou@gmail.com`) correctly restricted to POS cashier interface (`/worker/dashboard`).
+- Status: FIXED
+- Tags: stihl, vercel, supabase-poisoning, analytics-duplication, cloud-valuation, clearance-roles
+
+
 
 
 
