@@ -35,15 +35,44 @@ export default defineConfig(({ mode }) => {
     }
   }
 
+  // Resolve actual build version:
+  // 1. Explicit env var VITE_APP_VERSION (if supplied by CI or build runner)
+  // 2. src-tauri/tauri.conf.json version (authoritative desktop build version)
+  // 3. frontend/package.json version
+  let appVersion = process.env.VITE_APP_VERSION;
+  if (!appVersion) {
+    try {
+      const tauriConfPath = path.resolve(__dirname, "../src-tauri/tauri.conf.json");
+      if (fs.existsSync(tauriConfPath)) {
+        const tauriConf = JSON.parse(fs.readFileSync(tauriConfPath, "utf-8"));
+        if (tauriConf.version) {
+          appVersion = tauriConf.version;
+        }
+      }
+    } catch (e) {}
+  }
+  if (!appVersion) {
+    try {
+      const pkgPath = path.resolve(__dirname, "package.json");
+      if (fs.existsSync(pkgPath)) {
+        const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
+        if (pkg.version) {
+          appVersion = pkg.version;
+        }
+      }
+    } catch (e) {}
+  }
+  appVersion = appVersion || process.env.npm_package_version || "0.2.0";
+
   return {
-    base: mode === 'production' ? './' : '/', // Important for Electron
+    base: (mode === 'production' && !process.env.VERCEL) ? './' : '/',
     server: {
       host: "::",
       port: 5173,
       https: httpsConfig,
     },
     define: {
-      'import.meta.env.VITE_APP_VERSION': JSON.stringify(process.env.npm_package_version || '0.5.5')
+      'import.meta.env.VITE_APP_VERSION': JSON.stringify(appVersion)
     },
     plugins: [
       react(),
