@@ -134,4 +134,33 @@
 - Status: FIXED
 - Tags: tier-ladder-v2, 2-page-layout, pdf-centering, sovereign-data, rccm-compliance, chrome-headless
 
+### [2026-10-19] Supplier Sign-off Card: Centered & Enlarged Executive Signature
+- Symptom:
+  - User reported: "my signature needs to be centered on the box, and it is way too small."
+  - The signature image (`signature-mohamed.png`) had a wide 609x552 bounding box with 256 stray scanner dust pixels at x=552 to 608, shifting the visual strokes heavily to the left (mean optical center X=188.5 vs image width 609) and forcing premature scaling when constrained by height (max-height: 28px).
+- Files involved:
+  - `docs/assets/signature-mohamed.png`
+  - `docs/OFFRE_COMMERCIALE_TIERS_RETAIL_MANAGER.html`
+  - `docs/OFFRE_COMMERCIALE_TIERS_RETAIL_MANAGER.pdf`
+  - `/Users/mohamedcoulibaly/Desktop/OFFRE_COMMERCIALE_TIERS_RETAIL_MANAGER_v2.html`
+  - `/Users/mohamedcoulibaly/Desktop/OFFRE_COMMERCIALE_TIERS_RETAIL_MANAGER_v2.pdf`
+- Root cause:
+  - Asymmetric transparency padding and scanner noise in source PNG, combined with missing flex alignment and restrictive max-height.
+- Fix applied:
+  1. Cropped source signature to clean bounding box (360x470) eliminating all stray scanner artifacts and balancing optical center.
+  2. Staged local copy in `docs/assets/signature-mohamed.png`.
+  3. Replaced signature container styling with:
+     `<div style="flex:1; display:flex; align-items:center; justify-content:center; padding:1mm 0;"><img src="..." style="max-height:26mm; width:auto; display:block; margin:0 auto;" alt="Signature Mohamed Coulibaly"></div>`
+  4. Calibrated page padding (`padding: 11mm 14mm 9mm`) and gap (`gap: 4.2mm`) on Page 2 to ensure generous 20px bottom clearance without pushing the footer.
+  5. Recompiled both repository and Desktop PDFs with Chrome 155.
+- Verification:
+  - `pdfinfo docs/OFFRE_COMMERCIALE_TIERS_RETAIL_MANAGER.pdf`: strictly `Pages: 2`, `A4 (594.96 x 841.92 pts)`.
+  - Margins via `pdftoppm` + PIL:
+    - Page 1: Left=82px, Right=82px, Delta=0px, Top=65px, Bottom=56px.
+    - Page 2: Left=82px, Right=82px, Delta=0px, Top=65px, Bottom=20px.
+  - Visual inspection confirms signature is prominent, crisp, and centered both horizontally and vertically inside the supplier box.
+- Status: FIXED
+- Tags: signature-centering, optical-center, noise-crop, tier-ladder, pdf-geometry
+
+
 
