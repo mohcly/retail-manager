@@ -1,6 +1,6 @@
 # 🚀 COMMERCIAL SALES PITCH & NEGOTIATION PLAYBOOK
 ## Turnkey POS Solution (Hardware + Software) — Bamako, Mali
-**Vendor:** Jati Technologies SARL · GROUPE GIE MOUNA SARL (RCCM: 5170919619941R · NIF Enregistré DGI)  
+**Vendor:** Jati Technologies SARL · GROUPE GIE MOUNA (RCCM: MA.BKO.2017.C.8036 · NIF: En cours d'attribution DGI)  
 **Lead Representative:** M. Mohamed N’gouro Coulibaly (+223 75 72 33 80)  
 **Target Clients:** Retail Merchants in Bamako (Superettes, Quincailleries, Boutiques d'Alimentation, Grossistes, Magasins de Pièces)  
 **Locations:** Grand Marché, ACI 2000, Badalabougou, Korofina, Hamdallaye, Faladié  
