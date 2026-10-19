@@ -38,19 +38,19 @@ Merchants in Bamako buy solutions for only four reasons:
 > Et quand vous demandez à vos vendeurs ou caissiers, ils vous disent : "Ah patron, on a oublié de noter un crédit", ou "un sac s'est déchiré", ou "on a rendu trop de monnaie". En réalité, chaque mois, vous perdez entre 200 000 et 400 000 FCFA dans la nature sans même vous en rendre compte. »*
 
 ### Step 2: The Turnkey Demonstration (The Solution)
-> *« Ce que je vous apporte aujourd'hui avec Jati Technologies, ce n'est pas juste un logiciel qu'on installe et on s'en va. C'est une **solution clé en main complète** :  
-> 1. **L'écran tactile professionnel** pour la caisse.  
-> 2. **Le scanner code-barres ultra-rapide** : vous bippez, le nom et le prix sortent immédiatement. Plus d'erreur de prix par le vendeur.  
-> 3. **L'imprimante thermique de reçus** : chaque client reçoit son ticket officiel. Le tiroir-caisse ne s'ouvre **que** lorsqu'un ticket est validé. Impossible d'ouvrir le tiroir en cachette !  
+> *« Ce que je vous apporte aujourd'hui avec Jati Technologies, ce n'est pas juste un logiciel qu'on installe et on s'en va. C'est une **solution clé en main complète**, adaptée exactement à votre métier :  
+> 1. **L'ordinateur Tout-en-Un professionnel ASUS Vivo 24 pouces Full HD** avec grand écran anti-reflet, clavier complet avec pavé numérique et souris : pour une quincaillerie ou un grossiste, c'est infiniment plus rapide et robuste qu'un petit écran tactile pour taper les références et chercher dans 2 000 articles *(l'option écran tactile reste disponible pour les supérettes express et fast-foods)*.  
+> 2. **Le scanner code-barres laser haute précision** : vous bippez, le nom et le prix s'affichent immédiatement. Zéro erreur de prix par le vendeur.  
+> 3. **L'imprimante thermique de reçus 80mm** : chaque client reçoit son ticket officiel avec découpe automatique. Le tiroir-caisse ne s'ouvre **que** lorsqu'un ticket est validé. Impossible d'ouvrir le tiroir en cachette !  
 > 4. **Le tiroir-caisse métallique blindé** connecté directement au système.  
-> 5. **Le boîtier d'alimentation secours (Mini-UPS)** : EDM coupe le courant ? Aucun problème. La caisse continue de fonctionner pendant 6 à 8 heures d'affilée sans interruption. Et vous n'avez même pas besoin d'Internet pour vendre ! »*
+> 5. **L'onduleur régulateur anti-délestage EDM** : EDM coupe le courant ? Aucun problème. La caisse et vos données sont protégées contre les pannes et coupures brutales. Et le système tourne **100% hors-ligne**, sans aucun besoin d'Internet pour vendre ! »*
 
 ### Step 3: The Stock & Multi-Price Advantage
 > *« Mieux encore : vous vendez à la fois en détail et en gros ? Si un client prend un savon à l'unité, le système applique 300 FCFA. S'il prend le carton de 24, le système calcule automatiquement le prix de gros et déduit exactement 24 unités de votre stock.  
 > À tout moment, depuis votre téléphone ou le bureau, vous savez exactement combien de marchandises il reste dans votre boutique, article par article. »*
 
 ### Step 4: The Investment Comparison (The No-Brainer ROI)
-> *« Ce pack complet — matériel neuf garanti 1 an, logiciel Retail Manager à vie (licence 150 000 FCFA sans abonnement mensuel obligatoire), saisie de tous vos articles par notre équipe, et formation complète de vos caissiers — représente un investissement unique de **715 000 FCFA**.  
+> *« Ce pack complet — ordinateur ASUS 24" neuf garanti 1 an, logiciel Retail Manager à vie (licence 150 000 FCFA sans abonnement mensuel obligatoire), saisie de tous vos articles par notre équipe, et formation complète de vos caissiers — représente un investissement unique de **715 000 FCFA**.  
 > Réfléchissez-y : si le système vous évite simplement de perdre 150 000 FCFA par mois en coulage de stock et en erreurs de caisse, **en moins de 5 mois, votre matériel est totalement amorti**. À partir du 6ème mois, c'est du bénéfice net pur qui reste dans votre poche. »*
 
 ---
@@ -60,16 +60,16 @@ Merchants in Bamako buy solutions for only four reasons:
 ### WhatsApp Message Template (Direct & Professional):
 ```text
 Salam Patron,
-C'est Mohamed de Jati Technologies, suite à notre échange de cet après-midi concernant l'informatisation et la sécurisation de votre caisse et de vos stocks.
+C'est Mohamed de Jati Technologies, suite à notre échange concernant l'informatisation et la sécurisation de votre magasin et de vos stocks.
 
 Comme promis, je vous transmets ci-joint la facture proforma officielle (Réf. JT-PRO-2026-042) détaillant le Pack Complet Clé en Main :
-✅ Écran Tactile Caisse Professionnel
-✅ Scanner Code-barres Haute Précision
-✅ Imprimante Thermique Rapide + Rouleaux
-✅ Tiroir-caisse Métallique Sécurisé (ouverture auto)
-✅ Batterie de Secours Spéciale Délestages EDM (6-8h)
-✅ Logiciel Retail Manager Licence Définitive (Sans abonnement)
-✅ Enregistrement de tous vos produits & Formation complète sur place
+✅ Grand Ordinateur Tout-en-Un ASUS 24" Full HD (Clavier complet + Souris)
+✅ Scanner Code-barres Laser Haute Précision avec support
+✅ Imprimante Thermique 80mm Rapide (Découpe automatique)
+✅ Tiroir-caisse Métallique Sécurisé (ouverture auto commandée)
+✅ Onduleur / Régulateur Protecteur Anti-Délestages EDM
+✅ Logiciel Retail Manager Licence Définitive (150 000 FCFA sans abonnement)
+✅ Enregistrement de tous vos produits & Formation complète sur place (2 jours)
 
 Grâce à ce système, chaque franc encaissé est justifié par un ticket, le tiroir ne s'ouvre pas sans vente, et vous suivez vos bénéfices réels chaque soir.
 
