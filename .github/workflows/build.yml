@@ -36,7 +36,16 @@ jobs:
           $newVersion = "$($matches[1]).$($matches[2]).$newPatch"
           $newContent = $content -replace '"version":\s*"\d+\.\d+\.\d+"', "`"version`": `"$newVersion`""
           Set-Content -Path $confPath -Value $newContent -NoNewline
-          Write-Host "Bumped version to $newVersion"
+          Write-Host "Bumped version to $newVersion in $confPath"
+
+          $pkgPath = "frontend/package.json"
+          if (Test-Path $pkgPath) {
+            $pkgContent = Get-Content $pkgPath -Raw
+            $newPkgContent = $pkgContent -replace '"version":\s*"\d+\.\d+\.\d+"', "`"version`": `"$newVersion`""
+            Set-Content -Path $pkgPath -Value $newPkgContent -NoNewline
+            Write-Host "Bumped version to $newVersion in $pkgPath"
+            git add $pkgPath
+          }
 
           git config user.email "ci@retail-manager.local"
           git config user.name "retail-manager CI"
