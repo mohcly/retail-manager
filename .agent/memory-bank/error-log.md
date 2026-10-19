@@ -107,3 +107,31 @@
 - Status: FIXED
 - Tags: legal-credentials, rccm, nif-attribution-dgi, gie-mouna, tribunal-commerce-bamako
 
+### [2026-10-19] Commercial Tier Ladder V2 Design Integration: 2-Page Clean Layout & Sovereign Data Tiles
+- Symptom:
+  - User requested replacing the single-page tier ladder layout with the superior 2-page v2 design authored on Desktop (`OFFRE_COMMERCIALE_TIERS_RETAIL_MANAGER_v2.html` / `.pdf`), featuring side-by-side tier comparison cards, a full feature matrix, sovereign data commitment tiles, staggered payment plan (40/40/20), and dual sign-off cards with client selection checkboxes.
+  - Previous desktop draft contained outdated credentials (`5170919619941R`, `NIF enregistré DGI`, `GIE MOUNA SARL`) and a minor vertical collision where `.tier.star` overlapped into the "Évolution sans rachat" dashed container.
+- Files involved:
+  - `docs/OFFRE_COMMERCIALE_TIERS_RETAIL_MANAGER.html`
+  - `docs/OFFRE_COMMERCIALE_TIERS_RETAIL_MANAGER.pdf`
+  - `/Users/mohamedcoulibaly/Desktop/OFFRE_COMMERCIALE_TIERS_RETAIL_MANAGER_v2.html`
+  - `/Users/mohamedcoulibaly/Desktop/OFFRE_COMMERCIALE_TIERS_RETAIL_MANAGER_v2.pdf`
+- Root cause:
+  - Adopting the user's preferred editorial visual system while maintaining legal accuracy (RCCM `MA.BKO.2017.C.8036`, `NIF : En cours d'attribution DGI`) and fixing the CSS bottom margin on the star tier.
+- Fix applied:
+  1. Integrated the complete v2 HTML structure into `docs/OFFRE_COMMERCIALE_TIERS_RETAIL_MANAGER.html` and synchronized back to Desktop.
+  2. Applied authentic commercial registry (`RCCM : MA.BKO.2017.C.8036`) and pending tax status (`NIF : En cours d'attribution DGI`).
+  3. Cleaned entity naming to `Groupe GIE Mouna` and `Jati Technologies SARL`.
+  4. Embedded executive signature image for M. Mohamed N'gouro Coulibaly in the supplier sign-off card.
+  5. Calibrated `.tier.star` margin to `margin: -3mm 0 0 0` with subtle elevation shadow, eliminating the bottom overlap into the dashed upgrade box.
+  6. Recompiled both repository and Desktop PDFs using Chrome headless 155.
+- Verification:
+  - `pdfinfo docs/OFFRE_COMMERCIALE_TIERS_RETAIL_MANAGER.pdf`: strictly `Pages: 2`, `594.96 x 841.92 pts (A4)`.
+  - Pixel margin analysis via `pdftoppm -r 150` + PIL:
+    - Page 1: `Left = 82px`, `Right = 82px`, `Delta = 0px`, `Top = 78px`, `Bottom = 62px`.
+    - Page 2: `Left = 82px`, `Right = 82px`, `Delta = 0px`, `Top = 78px`, `Bottom = 30px`.
+  - Visual verification with `view_file` confirms zero overlap, balanced padding, and clean signature rendering.
+- Status: FIXED
+- Tags: tier-ladder-v2, 2-page-layout, pdf-centering, sovereign-data, rccm-compliance, chrome-headless
+
+
