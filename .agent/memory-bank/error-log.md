@@ -162,5 +162,30 @@
 - Status: FIXED
 - Tags: signature-centering, optical-center, noise-crop, tier-ladder, pdf-geometry
 
+### [2026-10-19] Prestataire Box: Phone Number Inline Formatting & Line Balance
+- Symptom:
+  - In the "Prestataire" header box, the phone number broke across lines: `Représenté par M. Mohamed N’gouro Coulibaly · +223 75 72 33` with the final digits `80` orphaned on a fourth line by itself.
+- Files involved:
+  - `docs/OFFRE_COMMERCIALE_TIERS_RETAIL_MANAGER.html`
+  - `docs/OFFRE_COMMERCIALE_TIERS_RETAIL_MANAGER.pdf`
+  - `/Users/mohamedcoulibaly/Desktop/OFFRE_COMMERCIALE_TIERS_RETAIL_MANAGER_v2.html`
+  - `/Users/mohamedcoulibaly/Desktop/OFFRE_COMMERCIALE_TIERS_RETAIL_MANAGER_v2.pdf`
+- Root cause:
+  - Typography overflow: `.parties` font size was 7.8pt, exceeding the 80mm column width for a 61-character line.
+- Fix applied:
+  1. Adjusted `.parties` font-size to `7.4pt`.
+  2. Wrapped phone number in `<span style="white-space:nowrap">+223 75 72 33 80</span>` to ensure it never breaks across lines under any font fallback.
+  3. Restored perfect 3-line symmetry matching the adjacent "Établissement bénéficiaire" box.
+  4. Recompiled both repository and Desktop PDFs with Chrome 155.
+- Verification:
+  - `pdfinfo docs/OFFRE_COMMERCIALE_TIERS_RETAIL_MANAGER.pdf`: strictly `Pages: 2`, `A4 (594.96 x 841.92 pts)`.
+  - Margins via `pdftoppm` + PIL:
+    - Page 1: Left=82px, Right=82px, Delta=0px, Top=65px, Bottom=56px.
+    - Page 2: Left=82px, Right=82px, Delta=0px, Top=65px, Bottom=20px.
+  - Visual inspection of cropped parties header confirms full phone number sits inline on the second line with zero awkward wrapping.
+- Status: FIXED
+- Tags: typography, parties-box, phone-number-nowrap, line-balance, tier-ladder
+
+
 
 
