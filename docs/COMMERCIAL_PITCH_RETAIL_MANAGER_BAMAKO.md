@@ -108,6 +108,17 @@ Pour vous faciliter la trésorerie, nous proposons un échelonnement en 3 étape
 ### Objection 4: "Can I buy just the software and use my old laptop?"
 - **Response:** *"Oui, c'est possible si vous voulez réduire le coût initial. Cependant, un vieil ordinateur portable n'a pas de tiroir-caisse automatique sécurisé, la batterie lâche vite, et un vendeur peut facilement effacer des fichiers ou aller sur Facebook. Avec notre caisse dédiée, l'employé n'a accès qu'à l'écran de vente, rien d'autre."*
 
+### Objection 5: "Can I remove the barcode scanner, armored drawer, or inverter to lower the price?"
+- **Response:** *"Absolument, notre solution est 100% modulaire. Si vous avez déjà votre propre onduleur/solaire, ou si vos articles n'ont pas de codes-barres (comme en quincaillerie), nous pouvons retirer ces 3 accessoires :
+  - **Moins le scanner code-barres :** -45 000 FCFA
+  - **Moins le tiroir-caisse blindé :** -50 000 FCFA
+  - **Moins l'onduleur EDM :** -50 000 FCFA
+  ➜ **Économie totale immédiate : -145 000 FCFA !**
+  Votre pack passe ainsi au **strict minimum essentiel** :
+  - **Option A Allégée (Grand écran ASUS 24" + Imprimante 80mm + Logiciel à vie + Ingestion + Formation offerte) :** **515 000 FCFA TTC** *(au lieu de 660 000 F)*.
+  - **Option B Allégée (Terminal Tactile 15.6" + Imprimante 80mm + Logiciel à vie + Ingestion + Formation offerte) :** **545 000 FCFA TTC** *(au lieu de 690 000 F)*.
+  Et si votre chiffre d'affaires augmente dans 6 mois, vous pourrez rajouter le tiroir-caisse ou le scanner à tout moment sans rien changer à votre logiciel."*
+
 ---
 
 ## 6. Closing Protocol & Contract Milestones
