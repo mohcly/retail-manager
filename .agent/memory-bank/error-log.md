@@ -30,3 +30,28 @@
   - Windows CI builds dispatched and actively compiling for Dibidani, Niamakoro, and Niamana Dubai.
 - Status: FIXED
 - Tags: supabase, rls, sync, mobile, store-id, auth, ci-cd, tauri, vercel
+
+### [2026-10-19] Retail Manager Commercial Proforma: Free Training Option & Pack Recalculation
+- Symptom:
+  - Option 08 ("Formation des Caissiers & Accompagnement Gérance (2 Jours)") was priced at 55 000 FCFA, bringing total package costs above target psychological price points for Bamako merchants.
+- Files involved:
+  - `docs/PROFORMA_RETAIL_MANAGER_PACK_BAMAKO.html`
+  - `docs/PROFORMA_RETAIL_MANAGER_PACK_BAMAKO.pdf`
+  - `docs/COMMERCIAL_PITCH_RETAIL_MANAGER_BAMAKO.md`
+- Root cause:
+  - Cashier training and management onboarding is a commercial closing incentive in Bamako; charging for it introduces friction.
+- Fix applied:
+  1. Updated item 08 in proforma to `OFFERT` (0 FCFA) with green badge.
+  2. Recalculated total package prices:
+     - Pack A (ASUS Vivo AiO 24"): Reduced from 715 000 FCFA to 660 000 FCFA TTC.
+     - Pack B (Terminal Tactile POS 15.6"): Reduced from 745 000 FCFA to 690 000 FCFA TTC.
+  3. Recalculated 40% / 40% / 20% payment installments:
+     - Pack A: 264 000 FCFA / 264 000 FCFA / 132 000 FCFA.
+     - Pack B: 276 000 FCFA / 276 000 FCFA / 138 000 FCFA.
+  4. Synchronized `docs/COMMERCIAL_PITCH_RETAIL_MANAGER_BAMAKO.md` across verbal pitch, WhatsApp templates, and objection handling.
+  5. Recompiled headless PDF with Chrome 155.
+- Verification:
+  - `pdfinfo docs/PROFORMA_RETAIL_MANAGER_PACK_BAMAKO.pdf`: Pages = 1, size = 594.96 x 841.92 pts (A4).
+  - Margin verification via `pdftoppm` + PIL: Left = 82 px, Right = 82 px (Delta = 0 px), Top = 35 px, Bottom = 39 px.
+- Status: FIXED
+- Tags: proforma, retail-manager, free-training, pricing-recalculation, pdf-centering, bamako-merchants
