@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offre Commerciale & Grille Tarifaire par Niveaux (Tiers) — Retail Manager — Jati Technologies</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 0;
+        }
+        * {
+            box-sizing: border-box;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: 'Times New Roman', Times, Georgia, serif;
+            color: #1A1A1A;
+            background: #E2E8F0;
+            line-height: 1.25;
+            font-size: 8.2pt;
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+        }
+        .page {
+            width: 210mm;
+            height: 297mm;
+            max-height: 297mm;
+            margin: 0 auto;
+            padding: 6mm 14mm 6mm 14mm;
+            background: #FFFFFF;
+            box-sizing: border-box;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden;
+            page-break-after: avoid;
+            break-after: avoid;
+        }
+        @media print {
+            body {
+                background: transparent;
+                margin: 0;
+                padding: 0;
+            }
+            .page {
+                margin: 0;
+                width: 210mm;
+                height: 297mm;
+                max-height: 297mm;
+                padding: 6mm 14mm 6mm 14mm;
+                page-break-after: avoid;
+                break-after: avoid;
+            }
+        }
+        .header-bar {
+            border-bottom: 2px solid #002347;
+            padding-bottom: 3px;
+            margin-bottom: 3px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+        .logo-box {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .logo-badge {
+            background: #002347;
+            color: #C5A059;
+            font-weight: 900;
+            font-size: 13pt;
+            padding: 4px 10px;
+            border-radius: 3px;
+            letter-spacing: 1px;
+            border: 1px solid #C5A059;
+            font-family: Arial, sans-serif;
+        }
+        .brand-title {
+            font-size: 10pt;
+            font-weight: bold;
+            color: #002347;
+            letter-spacing: 0.3px;
+        }
+        .brand-sub {
+            font-size: 6.7pt;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .header-tag {
+            font-size: 7.1pt;
+            font-weight: bold;
+            color: #002347;
+            border: 1.5px solid #C5A059;
+            padding: 3px 8px;
+            border-radius: 3px;
+            text-align: right;
+            background: #FFFDF5;
+            line-height: 1.2;
+        }
+        .meta-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 3px;
+            font-size: 7.6pt;
+        }
+        .meta-card {
+            border: 1px solid #CBD5E1;
+            background: #F8FAFC;
+            padding: 3.5px 6.5px;
+            border-radius: 2px;
+            line-height: 1.22;
+        }
+        .meta-card strong {
+            color: #002347;
+        }
+        .doc-title-block {
+            text-align: center;
+            margin-bottom: 3px;
+            background: #F8FAFC;
+            border-top: 1.5px solid #002347;
+            border-bottom: 1.5px solid #002347;
+            padding: 2.5px 5px;
+        }
+        .doc-title {
+            font-size: 9.8pt;
+            font-weight: bold;
+            color: #002347;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+        }
+        .doc-subtitle {
+            font-size: 7.3pt;
+            color: #475569;
+            font-style: italic;
+            margin-top: 1px;
+        }
+        .contract-ref {
+            font-size: 7pt;
+            font-weight: bold;
+            color: #C5A059;
+            margin-top: 1px;
+        }
+        h2 {
+            font-size: 8pt;
+            color: #002347;
+            border-bottom: 1px solid #C5A059;
+            padding-bottom: 1px;
+            margin-top: 3px;
+            margin-bottom: 2px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        table.contract-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 2px 0 2px 0;
+            font-size: 6.9pt;
+        }
+        table.contract-table th, table.contract-table td {
+            border: 1px solid #CBD5E1;
+            padding: 2px 4px;
+            vertical-align: middle;
+        }
+        table.contract-table th {
+            background-color: #002347;
+            color: #FFFFFF;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 6.6pt;
+            letter-spacing: 0.3px;
+        }
+        .badge-pill {
+            display: inline-block;
+            background: #002347;
+            color: #FFFFFF;
+            font-size: 5.6pt;
+            font-weight: bold;
+            padding: 1px 3px;
+            border-radius: 2px;
+            text-transform: uppercase;
+            margin-left: 3px;
+            vertical-align: middle;
+        }
+        .badge-rec {
+            background: #059669;
+        }
+        .badge-tier3 {
+            background: #7C2D12;
+        }
+        .highlight-box {
+            border-left: 3px solid #002347;
+            background: #F1F5F9;
+            padding: 2.5px 6px;
+            margin: 2px 0;
+            font-size: 6.9pt;
+            line-height: 1.22;
+        }
+        .sig-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 3px;
+        }
+        .sig-card {
+            border: 1px solid #002347;
+            background: #FAFAFA;
+            padding: 3.5px 6.5px;
+            min-height: 62px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .sig-header {
+            font-size: 6.9pt;
+            font-weight: bold;
+            color: #002347;
+            text-transform: uppercase;
+            border-bottom: 1px solid #C5A059;
+            padding-bottom: 1px;
+            margin-bottom: 2px;
+        }
+        .footer {
+            border-top: 1px solid #CBD5E1;
+            padding-top: 2px;
+            margin-top: 2px;
+            font-size: 6.6pt;
+            color: #64748B;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="page">
+        <div>
+            <!-- HEADER BAR -->
+            <div class="header-bar">
+                <div class="logo-box">
+                    <div class="logo-badge">JATI</div>
+                    <div>
+                        <div class="brand-title">JATI TECHNOLOGIES SARL <span style="font-size: 7.6pt; font-weight: normal; color: #475569;">· GROUPE <strong>GIE MOUNA SARL</strong></span></div>
+                        <div class="brand-sub">Systèmes Numériques d'Encaissement, Matériel POS &amp; Gestion Commerciale Souveraine</div>
+                    </div>
+                </div>
+                <div class="header-tag">
+                    <strong>GRILLE PAR NIVEAUX (TIERS)</strong><br>
+                    <span style="font-size: 6.6pt; color: #475569;">Réf. JT-TIERS-2026-050 · Date : 19 Octobre 2026</span><br>
+                    <span style="font-size: 6.6pt; color: #002347; font-weight: bold;">Validité : 30 Jours</span>
+                </div>
+            </div>
+
+            <!-- META GRID -->
+            <div class="meta-grid">
+                <div class="meta-card">
+                    <strong>PRESTATAIRE &amp; MAISON MÈRE :</strong><br>
+                    <strong>GROUPE GIE MOUNA SARL &amp; JATI TECHNOLOGIES</strong><br>
+                    <strong>RCCM :</strong> 5170919619941R · <strong>NIF :</strong> Enregistré DGI Mali<br>
+                    Représenté par : <strong>M. Mohamed N’gouro COULIBALY</strong> (+223 75 72 33 80)<br>
+                    Siège : Bamako (Mali) · <em>Actif depuis Octobre 2017</em> · Email : moh.kuhh@gmail.com
+                </div>
+                <div class="meta-card">
+                    <strong>ÉTABLISSEMENT BÉNÉFICIAIRE :</strong><br>
+                    <strong>DIRECTION DU MAGASIN / COMMERCE CLIENT</strong><br>
+                    Secteur : Quincaillerie / Supérette / Alimentation Générale / Dépôt de Vente<br>
+                    Localisation : Bamako, République du Mali<br>
+                    Objectif : Automatisation Caisse, Contrôle Anti-Coulage &amp; Gestion des Stocks
+                </div>
+            </div>
+
+            <!-- TITLE BLOCK -->
+            <div class="doc-title-block">
+                <div class="doc-title">GRILLE COMMERCIALE DES PACKS CLÉ EN MAIN : DU STARTER AU MULTI-POSTES</div>
+                <div class="doc-subtitle">Structure Tarifaire Évolutive &amp; Modulaire · Architecture 100% Hors-Ligne · Souveraineté des Données</div>
+                <div class="contract-ref">Licence Définitive Retail Manager à Vie · Matériel Garanti 12 Mois · Formation 2 Jours Offerte</div>
+            </div>
+
+            <!-- TIER LADDER COMPARISON TABLE -->
+            <h2>1. Comparatif Détaillé des 3 Paliers d'Équipement (Tier Ladder)</h2>
+            <table class="contract-table">
+                <thead>
+                    <tr>
+                        <th style="width: 14%; text-align: left;">Niveau (Tier)</th>
+                        <th style="width: 25%;">Équipements &amp; Matériel Inclus</th>
+                        <th style="width: 25%;">Logiciel, Ingestion &amp; Services</th>
+                        <th style="width: 20%;">Public Cible &amp; Cas d'Usage</th>
+                        <th style="width: 16%; text-align: right;">Tarif TTC (FCFA)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- TIER 1 -->
+                    <tr style="background-color: #F8FAFC;">
+                        <td>
+                            <strong>TIER 1 : FORMULE ESSENTIELLE</strong><br>
+                            <span class="badge-pill" style="background: #475569;">Pack Léger</span>
+                        </td>
+                        <td>
+                            • <strong>Station 24" ASUS Vivo AiO</strong> (AMD 3.2GHz, 8 Go RAM, <strong>SSD 256 Go anti-choc</strong>, Clavier AZERTY + Souris)<br>
+                            • <strong>Imprimante Thermique 80mm</strong> (découpe auto)<br>
+                            • <strong>3 Rouleaux Papier 80mm Offerts</strong><br>
+                            <em>(Sans scanner, sans tiroir-caisse, sans onduleur)</em>
+                        </td>
+                        <td>
+                            • <strong>Licence Définitive Retail Manager</strong> (À vie)<br>
+                            • Saisie &amp; Ingestion du catalogue (jusqu'à 1 500 articles)<br>
+                            • Conversion Pièce / Carton &amp; Tarifs Gros/Détail<br>
+                            • <strong>Formation 2 Jours sur site : OFFERTE</strong>
+                        </td>
+                        <td>
+                            <strong>Quincailleries, Dépôts &amp; Magasins</strong> dont les articles n'ont pas de codes-barres et disposant déjà de solaire / onduleur.
+                        </td>
+                        <td style="text-align: right; font-weight: bold; color: #002347; font-size: 8.5pt;">
+                            515 000<br>
+                            <span style="font-size: 6pt; font-weight: normal; color: #64748B;">(Ou 545K en tactile)</span>
+                        </td>
+                    </tr>
+
+                    <!-- TIER 2 -->
+                    <tr style="background-color: #FFFDF5; border-left: 2px solid #059669;">
+                        <td>
+                            <strong>TIER 2 : FORMULE PRO CLÉ EN MAIN</strong><br>
+                            <span class="badge-pill badge-rec">★ Le Plus Choisi</span>
+                        </td>
+                        <td>
+                            • <strong>Poste au Choix de l'Expert :</strong><br>
+                            &nbsp;&nbsp;▸ <em>Option A :</em> ASUS Vivo 24" (SSD 256 Go) OU<br>
+                            &nbsp;&nbsp;▸ <em>Option B :</em> Terminal Tactile POS 15.6" étanche<br>
+                            • Imprimante Thermique 80mm + <strong>3 Rouleaux</strong><br>
+                            • <strong>Scanner Laser 1D/2D</strong> (support mains libres)<br>
+                            • <strong>Tiroir-Caisse Blindé</strong> (asservi au ticket)<br>
+                            • <strong>Onduleur Protecteur EDM</strong> (800-1000VA)
+                        </td>
+                        <td>
+                            • <strong>Licence Définitive Retail Manager</strong> (À vie)<br>
+                            • Ingestion complète du catalogue &amp; codes-barres<br>
+                            • Sécurisation Anti-Coulage (tiroir verrouillé sans ticket)<br>
+                            • Rapports de clôture journalière X et Z<br>
+                            • <strong>Formation 2 Jours sur site : OFFERTE</strong>
+                        </td>
+                        <td>
+                            <strong>Supérettes, Boutiques &amp; Grossistes</strong> voulant le blindage total : anti-vol caissier, scan ultra-rapide et protection délestage EDM.
+                        </td>
+                        <td style="text-align: right; font-weight: bold; color: #059669; font-size: 8.8pt;">
+                            660 000 <span style="font-size: 6pt; color: #333;">(Pack A)</span><br>
+                            690 000 <span style="font-size: 6pt; color: #333;">(Pack B)</span>
+                        </td>
+                    </tr>
+
+                    <!-- TIER 3 -->
+                    <tr style="background-color: #FDF4FF; border-left: 2px solid #7C2D12;">
+                        <td>
+                            <strong>TIER 3 : RÉSEAU BI-POSTE SOUVERAIN</strong><br>
+                            <span class="badge-pill badge-tier3">Multi-Postes</span>
+                        </td>
+                        <td>
+                            • <strong>2 Postes Synchronisés en Réseau Local :</strong><br>
+                            &nbsp;&nbsp;▸ <em>Poste 1 (Caisse Comptoir) :</em> Terminal Tactile 15.6"<br>
+                            &nbsp;&nbsp;▸ <em>Poste 2 (Bureau Gérant) :</em> ASUS Vivo 24" (SSD 256G)<br>
+                            • Pack Périphériques Caisse complet (Imprimante 80mm, 3 Rouleaux, Scanner, Tiroir Blindé, Onduleur EDM)<br>
+                            • <strong>Kit Sauvegarde Souveraine Locale</strong> (Clé Miroir USB)
+                        </td>
+                        <td>
+                            • <strong>Licence Réseau Multi-Postes</strong> (À vie)<br>
+                            • Base de données locale partagée en temps réel<br>
+                            • Le gérant saisit les arrivages, marges et devis A4 sans bloquer la caisse comptoir<br>
+                            • Sauvegarde chiffrée automatique en miroir<br>
+                            • <strong>Formation 3 Jours sur site : OFFERTE</strong>
+                        </td>
+                        <td>
+                            <strong>Magasins structurés avec bureau séparé</strong> : le propriétaire supervise le chiffre d'affaires et les achats sans gêner les ventes client.
+                        </td>
+                        <td style="text-align: right; font-weight: bold; color: #7C2D12; font-size: 8.8pt;">
+                            935 000<br>
+                            <span style="font-size: 6pt; font-weight: normal; color: #64748B;">Pack 2 Postes Complet</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- SOVEREIGN DATA PHILOSOPHY & SLA -->
+            <h2>2. Engagement de Souveraineté des Données &amp; Sauvegarde Privée</h2>
+            <div class="highlight-box">
+                • <strong>Philosophie 100% Souveraine :</strong> Aucune donnée commerciale, financière ou de stock n'est envoyée vers des serveurs étrangers dépendants d'abonnements tiers. Votre base de données réside physiquement dans votre boutique, sous votre contrôle exclusif.<br>
+                • <strong>Sauvegarde Automatisée en Miroir :</strong> Le système effectue un dump chiffré quotidien automatique sur support souverain physique (Double clé USB miroir cryptée). En cas de sinistre, réinstallation complète garantie en 4 heures.<br>
+                • <strong>Évolution Modulaire Sans Rachat :</strong> Vous pouvez démarrer sur le Tier 1 (515 000 F) et ajouter plus tard le scanner (-45K), le tiroir (-50K) ou le 2ème poste bureau sans racheter de licence.
+            </div>
+
+            <!-- PAYMENT SCHEDULE -->
+            <h2>3. Modalités de Règlement Échelonné &amp; Garantie Matérielle</h2>
+            <div class="highlight-box">
+                • <strong>Échelonnement Transparent :</strong> <strong>40% à la commande</strong> (réservation matériel neuf) · <strong>40% à la livraison et installation sur site</strong> · <strong>20% après formation et recette</strong>.<br>
+                • <strong>Garantie Matérielle 12 Mois &amp; Support Prioritaire :</strong> Remplacement ou échange standard sous 48h à Bamako. Téléphone et intervention sur site 6j/7 assurés.
+            </div>
+
+            <!-- SIGNATURE & SELECTION BLOCK -->
+            <div class="sig-grid">
+                <div class="sig-card">
+                    <div>
+                        <div class="sig-header">POUR LE FOURNISSEUR : JATI TECHNOLOGIES / GROUPE GIE MOUNA SARL</div>
+                        <div style="font-size: 8pt; font-weight: bold; color: #1A1A1A;">M. Mohamed N’gouro COULIBALY</div>
+                        <div style="font-size: 6.6pt; color: #555;">RCCM : 5170919619941R · NIF Enregistré DGI · Gérant &amp; Directeur Technique</div>
+                    </div>
+                    <div style="height: 32px; display: flex; align-items: center; justify-content: center; margin: 1px 0;">
+                        <img src="file:///Users/mohamedcoulibaly/MVP/Pro/BkoSites/wealth-gate-international/docs/assets/signature-mohamed.png" style="max-height: 30px; width: auto;" alt="Signature Mohamed Coulibaly">
+                    </div>
+                    <div style="font-size: 6.5pt; color: #64748B; border-top: 1px dashed #CBD5E1; padding-top: 1px;">
+                        Fait à Bamako, le 19 Octobre 2026 · Cachet &amp; Visa Technique
+                    </div>
+                </div>
+
+                <div class="sig-card">
+                    <div>
+                        <div class="sig-header">POUR LE CLIENT (BON POUR ACCORD &amp; SÉLECTION DE FORMULE) :</div>
+                        <div style="font-size: 6.9pt; color: #002347; font-weight: bold; margin-bottom: 2px;">
+                            Cochez le Palier Retenu :
+                        </div>
+                        <div style="font-size: 6.7pt; color: #1E293B; line-height: 1.3;">
+                            [ &nbsp; ] <strong>Tier 1 : Essentiel (515 000 F)</strong> &nbsp;&nbsp; [ &nbsp; ] <strong>Tier 2 : Pro Pack A (660 000 F)</strong><br>
+                            [ &nbsp; ] <strong>Tier 2 : Pro Pack B (690 000 F)</strong> &nbsp;&nbsp; [ &nbsp; ] <strong>Tier 3 : Réseau Bi-Poste (935 000 F)</strong>
+                        </div>
+                        <div style="font-size: 6.9pt; color: #555; margin-top: 2px;">Nom du Magasin &amp; Signataire : _______________________</div>
+                    </div>
+                    <div style="height: 20px; display: flex; align-items: center; justify-content: center; margin: 1px 0; font-size: 6.4pt; color: #94A3B8; font-style: italic;">
+                        Mention manuscrite "Bon pour accord" + Signature &amp; Cachet
+                    </div>
+                    <div style="font-size: 6.5pt; color: #64748B; border-top: 1px dashed #CBD5E1; padding-top: 1px;">
+                        Signature &amp; Cachet Direction Générale
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- FOOTER -->
+        <div class="footer">
+            <span>Jati Technologies SARL · GROUPE GIE MOUNA SARL · Bamako (Mali) · Réf. JT-TIERS-2026-050</span>
+            <span>Systèmes d'Encaissement &amp; Gestion Commerciale Souveraine 100% Hors-Ligne · Page 1 / 1</span>
+        </div>
+    </div>
+
+</body>
+</html>

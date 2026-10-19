@@ -55,3 +55,32 @@
   - Margin verification via `pdftoppm` + PIL: Left = 82 px, Right = 82 px (Delta = 0 px), Top = 35 px, Bottom = 39 px.
 - Status: FIXED
 - Tags: proforma, retail-manager, free-training, pricing-recalculation, pdf-centering, bamako-merchants
+
+### [2026-10-19] Retail Manager: Hardware SSD 256GB Upgrade, Starter Consumables & Standalone 3-Tier Ladder
+- Symptom:
+  - Previous workstation hardware referenced mechanical HDD 500GB, vulnerable to counter vibration, dust, and sudden power cuts in Bamako.
+  - Absence of starter consumables caused day-one deployment questions.
+  - Needed a standalone Tier Ladder document without modifying or wrecking the active standard single-page proforma.
+- Files involved:
+  - `docs/PROFORMA_RETAIL_MANAGER_PACK_BAMAKO.html`
+  - `docs/PROFORMA_RETAIL_MANAGER_PACK_BAMAKO.pdf`
+  - `docs/OFFRE_COMMERCIALE_TIERS_RETAIL_MANAGER.html`
+  - `docs/OFFRE_COMMERCIALE_TIERS_RETAIL_MANAGER.pdf`
+- Root cause:
+  - Aligning hardware robustness (shock/dust-proof SSD 256GB), providing initial consumable supply (3 thermal paper rolls), and giving sales reps a multi-tier commercial offer (Tier 1 Essentiel 515K, Tier 2 Pro 660K/690K, Tier 3 Bi-Poste 935K) with sovereign local-first backup philosophy.
+- Fix applied:
+  1. Updated standard proforma:
+     - ASUS Vivo 24" AiO upgraded to SSD 256 Go anti-choc.
+     - Added 3 rolls of 80mm thermal paper to Item 02.
+     - Preserved exact 1-page layout (`Left=82px, Right=82px, Delta=0px, Top=35px, Bottom=39px`).
+  2. Created standalone Tier Ladder document (`docs/OFFRE_COMMERCIALE_TIERS_RETAIL_MANAGER.html` and `.pdf`):
+     - Tier 1 : Formule Essentielle (515 000 FCFA TTC) — ASUS 24" SSD 256G, Imprimante 80mm + 3 rouleaux, Licence à vie, Ingestion, Formation 2j offerte.
+     - Tier 2 : Formule Pro Clé en Main (660 000 / 690 000 FCFA TTC) — Le Plus Choisi, pack complet avec Scanner, Tiroir Blindé, Onduleur EDM, 3 rouleaux.
+     - Tier 3 : Réseau Bi-Poste Souverain (935 000 FCFA TTC) — 2 postes synchronisés (Caisse Comptoir Tactile 15.6" + Bureau Gérant ASUS 24"), réseau local souverain, module de sauvegarde miroir cryptée locale.
+     - Dedicated sovereign local backup philosophy (no foreign cloud dependencies).
+- Verification:
+  - Recompiled both PDFs with Chrome 155 headless.
+  - `pdfinfo` confirms strictly `Pages: 1` for both documents.
+  - Margin verification: `Delta = 0px` (Left=82px, Right=82px, Top=35px, Bottom=39px) on both PDFs.
+- Status: FIXED
+- Tags: ssd-256gb, paper-rolls, sovereign-backup, tier-ladder, standalone-offer, chrome-headless, pdf-centering
