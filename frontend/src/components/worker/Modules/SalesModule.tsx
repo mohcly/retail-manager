@@ -225,19 +225,29 @@ export function SalesModule({ storeId, mode }: SalesModuleProps) {
 
     const invoiceType = mode === 'proforma' ? 'proforma' : mode === 'facturation-gros' ? 'gros' : 'detail';
 
+    const subtotal = validItems.reduce((sum, item) => {
+      const packSize = item.conditionnement || 1;
+      const multiplier = item.isBox ? packSize : 1;
+      return sum + (Number(item.quantity) * Number(item.unitPrice) * multiplier);
+    }, 0);
+
     const invoiceData: InvoiceData = {
       id: invoiceNumber,
       invoice_number: invoiceNumber,
       order_ref: currentSession.orderRef || undefined,
       storeName: store?.name || 'HOLDING PRO',
-      storeAddress: store?.address || 'Niamana Dubai, Bamako - Mali',
-      workerName: user?.user_metadata?.full_name || user?.email || t('edition.seller'),
+      storeAddress: store?.address || 'Niamana Dubaï, en face station Shell',
+      storePhone: store?.phone || '+223 79 34 60 73 / 70 68 21 00 / 71 06 65 75',
+      workerName: user?.user_metadata?.full_name || user?.email || 'Caisse Niamana',
       customerName: currentSession.customerName || undefined,
       customerPhone: currentSession.customerPhone || undefined,
       customerAddress: currentSession.customerAddress || undefined,
       created_at: new Date().toISOString(),
       items: cartItems,
       total_price: netTotal,
+      subtotal: subtotal,
+      amount_paid: netTotal,
+      change: 0,
       type: invoiceType,
       paymentMethod: invoiceType !== 'proforma' ? (lastPaymentMethod || undefined) : undefined,
     };
@@ -248,11 +258,6 @@ export function SalesModule({ storeId, mode }: SalesModuleProps) {
     }, 100);
 
     // Also notify local bridge or print agent in background
-    const subtotal = validItems.reduce((sum, item) => {
-      const packSize = item.conditionnement || 1;
-      const multiplier = item.isBox ? packSize : 1;
-      return sum + (Number(item.quantity) * Number(item.unitPrice) * multiplier);
-    }, 0);
     const totalDiscount = subtotal - netTotal;
     const receiptItems = validItems.map(item => {
       const packSize = item.conditionnement || 1;
@@ -329,14 +334,18 @@ export function SalesModule({ storeId, mode }: SalesModuleProps) {
       invoice_number: invoiceNumber,
       order_ref: currentSession.orderRef || undefined,
       storeName: store?.name || 'HOLDING PRO',
-      storeAddress: store?.address || 'Niamana Dubai, Bamako - Mali',
-      workerName: user?.user_metadata?.full_name || user?.email || t('edition.seller'),
+      storeAddress: store?.address || 'Niamana Dubaï, en face station Shell',
+      storePhone: store?.phone || '+223 79 34 60 73 / 70 68 21 00 / 71 06 65 75',
+      workerName: user?.user_metadata?.full_name || user?.email || 'Caisse Niamana',
       customerName: currentSession.customerName || undefined,
-      customerPhone: undefined, // customerPhone not stored in session; use address only
+      customerPhone: currentSession.customerPhone || undefined,
       customerAddress: currentSession.customerAddress || undefined,
       created_at: new Date().toISOString(),
       items: cartItems,
       total_price: netTotal,
+      subtotal: subtotal,
+      amount_paid: netTotal,
+      change: 0,
       type: invoiceType,
       paymentMethod: invoiceType !== 'proforma' ? (lastPaymentMethod || undefined) : undefined,
     };
@@ -778,14 +787,18 @@ export function SalesModule({ storeId, mode }: SalesModuleProps) {
         invoice_number: invoiceNumber,
         order_ref: orderRef || undefined,
         storeName: store?.name || 'HOLDING PRO',
-        storeAddress: store?.address || 'Niamana Dubai, Bamako - Mali',
-        workerName: user?.user_metadata?.full_name || user?.email || t('edition.seller'),
+        storeAddress: store?.address || 'Niamana Dubaï, en face station Shell',
+        storePhone: store?.phone || '+223 79 34 60 73 / 70 68 21 00 / 71 06 65 75',
+        workerName: user?.user_metadata?.full_name || user?.email || 'Caisse Niamana',
         customerName: customerName || undefined,
         customerPhone: currentSession.customerPhone || matchedClient?.phone || undefined,
         customerAddress: customerAddress || undefined,
         created_at: new Date().toISOString(),
         items: cartItems,
         total_price: netTotal,
+        subtotal: validItems.reduce((sum, item) => sum + (Number(item.quantity) * Number(item.unitPrice) * (item.isBox ? (item.conditionnement || 1) : 1)), 0),
+        amount_paid: amountPaid,
+        change: Math.max(0, (amountPaid || 0) - netTotal),
         type: saleType,
         paymentMethod: paymentMethod,
       };
