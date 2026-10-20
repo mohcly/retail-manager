@@ -337,3 +337,28 @@
   - Vercel deployment verified live at `https://djati-stores-mobile.vercel.app` (HTTP 200 on page and `/holding-pro-logo.png`)
 - Status: FIXED
 - Tags: ticket-template, invoice-a4, niamana-dubai, yemenat-dubai, holding-pro, thermal-print, vercel
+
+
+### [2026-10-20] Invoice A4 Layout Overflow, Missing Bottom Section, and Broken Logo Placeholder Fix
+- Symptom: In `/Users/mohamedcoulibaly/Desktop/Screenshots/Capture d’écran 2026-10-20 à 11.37.41.png`, the generated A4 invoice displayed a broken logo placeholder (blue question mark `?`), and for a 13-item invoice, the table rows pushed the bottom section off-screen, completely cutting off the sum in words, the "NET À PAYER" card, the client/direction signatures, and the footer.
+- Files involved:
+  - `frontend/src/assets/holdingProLogo.ts`
+  - `frontend/public/holding-pro-logo.png`
+  - `frontend/src/components/printing/InvoiceA4Template.tsx`
+  - `frontend/src/components/printing/InvoiceTemplate.tsx`
+- Root cause:
+  1. The uncompressed 1.9MB PNG logo failed to load asynchronously in the hidden `about:blank` print iframe before `window.print()` triggered, resulting in the WebKit fallback placeholder (blue question mark `?`).
+  2. `InvoiceA4Template.tsx` had `print:flex print:flex-col` with a fixed `minHeight: 297mm` and no page-break rules. CSS Flexbox fragmentation across printed pages is unsupported in WebKit and Chromium print engines, causing overflowing content to be clipped instead of paginating.
+  3. Excessive vertical margins (`py-2.5 px-4` table cells, `mb-6`, `mt-12`, `mb-14`) prevented standard retail invoices (10-14 items) from fitting cleanly onto a single A4 page.
+- Fix applied:
+  1. Created `HOLDING_PRO_LOGO_BASE64` in `frontend/src/assets/holdingProLogo.ts` and optimized `holding-pro-logo.png` to 126KB. The embedded Base64 Data URI loads with zero network latency in any iframe, webview, or PDF engine, eliminating the blue question mark.
+  2. Replaced `print:flex` with `print:block`, set `@page { size: A4 portrait; margin: 8mm 12mm 8mm 12mm; }`, and added table fragmentation rules (`thead { display: table-header-group }`, `tr { page-break-inside: avoid }`).
+  3. Wrapped Totals, Sum in Words, Signatures, and Footer in `.keep-together` with `page-break-inside: avoid; break-inside: avoid;`.
+  4. Optimized vertical density (`py-1.5 px-3` row padding, balanced margins) allowing 13-14 items to fit onto 1 single page, while multi-page invoices (e.g. 25+ items) automatically and cleanly break across pages without any clipping.
+  5. Built and verified with Google Chrome headless print-to-pdf: 13-item invoice fits on 1 page with all sections visible; 25-item invoice paginates into 2 pages with headers and keep-together footer.
+- Verification:
+  - Rendered Chrome headless PDF test: `/tmp/test-invoice-13items.pdf` verified with 1 page containing logo, full table, sum in words, net card, signatures, and footer.
+  - Production builds passed: `main-niamana-dubai` (`✓ built in 12.31s`), `main-stores-dubai` (`✓ built in 11.78s`).
+  - Deployed to Vercel ([djati-stores-mobile.vercel.app](https://djati-stores-mobile.vercel.app/)) and triggered Windows build workflow run #39421272767.
+- Status: FIXED
+- Tags: invoice-a4, logo-broken, blue-question-mark, layout-overflow, pagination, keep-together, holding-pro
