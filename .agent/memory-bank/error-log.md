@@ -304,3 +304,36 @@
   - Pushed to `origin` and `mohcly-origin` successfully.
 - Status: FIXED
 - Tags: sidebar-scroll-reset, master-layout, files-module, analytics, sales, team, cloud-fallback, stihl, multi-branch
+
+
+### [2026-10-20] Official Ticket (80mm) and A4 Invoice Templates for Yemenat Niamana Dubaï
+- Symptom: Official Holding Pro Niamana Dubaï receipt and A4 invoice designs from `/Users/mohamedcoulibaly/Downloads/templates-niamana-dubai.png` were not set in the web portal (`main-stores-dubai` still had legacy Quincaillerie de la Paix branding and lacked thermal printing in SalesModule), and desktop app branch `main-niamana-dubai` had discrepancies in layout, metadata grid, and lacked French number-to-words line.
+- Files involved:
+  - `frontend/src/utils/numberToFrenchWords.ts`
+  - `frontend/src/components/printing/InvoiceTemplate.tsx`
+  - `frontend/src/components/printing/InvoiceA4Template.tsx`
+  - `frontend/src/components/worker/Modules/SalesModule.tsx`
+  - `frontend/src/components/worker/Modules/InvoiceDetailsDialog.tsx`
+  - `frontend/src/pages/worker/ProformaList.tsx`
+  - `frontend/public/holding-pro-logo.png`
+  - `frontend/public/holding-pro-logo.jpg`
+  - `frontend/public/holding-pro-banner.jpg`
+  - `frontend/public/receipt-holding-pro-80mm.png`
+- Root cause:
+  1. `main-stores-dubai` retained legacy `Quincaillerie de la Paix` templates and lacked thermal receipt preview wiring in `SalesModule.tsx`.
+  2. `main-niamana-dubai` draft templates lacked `SUCCURSALE NIAMANA DUBAÏ` sub-header, red slogan badge, 2-column metadata row (`Ticket N°:` / `<date>` and `Caissier:` / `Client:`), subtotal/amount_paid/change breakdown, and French number-to-words line on A4 (`Arrêté la présente facture à la somme de : Deux Cent Cinq Mille (205 000) FCFA`).
+- Fix applied:
+  1. Created `numberToFrenchWords.ts` utility supporting French number parsing up to billions with proper capitalization and hyphenation.
+  2. Implemented pixel-perfect 80mm continuous thermal receipt in `InvoiceTemplate.tsx` matching `/Users/mohamedcoulibaly/Downloads/templates-niamana-dubai.png` (circular logo, `SUCCURSALE NIAMANA DUBAÏ`, crimson slogan `#dc2626`, 2-column metadata, dashed separators, subtotal, net total, settlement line, change, and footer).
+  3. Implemented pixel-perfect A4 invoice in `InvoiceA4Template.tsx` with top rainbow bar, watermark, stylized `HOLDING PRO` header, dark navy pill, metadata, customer card, dark `#0f172a` table header, sum in French words, navy net card with amber total, signature lines, and footer.
+  4. Wired thermal receipt preview and auto-print on confirmed sale and F9 / ticket button in `SalesModule.tsx` in both `main-niamana-dubai` and `main-stores-dubai`.
+  5. Updated `InvoiceDetailsDialog.tsx` and `ProformaList.tsx` to use HOLDING PRO / Niamana Dubai details with subtotal and change computation.
+  6. Verified Vite production builds: `main-niamana-dubai` built in 14.08s, `main-stores-dubai` built in 9.70s.
+  7. Committed and pushed to `origin`, `mohcly-origin`, and `djati-stores-mobile` (Vercel auto-deployed and verified HTTP 200).
+- Verification:
+  - Vite build passed on `main-niamana-dubai`: `✓ built in 14.08s`
+  - Vite build passed on `main-stores-dubai`: `✓ built in 9.70s`
+  - Node test verified `numberToFrenchWords(205000)` -> `"Deux Cent Cinq Mille"`
+  - Vercel deployment verified live at `https://djati-stores-mobile.vercel.app` (HTTP 200 on page and `/holding-pro-logo.png`)
+- Status: FIXED
+- Tags: ticket-template, invoice-a4, niamana-dubai, yemenat-dubai, holding-pro, thermal-print, vercel
