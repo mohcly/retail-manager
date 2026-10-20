@@ -217,18 +217,23 @@ class OfflineDataServiceClass {
         try {
             const { isLocalFirst } = getDataClient();
             if (isLocalFirst) {
-                const params = new URLSearchParams({ store_id: storeId });
+                const params = new URLSearchParams();
+                if (storeId) params.append('store_id', storeId);
                 if (from) params.append('date_from', from.toISOString());
                 if (to) params.append('date_to', to.toISOString());
-                return await OfflineAuthService.localBridgeRequest<SaleWithItems[]>(`/rest/v1/sales?${params.toString()}`, { method: 'GET' });
+                const queryStr = params.toString() ? `?${params.toString()}` : '';
+                return await OfflineAuthService.localBridgeRequest<SaleWithItems[]>(`/rest/v1/sales${queryStr}`, { method: 'GET' });
             }
 
             if (navigator.onLine) {
                 try {
                     let query = supabase
                         .from('sales')
-                        .select('*, sale_items(*)')
-                        .eq('store_id', storeId);
+                        .select('*, sale_items(*)');
+
+                    if (storeId) {
+                        query = query.eq('store_id', storeId);
+                    }
 
                     if (from) {
                         query = query.gte('created_at', from.toISOString());
@@ -292,12 +297,50 @@ class OfflineDataServiceClass {
         }
     }
 
-    async getClients(storeId: string): Promise<any[]> {
+    async getClients(storeId?: string): Promise<any[]> {
         const { isLocalFirst } = getDataClient();
         if (isLocalFirst) {
-            return await OfflineAuthService.localBridgeRequest<any[]>(`/rest/v1/clients?store_id=${storeId}`, { method: 'GET' });
+            const params = storeId ? `?store_id=${storeId}` : '';
+            return await OfflineAuthService.localBridgeRequest<any[]>(`/rest/v1/clients${params}`, { method: 'GET' });
         }
-        return await LocalDatabase.getSuppliers(storeId);
+        try {
+            let query = supabase.from('clients').select('*');
+            if (storeId) query = query.eq('store_id', storeId);
+            const { data, error } = await query;
+            if (!error && data) return data;
+        } catch (e) {
+            console.warn('[OfflineDataService] getClients Supabase error:', e);
+        }
+        return [];
+    }
+
+    async getSuppliers(storeId?: string): Promise<any[]> {
+        const { isLocalFirst } = getDataClient();
+        if (isLocalFirst) {
+            try {
+                const params = storeId ? `?store_id=${storeId}` : '';
+                const data = await OfflineAuthService.localBridgeRequest<any[]>(`/rest/v1/suppliers${params}`, { method: 'GET' });
+                if (data) return data;
+            } catch (e) {
+                console.warn('[OfflineDataService] getSuppliers LocalBridge error:', e);
+            }
+        }
+        if (navigator.onLine) {
+            try {
+                let query = supabase.from('suppliers').select('*');
+                if (storeId) query = query.eq('store_id', storeId);
+                const { data, error } = await query;
+                if (!error && data) return data;
+            } catch (e) {
+                console.warn('[OfflineDataService] getSuppliers Supabase error:', e);
+            }
+        }
+        try {
+            await LocalDatabase.init();
+            return await LocalDatabase.getSuppliers(storeId);
+        } catch (e) {
+            return [];
+        }
     }
 
     async getSupplierPayments(storeId: string, from?: Date): Promise<any[]> {

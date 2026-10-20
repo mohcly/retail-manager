@@ -226,7 +226,19 @@ export class OfflineTeamService {
       } catch (e) {}
     }
 
-    // 2. Fallback to Local Database cache
+    // 2. Cloud mode: fetch profiles from Supabase
+    if (users.length === 0 && !dataClient.isLocalFirst && navigator.onLine) {
+      try {
+        const { data: profiles, error } = await supabase.from('profiles').select('*');
+        if (!error && profiles) {
+          users = profiles;
+        }
+      } catch (e) {
+        console.warn('[OfflineTeamService] Supabase profiles fetch failed:', e);
+      }
+    }
+
+    // 3. Fallback to Local Database cache
     if (users.length === 0) {
       await LocalDatabase.init();
       users = await LocalDatabase.getAllUsers();
@@ -880,107 +892,12 @@ export class OfflineTeamService {
 
 
   /**
-   * Get stores (merges local and remote for team assignment)
+   * Get stores (delegates to canonical OfflineStoreService)
    */
   static async getStores(): Promise<{ data?: any[]; error?: any }> {
     try {
-      await LocalDatabase.init();
-      const localStores = await LocalDatabase.getAllStores();
-
-      const dataClient = getDataClient();
-      if (dataClient.isLocalFirst) {
-        const headers = await OfflineAuthService.getAuthHeaders();
-        if (!headers) {
-          return { data: localStores };
-        }
-        const response = await smartFetch(`${dataClient.localBridgeBaseUrl}/rest/v1/stores`, { headers });
-        const payload = await response.json().catch(() => []);
-        if (!response.ok) {
-          return { data: localStores, error: payload };
-        }
-
-        for (const store of payload || []) {
-          const existingLocal = localStores.find(s => s.id === store.id);
-          if (existingLocal && !existingLocal.synced) continue;
-
-          await LocalDatabase.saveStore({
-            id: store.id,
-            name: store.name,
-            address: store.address || undefined,
-            city: undefined,
-            phone: store.phone || undefined,
-            email: undefined,
-            default_price_tier: store.default_price_tier || 1,
-            is_active: true,
-            created_at: store.created_at,
-            updated_at: store.updated_at || store.created_at,
-            synced: true,
-          });
-        }
-
-        const unsyncedLocalIds = new Set(localStores.filter(s => !s.synced).map(s => s.id));
-        const mergedById = new Map();
-        for (const s of localStores) mergedById.set(s.id, s);
-        for (const s of payload || []) {
-          if (!unsyncedLocalIds.has(s.id)) mergedById.set(s.id, s);
-        }
-
-        return { data: Array.from(mergedById.values()) };
-      }
-
-      if (!navigator.onLine) {
-        return { data: localStores };
-      }
-
-      // Fetch from server via local bridge
-      let remoteStores: any[] = [];
-      try {
-        const headers = await OfflineAuthService.getAuthHeaders();
-        if (headers) {
-          const res = await smartFetch(`${dataClient.localBridgeBaseUrl}/rest/v1/stores`, { headers });
-          if (res.ok) {
-            remoteStores = await res.json().catch(() => []);
-          } else {
-            console.error('Failed to fetch remote stores:', res.status);
-            return { data: localStores };
-          }
-        } else {
-          return { data: localStores };
-        }
-      } catch (fetchErr) {
-        console.error('Failed to fetch remote stores:', fetchErr);
-        return { data: localStores };
-      }
-
-      // Cache remote stores locally
-      for (const store of remoteStores || []) {
-        const existingLocal = localStores.find(s => s.id === store.id);
-        if (existingLocal && !existingLocal.synced) continue;
-
-        await LocalDatabase.saveStore({
-          id: store.id,
-          name: store.name,
-          address: store.address || undefined,
-          city: undefined,
-          phone: store.phone || undefined,
-          email: undefined,
-          default_price_tier: store.default_price_tier || 1,
-          is_active: true,
-          created_at: store.created_at,
-          updated_at: store.updated_at || store.created_at,
-          synced: true,
-        });
-      }
-
-      // Merge local unsynced with remote
-      const unsyncedLocalIds = new Set(localStores.filter(s => !s.synced).map(s => s.id));
-      const mergedById = new Map();
-      for (const s of localStores) mergedById.set(s.id, s);
-      for (const s of remoteStores || []) {
-        if (!unsyncedLocalIds.has(s.id)) mergedById.set(s.id, s);
-      }
-
-      return { data: Array.from(mergedById.values()) };
+      const { OfflineStoreService } = await import('./OfflineStoreService');
+      return await OfflineStoreService.getStores();
     } catch (error) {
       console.error('Get stores error:', error);
       return { error };

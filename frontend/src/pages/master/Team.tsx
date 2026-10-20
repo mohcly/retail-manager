@@ -30,6 +30,7 @@ import { ConfirmActionDialog } from '@/components/shared/ConfirmActionDialog';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
 import { useMasterDashboardStore } from '@/stores/useMasterDashboardStore';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Slot limits (can be made dynamic later)
 const WORKER_SLOT_LIMIT = 10;
@@ -38,6 +39,7 @@ const DELIVERER_SLOT_LIMIT = 10;
 export default function TeamPage() {
   const { t } = useTranslation();
   const { toast } = useToast();
+  const { user, authLoading } = useAuth();
   const { formatCurrency, formatPercent } = useFormatters();
   const { selectedStoreIds, isAllStoresSelected, version } = useMasterDashboardStore();
 
@@ -69,8 +71,10 @@ export default function TeamPage() {
   }, []);
 
   useEffect(() => {
-    loadData();
-  }, [version]);
+    if (!authLoading) {
+      loadData();
+    }
+  }, [version, user, authLoading]);
 
   const loadData = async () => {
     setLoading(true);
