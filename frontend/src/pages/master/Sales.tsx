@@ -53,7 +53,7 @@ import { CashClosingsTab } from '@/components/master/Sales/CashClosingsTab';
 export default function SalesPage() {
   const { toast } = useToast();
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const { user, authLoading } = useAuth();
   const { formatCurrency, formatDate } = useFormatters();
   const { selectedStoreIds, isAllStoresSelected, version } = useMasterDashboardStore();
   const { setUsers } = useMasterDataStore();
@@ -88,8 +88,10 @@ export default function SalesPage() {
   }, []);
 
   useEffect(() => {
-    loadData();
-  }, [dateRange, selectedStoreIds, isAllStoresSelected, version]);
+    if (!authLoading) {
+      loadData();
+    }
+  }, [dateRange, selectedStoreIds, isAllStoresSelected, version, user, authLoading]);
 
   const loadData = async () => {
     setLoading(true);
@@ -160,7 +162,7 @@ export default function SalesPage() {
     if (sale.sale_type === 'proforma') return false;
 
     const totalPrice = Number(sale.total_price);
-    const itemNames = sale.sale_items?.map(i => i.product_name.toLowerCase()).join(' ') || '';
+    const itemNames = (sale.items?.length ? sale.items : sale.sale_items)?.map(i => (i.product_name || (i as any).designation || '').toLowerCase()).join(' ') || '';
     const matchesSearch = sale.customer_name?.toLowerCase().includes(searchQuery.toLowerCase()) || itemNames.includes(searchQuery.toLowerCase()) || sale.invoice_number?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStore = selectedStoreFilter === 'all' || sale.store_id === selectedStoreFilter;
     const matchesPayment = paymentMethodFilter === 'all' || sale.payment_method === paymentMethodFilter;
