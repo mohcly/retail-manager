@@ -30,7 +30,7 @@ import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { LocalBridgeSyncService, type NetworkHealthStatus } from '@/services/LocalBridgeSyncService';
 import { useNavigate } from 'react-router-dom';
@@ -46,6 +46,126 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { useDevice } from '@/contexts/DeviceContext';
 import { MobileWorkerLayout } from '@/components/mobile/MobileWorkerLayout';
+
+interface SidebarContentProps {
+  mobile?: boolean;
+  user: any;
+  navGroups: Array<{
+    label: string;
+    items: Array<{
+      title: string;
+      url: string;
+      icon: any;
+    }>;
+  }>;
+  onNavigate?: () => void;
+  onOpenPasswordDialog: () => void;
+  onSignOut: () => void;
+  t: (key: string) => string;
+}
+
+function SidebarContent({
+  mobile = false,
+  user,
+  navGroups,
+  onNavigate,
+  onOpenPasswordDialog,
+  onSignOut,
+  t,
+}: SidebarContentProps) {
+  const navRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (!mobile && navRef.current) {
+      const saved = sessionStorage.getItem('master_sidebar_scroll');
+      if (saved) {
+        navRef.current.scrollTop = Number(saved);
+      }
+    }
+  }, [mobile]);
+
+  const handleScroll = (e: React.UIEvent<HTMLElement>) => {
+    if (!mobile) {
+      sessionStorage.setItem('master_sidebar_scroll', String(e.currentTarget.scrollTop));
+    }
+  };
+
+  return (
+    <div className={`flex h-full flex-col ${mobile ? 'py-4' : ''}`}>
+      <div className="px-4 py-6 border-b border-sidebar-border flex items-center gap-3">
+        <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg">
+          <img src={logoUrl} alt="Djati" className="h-full w-full object-contain" />
+        </div>
+        <div>
+          <h2 className="text-lg font-bold text-sidebar-foreground leading-tight uppercase tracking-tighter">
+            Djati
+          </h2>
+          <p className="text-[10px] text-sidebar-foreground/60 uppercase tracking-widest">{t('sidebar.dashboard')}</p>
+        </div>
+      </div>
+
+      <nav
+        ref={navRef}
+        onScroll={handleScroll}
+        className="flex-1 space-y-4 p-4 overflow-y-auto"
+      >
+        {navGroups.map((group) => (
+          <div key={group.label}>
+            <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/50">
+              {group.label}
+            </p>
+            <div className="space-y-1">
+              {group.items.map((item) => (
+                <NavLink
+                  key={item.url}
+                  to={item.url}
+                  end
+                  className="flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                  activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                  onClick={onNavigate}
+                >
+                  <item.icon className="h-5 w-5" />
+                  <span>{item.title}</span>
+                </NavLink>
+              ))}
+            </div>
+          </div>
+        ))}
+      </nav>
+
+      <div className="border-t border-sidebar-border p-4 space-y-2">
+        {user && (
+          <p className="text-sm text-sidebar-foreground/60 truncate px-3 mb-2">
+            {user.email}
+          </p>
+        )}
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full justify-start mb-2"
+          onClick={onOpenPasswordDialog}
+        >
+          <KeyRound className="h-4 w-4 mr-2" />
+          Change Password
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full justify-start"
+          onClick={onSignOut}
+        >
+          <LogOut className="h-4 w-4 mr-2" />
+          {t('auth.signOut')}
+        </Button>
+        <div className="text-center mt-2">
+          <p className="text-[10px] text-sidebar-foreground/40 font-mono">
+            v{import.meta.env.VITE_APP_VERSION || 'dev'}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function MasterLayout() {
   const { t } = useTranslation();
@@ -154,84 +274,18 @@ export function MasterLayout() {
     },
   ];
 
-  const Sidebar = ({ mobile = false }) => (
-    <div className={`flex h-full flex-col ${mobile ? 'py-4' : ''}`}>
-      <div className="px-4 py-6 border-b border-sidebar-border flex items-center gap-3">
-        <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg">
-          <img src={logoUrl} alt="Djati" className="h-full w-full object-contain" />
-        </div>
-        <div>
-          <h2 className="text-lg font-bold text-sidebar-foreground leading-tight uppercase tracking-tighter">
-            Djati
-          </h2>
-          <p className="text-[10px] text-sidebar-foreground/60 uppercase tracking-widest">{t('sidebar.dashboard')}</p>
-        </div>
-      </div>
-
-      <nav className="flex-1 space-y-4 p-4 overflow-y-auto">
-        {navGroups.map((group) => (
-          <div key={group.label}>
-            <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/50">
-              {group.label}
-            </p>
-            <div className="space-y-1">
-              {group.items.map((item) => (
-                <NavLink
-                  key={item.url}
-                  to={item.url}
-                  end
-                  className="flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                  activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                  onClick={() => mobile && setMobileMenuOpen(false)}
-                >
-                  <item.icon className="h-5 w-5" />
-                  <span>{item.title}</span>
-                </NavLink>
-              ))}
-            </div>
-          </div>
-        ))}
-      </nav>
-
-      <div className="border-t border-sidebar-border p-4 space-y-2">
-        {user && (
-          <p className="text-sm text-sidebar-foreground/60 truncate px-3 mb-2">
-            {user.email}
-          </p>
-        )}
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-full justify-start mb-2"
-          onClick={() => setIsPasswordDialogOpen(true)}
-        >
-          <KeyRound className="h-4 w-4 mr-2" />
-          Change Password
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-full justify-start"
-          onClick={handleSignOut}
-        >
-          <LogOut className="h-4 w-4 mr-2" />
-          {t('auth.signOut')}
-        </Button>
-        <div className="text-center mt-2">
-          <p className="text-[10px] text-sidebar-foreground/40 font-mono">
-            v{import.meta.env.VITE_APP_VERSION || 'dev'}
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-
   return !isDesktop ? (
     <MobileWorkerLayout />
   ) : (
     <div className="flex h-full w-full">
       <aside className="hidden lg:flex lg:w-64 lg:flex-col border-r border-sidebar-border bg-sidebar">
-        <Sidebar />
+        <SidebarContent
+          user={user}
+          navGroups={navGroups}
+          onOpenPasswordDialog={() => setIsPasswordDialogOpen(true)}
+          onSignOut={handleSignOut}
+          t={t}
+        />
       </aside>
 
       <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
@@ -245,7 +299,15 @@ export function MasterLayout() {
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="p-0 w-64 bg-sidebar">
-          <Sidebar mobile />
+          <SidebarContent
+            mobile
+            user={user}
+            navGroups={navGroups}
+            onNavigate={() => setMobileMenuOpen(false)}
+            onOpenPasswordDialog={() => setIsPasswordDialogOpen(true)}
+            onSignOut={handleSignOut}
+            t={t}
+          />
         </SheetContent>
       </Sheet>
 

@@ -75,13 +75,19 @@ export function FichiersClientsModule({ storeId }: FichiersClientsModuleProps) {
   };
 
   const fetchClients = useCallback(async () => {
-    if (!useLocalBridge || !storeId) return;
+    if (!storeId) return;
     setLoading(true);
     try {
-      const data = await localBridgeRequest<Client[]>(
-        `/rest/v1/clients?${new URLSearchParams({ store_id: storeId }).toString()}`
-      );
-      setClients(data || []);
+      if (useLocalBridge) {
+        const data = await localBridgeRequest<Client[]>(
+          `/rest/v1/clients?${new URLSearchParams({ store_id: storeId }).toString()}`
+        );
+        setClients(data || []);
+      } else {
+        const { OfflineDataService } = await import('@/services/OfflineDataService');
+        const data = await OfflineDataService.getClients(storeId);
+        setClients(data || []);
+      }
     } catch (error) {
       console.error('Failed to fetch clients:', error);
       toast({ title: t('common.error'), description: 'Failed to load clients', variant: 'destructive' });
@@ -91,12 +97,14 @@ export function FichiersClientsModule({ storeId }: FichiersClientsModuleProps) {
   }, [storeId, useLocalBridge, localBridgeRequest, setClients, setLoading, t]);
 
   const fetchServices = useCallback(async () => {
-    if (!useLocalBridge || !storeId) return;
+    if (!storeId) return;
     try {
-      const data = await localBridgeRequest<ClientService[]>(
-        `/rest/v1/client_services?${new URLSearchParams({ store_id: storeId }).toString()}`
-      );
-      setServices(data || []);
+      if (useLocalBridge) {
+        const data = await localBridgeRequest<ClientService[]>(
+          `/rest/v1/client_services?${new URLSearchParams({ store_id: storeId }).toString()}`
+        );
+        setServices(data || []);
+      }
     } catch (error) {
       console.error('Failed to fetch services:', error);
     }
@@ -121,7 +129,7 @@ export function FichiersClientsModule({ storeId }: FichiersClientsModuleProps) {
 
   const filteredClients = useMemo(() => {
     return clients.filter((c) =>
-      c.store_id === storeId && (
+      (!c.store_id || c.store_id === storeId) && (
         c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (c.phone && c.phone.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (c.code && c.code.toLowerCase().includes(searchQuery.toLowerCase()))

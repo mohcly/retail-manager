@@ -1,6 +1,6 @@
 export type AppMode = 'cloud' | 'hybrid' | 'offline';
 
-const FALLBACK_SUPABASE_URL = "https://onsqvduklnwffugsiybs.supabase.co";
+const FALLBACK_SUPABASE_URL = "https://fpvrbxmbrotowdlyebqv.supabase.co";
 const localBridgeBaseUrl = (import.meta.env.VITE_LOCALBRIDGE_URL || 'http://127.0.0.1:8787').replace(/\/$/, '');
 
 export interface DataClient {
