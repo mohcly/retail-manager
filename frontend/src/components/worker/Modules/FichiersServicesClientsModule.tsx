@@ -113,6 +113,20 @@ export function FichiersServicesClientsModule({ storeId }: FichiersServicesClien
         console.error('Service save error:', error);
         toast({ title: t('common.error'), variant: 'destructive' });
       }
+    } else {
+      if (editingService) {
+        updateService(editingService.id, { ...editingService, ...serviceData });
+        toast({ title: t('common.success'), description: t('menu.program.editGroup') });
+      } else {
+        const newService: ClientService = {
+          id: crypto.randomUUID(),
+          store_id: storeId,
+          name: serviceData.name,
+          default_discount_percent: serviceData.default_discount_percent,
+        };
+        addService(newService);
+        toast({ title: t('common.success'), description: t('menu.program.newGroup') });
+      }
     }
 
     setIsDialogOpen(false);
@@ -149,6 +163,9 @@ export function FichiersServicesClientsModule({ storeId }: FichiersServicesClien
         console.error('Service delete error:', error);
         toast({ title: t('common.error'), variant: 'destructive' });
       }
+    } else {
+      deleteService(id);
+      toast({ title: t('common.success') });
     }
   };
 

@@ -10,9 +10,13 @@ import { FichiersClientsModule } from '@/components/worker/Modules/FichiersClien
 import { FichiersFournisseursModule } from '@/components/worker/Modules/FichiersFournisseursModule';
 import { FichiersServicesClientsModule } from '@/components/worker/Modules/FichiersServicesClientsModule';
 import { FicheProduitsModule } from '@/components/worker/Modules/FicheProduitsModule';
+import { useAuth } from '@/contexts/AuthContext';
+import { useMasterDashboardStore } from '@/stores/useMasterDashboardStore';
 
 export default function FilesPage() {
   const { t } = useTranslation();
+  const { user, authLoading } = useAuth();
+  const { selectedStoreIds, isAllStoresSelected } = useMasterDashboardStore();
   const [stores, setStores] = useState<Store[]>([]);
   const [selectedStore, setSelectedStore] = useState<string>('all');
   const [activeTab, setActiveTab] = useState('menu');
@@ -21,9 +25,13 @@ export default function FilesPage() {
   useEffect(() => {
     const loadStores = async () => {
       const { data } = await OfflineStoreService.getStores();
-      setStores(data || []);
+      if (data && data.length > 0) {
+        setStores(data);
+      }
     };
-    loadStores();
+    if (!authLoading) {
+      loadStores();
+    }
     
     const handleOnline = () => setIsOffline(false);
     const handleOffline = () => setIsOffline(true);
@@ -33,9 +41,19 @@ export default function FilesPage() {
         window.removeEventListener('online', handleOnline);
         window.removeEventListener('offline', handleOffline);
     };
-  }, []);
+  }, [user, authLoading]);
 
-  const currentStoreId = selectedStore === 'all' ? stores[0]?.id : selectedStore;
+  // Sync with master dashboard store if a specific store is selected
+  useEffect(() => {
+    if (!isAllStoresSelected && selectedStoreIds.length === 1) {
+      setSelectedStore(selectedStoreIds[0]);
+    } else if (isAllStoresSelected) {
+      setSelectedStore('all');
+    }
+  }, [selectedStoreIds, isAllStoresSelected]);
+
+  // Use first store if 'all' is selected, as worker submodules require a store context
+  const currentStoreId = selectedStore === 'all' ? (stores[0]?.id || '') : selectedStore;
 
   return (
     <div className="mobile-container py-4 px-4 lg:px-6 space-y-6">
@@ -52,10 +70,11 @@ export default function FilesPage() {
           <p className="text-muted-foreground">{t('menu.files.subtitle') || 'Gestion des tiers'}</p>
         </div>
         <Select value={selectedStore} onValueChange={setSelectedStore}>
-          <SelectTrigger className="w-[200px]">
+          <SelectTrigger className="w-[220px]">
             <SelectValue placeholder={t('sidebar.stores')} />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="all">{t('sales.allStores') || 'Tous les magasins'}</SelectItem>
             {stores.map(s => (
                 <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
             ))}

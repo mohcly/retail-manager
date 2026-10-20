@@ -103,11 +103,24 @@ export function useStockSearch(storeId: string, enabled: boolean = true) {
         }
       }
 
-      // OFFLINE WEB FALLBACK (IndexedDB) - only if NOT local-first
+      // CLOUD & OFFLINE WEB FALLBACK - only if NOT local-first
       if (!isLocalFirst) {
-        const { LocalDatabase } = await import('@/services/LocalDatabase');
-        await LocalDatabase.init();
-        let allItems = await LocalDatabase.getInventory(storeId);
+        let allItems: any[] = [];
+        try {
+          const { OfflineInventoryService } = await import('@/services/OfflineInventoryService');
+          const { data } = await OfflineInventoryService.getInventory(storeId);
+          if (data && data.length > 0) {
+            allItems = data;
+          }
+        } catch (e) {
+          console.warn('[useStockSearch] Cloud inventory fetch failed, checking IndexedDB:', e);
+        }
+
+        if (allItems.length === 0) {
+          const { LocalDatabase } = await import('@/services/LocalDatabase');
+          await LocalDatabase.init();
+          allItems = await LocalDatabase.getInventory(storeId);
+        }
 
         // Apply Search
         if (debouncedSearch) {
