@@ -220,6 +220,38 @@
 - Status: FIXED
 - Tags: stihl, vercel, supabase-poisoning, analytics-duplication, cloud-valuation, clearance-roles
 
+### [2026-10-20] Web Portal: Cloud Reload Auth Race Condition & IndexedDB Lock Hang
+- Symptom:
+  - When loading `djati-stihl.vercel.app/#/master/dashboard` directly or reloading in Safari, the dashboard displayed pulsing skeleton cards indefinitely.
+  - The store dropdown opened showing only "TOUS LES MAGASINS" with 0 stores listed underneath.
+- Files involved:
+  - `frontend/src/services/LocalDatabase.ts`
+  - `frontend/src/services/OfflineStoreService.ts`
+  - `frontend/src/services/OfflineSalesService.ts`
+  - `frontend/src/components/master/Layout/StoreMultiSelector.tsx`
+  - `frontend/src/components/master/Dashboard/DashboardView.tsx`
+  - `frontend/src/contexts/AuthContext.tsx`
+  - `frontend/src/pages/master/Stores.tsx`
+  - `frontend/src/pages/master/Analytics.tsx`
+- Root cause:
+  1. `StoreMultiSelector.tsx` and `DashboardView.tsx` mounted and executed `OfflineStoreService.getStores()` and `loadDashboardData()` immediately with empty `[]` dependency arrays, before `AuthContext` resolved the async Supabase session. Since unauthenticated users are blocked by Supabase RLS, `getStores()` returned 0 stores, leaving `availableStores = []` and `activeStoreIds = []`. Neither component listened to `user` or `authLoading` to re-fetch once authentication finished.
+  2. In `OfflineStoreService.ts` and `OfflineSalesService.ts`, `await LocalDatabase.init()` was executed before the pure cloud check (`!dataClient.isLocalFirst`). In Safari, `indexedDB.open` lacked an `onblocked` handler and timeout, causing it to block or deadlock across multi-tab sessions, freezing `loadDashboardData()` in `loading = true`.
+  3. `AuthContext.tsx` restored offline sessions from local storage even when expired or rejected by Supabase in cloud mode, leaving the user interface showing an authenticated email (`bahsyllah223@gmail.com`) while all network queries were rejected with 401/403.
+- Fix applied:
+  1. Connected `DashboardView.tsx` and `StoreMultiSelector.tsx` to `useAuth()`. Await auth completion (`!authLoading && user`) before fetching data, and re-fetch when `open` is toggled on the store combobox.
+  2. Added `request.onblocked` and a 3000ms safety timeout to `LocalDatabase.init()`.
+  3. Re-ordered `OfflineStoreService.getStores()` and `OfflineSalesService.getSales()` to execute pure cloud Supabase queries immediately without waiting on IndexedDB.
+  4. Added invalid/expired session clearing in `AuthContext.tsx` on Supabase cloud rejection.
+  5. Built and deployed live to Vercel production (`djati-stihl.vercel.app`).
+- Verification:
+  - Verified live on `https://djati-stihl.vercel.app` via Playwright:
+    - User `bahsyllah223@gmail.com` logs in and dashboard renders completely in 4.40s with 0 skeletons.
+    - Store switcher combobox immediately populates: `TOUS LES MAGASINS`, `STIHL Dibidani`, and `STIHL Niamakoro`.
+    - Reload test confirms `/master/dashboard` reloads cleanly without hanging.
+- Status: FIXED
+- Tags: auth-race, safari-indexeddb, store-combobox, cloud-bypass, vercel, playwright-verified
+
+
 
 
 
