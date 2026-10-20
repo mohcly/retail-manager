@@ -6,9 +6,11 @@ import { useMasterDataStore } from '@/stores/useMasterDataStore';
 import { useTranslation } from 'react-i18next';
 import { useMasterDashboardStore } from '@/stores/useMasterDashboardStore';
 import { OfflineStoreService } from '@/services/OfflineStoreService';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function AnalyticsPage() {
   const { t } = useTranslation();
+  const { user, authLoading } = useAuth();
   const { stores, setStores } = useMasterDataStore();
   const { selectedStoreIds, isAllStoresSelected, version } = useMasterDashboardStore();
 
@@ -19,13 +21,13 @@ export default function AnalyticsPage() {
   // Fetch stores if not available (fixes "no data" when "All stores" is selected)
   useEffect(() => {
     const loadStores = async () => {
-      if (!stores || stores.length === 0) {
-        const { data } = await OfflineStoreService.getStores();
-        if (data) setStores(data);
-      }
+      const { data } = await OfflineStoreService.getStores();
+      if (data && data.length > 0) setStores(data);
     };
-    loadStores();
-  }, []);
+    if (!authLoading) {
+      loadStores();
+    }
+  }, [user, authLoading]);
 
   const activeStoreIds = useMemo(() => {
     return isAllStoresSelected 
@@ -70,7 +72,22 @@ export default function AnalyticsPage() {
       </div>
 
       <div className="flex-1 overflow-hidden">
-        {activeStoreIds.length > 0 ? (
+        {isAllStoresSelected ? (
+          <div className="h-full space-y-8 overflow-y-auto pr-2">
+            <div className="space-y-2">
+              <h2 className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2 px-2">
+                <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                {t('sales.allStores') || 'Tous les magasins'}
+              </h2>
+              <div className="h-[600px]">
+                <GestionModule 
+                  storeId="" 
+                  mode={activeTab === 'journal-caisse' ? 'journal-caisse' : activeTab} 
+                />
+              </div>
+            </div>
+          </div>
+        ) : activeStoreIds.length > 0 ? (
           <div className="h-full space-y-8 overflow-y-auto pr-2">
             {activeStoreIds.map(sid => (
               <div key={`analytics-${sid}`} className="space-y-2 border-b-2 pb-8 last:border-0">
