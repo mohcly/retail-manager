@@ -1,6 +1,7 @@
 import { LocalDatabase } from "./LocalDatabase";
 import { getDataClient } from "@/lib/dataClient";
 import { OfflineAuthService } from "./OfflineAuthService";
+import { supabase } from "@/lib/supabase";
 
 interface DailyRevenue {
     today: number;
@@ -195,25 +196,129 @@ class OfflineDataServiceClass {
         try {
             const { isLocalFirst } = getDataClient();
             if (isLocalFirst) {
-                const params = new URLSearchParams({ store_id: storeId });
+                const params = new URLSearchParams();
+                if (storeId) params.append('store_id', storeId);
                 if (from) params.append('date_from', from.toISOString());
                 if (to) params.append('date_to', to.toISOString());
-                return await OfflineAuthService.localBridgeRequest<SaleWithItems[]>(`/rest/v1/sales?${params.toString()}`, { method: 'GET' });
+                const queryStr = params.toString() ? `?${params.toString()}` : '';
+                return await OfflineAuthService.localBridgeRequest<SaleWithItems[]>(`/rest/v1/sales${queryStr}`, { method: 'GET' });
             }
+            if (navigator.onLine) {
+                try {
+                    let query = supabase
+                        .from('sales')
+                        .select('*, sale_items(*)');
+
+                    if (storeId) {
+                        query = query.eq('store_id', storeId);
+                    }
+
+                    if (from) {
+                        query = query.gte('created_at', from.toISOString());
+                    }
+                    if (to) {
+                        query = query.lte('created_at', to.toISOString());
+                    }
+
+                    const { data, error } = await query.order('created_at', { ascending: false });
+                    if (error) throw error;
+
+                    if (data) {
+                        const mapped: SaleWithItems[] = data.map((sale: any) => ({
+                            ...sale,
+                            items: (sale.sale_items || []).map((item: any) => ({
+                                id: item.id,
+                                sale_id: item.sale_id,
+                                product_id: item.product_id,
+                                product_name: item.product_name,
+                                quantity: Number(item.quantity),
+                                unit_price: Number(item.unit_price),
+                                discount: Number(item.discount),
+                                total: Number(item.total),
+                                created_at: item.created_at
+                            })),
+                            synced: true
+                        }));
+
+                        // Sync to local cache async
+                        (async () => {
+                            try {
+                                await LocalDatabase.init();
+                                for (const s of mapped) {
+                                    await LocalDatabase.saveSale(s);
+                                }
+                            } catch (e) {
+                                console.warn('[OfflineDataService] Cache save failed:', e);
+                            }
+                        })();
+
+                        return mapped;
+                    }
+                } catch (supaErr) {
+                    console.warn('[OfflineDataService] Supabase fetch failed, falling back to local cache:', supaErr);
+                }
+            }
+
+            await LocalDatabase.init();
             const sales = await LocalDatabase.getSales(storeId);
-            return sales as unknown as SaleWithItems[];
+            let filteredSales = sales as unknown as SaleWithItems[];
+            if (from) {
+                filteredSales = filteredSales.filter(s => new Date(s.created_at) >= from);
+            }
+            if (to) {
+                filteredSales = filteredSales.filter(s => new Date(s.created_at) <= to);
+            }
+            return filteredSales;
         } catch (error) {
             console.error('getSales error:', error);
             throw error;
         }
     }
 
-    async getClients(storeId: string): Promise<any[]> {
+    async getClients(storeId?: string): Promise<any[]> {
         const { isLocalFirst } = getDataClient();
         if (isLocalFirst) {
-            return await OfflineAuthService.localBridgeRequest<any[]>(`/rest/v1/clients?store_id=${storeId}`, { method: 'GET' });
+            const params = storeId ? `?store_id=${storeId}` : '';
+            return await OfflineAuthService.localBridgeRequest<any[]>(`/rest/v1/clients${params}`, { method: 'GET' });
         }
-        return await LocalDatabase.getSuppliers(storeId);
+        try {
+            let query = supabase.from('clients').select('*');
+            if (storeId) query = query.eq('store_id', storeId);
+            const { data, error } = await query;
+            if (!error && data) return data;
+        } catch (e) {
+            console.warn('[OfflineDataService] getClients Supabase error:', e);
+        }
+        return [];
+    }
+
+    async getSuppliers(storeId?: string): Promise<any[]> {
+        const { isLocalFirst } = getDataClient();
+        if (isLocalFirst) {
+            try {
+                const params = storeId ? `?store_id=${storeId}` : '';
+                const data = await OfflineAuthService.localBridgeRequest<any[]>(`/rest/v1/suppliers${params}`, { method: 'GET' });
+                if (data) return data;
+            } catch (e) {
+                console.warn('[OfflineDataService] getSuppliers LocalBridge error:', e);
+            }
+        }
+        if (navigator.onLine) {
+            try {
+                let query = supabase.from('suppliers').select('*');
+                if (storeId) query = query.eq('store_id', storeId);
+                const { data, error } = await query;
+                if (!error && data) return data;
+            } catch (e) {
+                console.warn('[OfflineDataService] getSuppliers Supabase error:', e);
+            }
+        }
+        try {
+            await LocalDatabase.init();
+            return await LocalDatabase.getSuppliers(storeId);
+        } catch (e) {
+            return [];
+        }
     }
 
     async getSupplierPayments(storeId: string, from?: Date): Promise<any[]> {

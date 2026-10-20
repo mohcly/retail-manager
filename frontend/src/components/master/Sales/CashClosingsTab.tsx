@@ -36,9 +36,11 @@ import { useMasterDataStore } from '@/stores/useMasterDataStore';
 import { OfflineTeamService } from '@/services/OfflineTeamService';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useAuth } from '@/contexts/AuthContext';
 
 export function CashClosingsTab() {
   const { t } = useTranslation();
+  const { user, authLoading } = useAuth();
   const { formatCurrency, formatDate } = useFormatters();
   const { selectedStoreIds, isAllStoresSelected } = useMasterDashboardStore();
   
@@ -54,13 +56,15 @@ export function CashClosingsTab() {
   });
 
   useEffect(() => {
-    loadData();
+    if (!authLoading) {
+      loadData();
+    }
     const handleUpdate = (e: any) => {
         if (e.detail?.type === 'cash_closings') loadData();
     };
     window.addEventListener('localDbDataUpdated', handleUpdate);
     return () => window.removeEventListener('localDbDataUpdated', handleUpdate);
-  }, [selectedStoreIds, isAllStoresSelected, dateRange]);
+  }, [selectedStoreIds, isAllStoresSelected, dateRange, user, authLoading]);
 
   const loadData = async () => {
     setLoading(true);

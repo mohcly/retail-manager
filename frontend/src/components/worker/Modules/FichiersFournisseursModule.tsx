@@ -93,14 +93,20 @@ export function FichiersFournisseursModule({ storeId }: FichiersFournisseursModu
 
   useEffect(() => {
     const fetchSuppliers = async () => {
-      if (!useLocalBridge || !storeId) return;
+      if (!storeId) return;
       try {
-        const data = await localBridgeRequest<Supplier[]>(
-          `/rest/v1/suppliers?${new URLSearchParams({ store_id: storeId }).toString()}`
-        );
-        setSuppliers((data as Supplier[]) || []);
+        if (useLocalBridge) {
+          const data = await localBridgeRequest<Supplier[]>(
+            `/rest/v1/suppliers?${new URLSearchParams({ store_id: storeId }).toString()}`
+          );
+          setSuppliers((data as Supplier[]) || []);
+        } else {
+          const { OfflineDataService } = await import('@/services/OfflineDataService');
+          const data = await OfflineDataService.getSuppliers(storeId);
+          setSuppliers((data as Supplier[]) || []);
+        }
       } catch (error) {
-        console.error('LocalBridge fetch suppliers error:', error);
+        console.error('Fetch suppliers error:', error);
       }
     };
 
