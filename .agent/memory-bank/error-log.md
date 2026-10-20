@@ -256,3 +256,51 @@
 
 
 
+
+### [2026-10-20] Sidebar Scroll Reset on Route Navigation & Master Cloud Module Data Loading (Files, Analytics, Sales, Team)
+- Symptom:
+  - In the left sidebar navigation, clicking any module link caused the entire sidebar DOM tree to unmount and remount, resetting `scrollTop = 0` and jumping the user back to the top of the sidebar navigation list.
+  - The Analytics, Sales, Team, and Files modules failed to display data or hung indefinitely in loading states on cloud/web deployments.
+  - The Files module (`/master/files`) loaded empty because clients and suppliers submodules aborted immediately when running in cloud mode (`!useLocalBridge`).
+  - Steel branches suffered from fallback database URL poisoning pointing to Dubai database instead of STIHL.
+- Files involved:
+  - `frontend/src/components/master/Layout/MasterLayout.tsx`
+  - `frontend/src/pages/master/Analytics.tsx`
+  - `frontend/src/pages/master/Sales.tsx`
+  - `frontend/src/pages/master/Team.tsx`
+  - `frontend/src/pages/master/Files.tsx`
+  - `frontend/src/components/master/Sales/CashClosingsTab.tsx`
+  - `frontend/src/components/worker/Modules/FichiersClientsModule.tsx`
+  - `frontend/src/components/worker/Modules/FichiersFournisseursModule.tsx`
+  - `frontend/src/components/worker/Modules/FichiersServicesClientsModule.tsx`
+  - `frontend/src/services/OfflineDataService.ts`
+  - `frontend/src/services/OfflineTeamService.ts`
+  - `frontend/src/hooks/useStockSearch.ts`
+  - `frontend/src/lib/supabase.ts`, `dataClient.ts`, `AIService.ts`, `OfflineAuthService.ts`
+- Root cause:
+  1. `const Sidebar = ...` was declared inside the functional body of `MasterLayout`. On every route navigation, `MasterLayout` re-rendered, producing a new functional component reference which forced React to unmount the existing `<nav>` DOM tree and remount a fresh one, immediately resetting `scrollTop = 0`.
+  2. `FichiersClientsModule.tsx` and `FichiersFournisseursModule.tsx` had hardcoded `if (!useLocalBridge || !storeId) return;` which immediately aborted on web/cloud mode since `useLocalBridge` is false when running outside the desktop app.
+  3. `OfflineDataService.ts` forced `.eq('store_id', storeId)` even when `storeId` was `""` (All stores), returning 0 sales.
+  4. `OfflineTeamService.ts` attempted to query `localhost:8787` for stores and user accounts rather than delegating to `OfflineStoreService` and querying Supabase `profiles`.
+  5. `Sales.tsx` and `CashClosingsTab.tsx` lacked `user` and `authLoading` guards in `useEffect`, running queries before Supabase auth finished and being blocked by RLS.
+  6. Hardcoded Dubai fallback database URLs in steel branches poisoned web portal queries when environment variables were not loaded in local storage.
+- Fix applied:
+  1. Extracted `SidebarContent` outside `MasterLayout` to guarantee a stable component reference across route changes. Added persistent scroll position management using a `ref` and `sessionStorage` (`master_sidebar_scroll`) that restores scroll position on mount.
+  2. Added cloud fallbacks in `FichiersClientsModule` and `FichiersFournisseursModule` to query Supabase via `OfflineDataService.getClients` and `OfflineDataService.getSuppliers`.
+  3. Updated `OfflineDataService.getSales` to only filter by `store_id` if non-empty, and query Supabase with `sale_items(*)` in cloud mode before caching locally.
+  4. Updated `OfflineTeamService.getStores` to delegate to `OfflineStoreService.getStores()` and `getAllUsers` to query Supabase `profiles` when not local-first.
+  5. Added `authLoading` and `user` guards to `Sales.tsx`, `Team.tsx`, `Files.tsx`, and `CashClosingsTab.tsx`.
+  6. Corrected steel branch fallback URLs to point to canonical STIHL Supabase (`fpvrbxmbrotowdlyebqv`).
+  7. Verified production Vite builds cleanly across all 7 branches (`main-stihl-dibidani`, `main-stihl-niamakoro`, `main-stores-stihl`, `main-niamana-dubai`, `main-stores-dubai`, `main-mpm-food`, `main-restaurants`) and pushed to all remotes.
+- Verification:
+  - Clean Vite production builds:
+    - `main-stihl-dibidani`: `✓ built in 15.28s`
+    - `main-stihl-niamakoro`: `✓ built in 13.39s`
+    - `main-stores-stihl`: `✓ built in 12.77s`
+    - `main-niamana-dubai`: `✓ built in 12.93s`
+    - `main-stores-dubai`: `✓ built in 13.08s`
+    - `main-mpm-food`: `✓ built in 16.29s`
+    - `main-restaurants`: `✓ built in 14.74s`
+  - Pushed to `origin` and `mohcly-origin` successfully.
+- Status: FIXED
+- Tags: sidebar-scroll-reset, master-layout, files-module, analytics, sales, team, cloud-fallback, stihl, multi-branch
