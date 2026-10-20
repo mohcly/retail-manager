@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import { useTranslation } from 'react-i18next';
 import { InvoiceData } from './InvoiceTemplate';
 import { numberToFrenchWords } from '@/utils/numberToFrenchWords';
+import { HOLDING_PRO_LOGO_BASE64 } from '@/assets/holdingProLogo';
 
 export const InvoiceA4Template = forwardRef<HTMLDivElement, { data: InvoiceData }>(({ data }, ref) => {
     const { t } = useTranslation();
@@ -37,14 +38,14 @@ export const InvoiceA4Template = forwardRef<HTMLDivElement, { data: InvoiceData 
     return (
         <div
             ref={ref}
-            className="bg-white text-black font-sans hidden print:flex print:flex-col mx-auto relative box-border"
-            style={{ width: '210mm', minHeight: '297mm', padding: '10mm 15mm' }}
+            className="bg-white text-black font-sans hidden print:block mx-auto relative box-border"
+            style={{ width: '100%', maxWidth: '210mm' }}
         >
             <style>{`
                 @media print {
                     @page {
                         size: A4 portrait;
-                        margin: 0;
+                        margin: 8mm 12mm 8mm 12mm;
                     }
                     body {
                         margin: 0 !important;
@@ -53,17 +54,33 @@ export const InvoiceA4Template = forwardRef<HTMLDivElement, { data: InvoiceData 
                         -webkit-print-color-adjust: exact !important;
                         print-color-adjust: exact !important;
                     }
+                    table {
+                        page-break-inside: auto;
+                        break-inside: auto;
+                    }
+                    tr {
+                        page-break-inside: avoid;
+                        break-inside: avoid;
+                        page-break-after: auto;
+                    }
+                    thead {
+                        display: table-header-group;
+                    }
+                    .keep-together {
+                        page-break-inside: avoid;
+                        break-inside: avoid;
+                    }
                 }
             `}</style>
 
             {/* Subtle Watermark Logo */}
-            <div className="absolute inset-0 z-0 pointer-events-none flex flex-col justify-center items-center opacity-[0.04]">
-                <img src="/holding-pro-logo.png" alt="Watermark Holding Pro" className="w-[55%] h-auto object-contain" />
+            <div className="absolute inset-0 z-0 pointer-events-none flex flex-col justify-center items-center opacity-[0.035]">
+                <img src={HOLDING_PRO_LOGO_BASE64} alt="Watermark Holding Pro" className="w-[50%] h-auto object-contain" />
             </div>
 
             {/* Rainbow Top Bar */}
             <div
-                className="mb-5 z-10"
+                className="mb-4 z-10 relative"
                 style={{
                     background: 'linear-gradient(90deg, #f97316 0%, #ec4899 20%, #a855f7 40%, #3b82f6 60%, #22c55e 80%, #eab308 100%)',
                     height: '5px',
@@ -73,13 +90,13 @@ export const InvoiceA4Template = forwardRef<HTMLDivElement, { data: InvoiceData 
             />
 
             {/* HEADER MODULE */}
-            <div className="relative z-10 flex justify-between items-center mb-6 pb-4 border-b border-gray-200">
-                <div className="flex items-center gap-4">
+            <div className="relative z-10 flex justify-between items-center mb-4 pb-3 border-b border-gray-200">
+                <div className="flex items-center gap-3.5">
                     <img
-                        src="/holding-pro-logo.png"
+                        src={HOLDING_PRO_LOGO_BASE64}
                         alt="Logo Holding Pro"
-                        className="rounded-full border border-gray-200 object-contain"
-                        style={{ width: '72px', height: '72px' }}
+                        className="rounded-full border border-gray-200 object-contain shadow-sm shrink-0"
+                        style={{ width: '68px', height: '68px' }}
                     />
                     <div>
                         <div className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-gray-400">
@@ -99,10 +116,10 @@ export const InvoiceA4Template = forwardRef<HTMLDivElement, { data: InvoiceData 
                 </div>
 
                 <div className="text-right">
-                    <div className="inline-block bg-[#0f172a] text-white text-[10px] font-black px-3.5 py-1.5 rounded-full mb-2 tracking-wider uppercase shadow-sm">
+                    <div className="inline-block bg-[#0f172a] text-white text-[10px] font-black px-3.5 py-1.5 rounded-full mb-1.5 tracking-wider uppercase shadow-sm">
                         TOUJOURS CLIENT SATISFAIT
                     </div>
-                    <div className="text-xs font-semibold text-gray-800 leading-relaxed">
+                    <div className="text-xs font-semibold text-gray-800 leading-snug">
                         <p className="text-emerald-700 font-bold">
                             📞 +223 79 34 60 73 / 70 68 21 00 / 71 06 65 75
                         </p>
@@ -114,12 +131,12 @@ export const InvoiceA4Template = forwardRef<HTMLDivElement, { data: InvoiceData 
             </div>
 
             {/* INVOICE METADATA & CLIENT BOX */}
-            <div className="relative z-10 flex justify-between items-start mb-6">
+            <div className="relative z-10 flex justify-between items-start mb-4">
                 <div className="w-[50%]">
-                    <h2 className="text-3xl font-black text-gray-900 uppercase tracking-widest mb-3">
+                    <h2 className="text-2xl font-black text-gray-900 uppercase tracking-wider mb-2">
                         {isProforma ? 'DEVIS / PROFORMA' : (isCredit ? 'FACTURE À CRÉDIT' : 'FACTURE')}
                     </h2>
-                    <div className="grid grid-cols-[105px_1fr] gap-y-1 text-sm">
+                    <div className="grid grid-cols-[105px_1fr] gap-y-0.5 text-xs">
                         <span className="font-bold text-gray-600">N° Facture :</span>
                         <span className="font-mono font-bold text-gray-900">{data.invoice_number || data.id?.slice(0, 8)}</span>
 
@@ -146,9 +163,9 @@ export const InvoiceA4Template = forwardRef<HTMLDivElement, { data: InvoiceData 
                 </div>
 
                 {/* Client Info Card */}
-                <div className="w-[45%] border border-gray-200 rounded-xl p-4 bg-slate-50/60 shadow-sm">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Facturé à :</p>
-                    <h3 className="text-lg font-black text-gray-900 leading-tight mb-1">
+                <div className="w-[45%] border border-gray-200 rounded-xl p-3 bg-slate-50/60 shadow-sm">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Facturé à :</p>
+                    <h3 className="text-base font-black text-gray-900 leading-tight mb-0.5">
                         {data.customerName || t('customer.counterClient', 'Client Comptoir')}
                     </h3>
                     <p className="text-xs text-gray-600">
@@ -161,14 +178,14 @@ export const InvoiceA4Template = forwardRef<HTMLDivElement, { data: InvoiceData 
             </div>
 
             {/* TABLE OF ITEMS */}
-            <div className="flex-grow relative z-10">
-                <table className="w-full text-sm border-collapse mb-6">
+            <div className="relative z-10 mb-4">
+                <table className="w-full text-xs border-collapse">
                     <thead>
                         <tr className="bg-[#0f172a] text-white">
-                            <th className="py-2.5 px-4 text-left font-bold text-xs uppercase tracking-wider">Désignation</th>
-                            <th className="py-2.5 px-3 text-center font-bold text-xs uppercase tracking-wider w-20">Qté</th>
-                            <th className="py-2.5 px-4 text-right font-bold text-xs uppercase tracking-wider w-32">Prix U.</th>
-                            <th className="py-2.5 px-4 text-right font-bold text-xs uppercase tracking-wider w-36">Total</th>
+                            <th className="py-2 px-3 text-left font-bold uppercase tracking-wider">Désignation</th>
+                            <th className="py-2 px-2 text-center font-bold uppercase tracking-wider w-16">Qté</th>
+                            <th className="py-2 px-3 text-right font-bold uppercase tracking-wider w-28">Prix U.</th>
+                            <th className="py-2 px-3 text-right font-bold uppercase tracking-wider w-32">Total</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -183,22 +200,22 @@ export const InvoiceA4Template = forwardRef<HTMLDivElement, { data: InvoiceData 
 
                             return (
                                 <tr key={index} className={index % 2 === 0 ? 'bg-white border-b border-gray-200' : 'bg-slate-50/50 border-b border-gray-200'}>
-                                    <td className="py-2.5 px-4 font-semibold text-gray-900">
-                                        <div>{name}</div>
+                                    <td className="py-1.5 px-3 font-semibold text-gray-900">
+                                        <div className="leading-tight">{name}</div>
                                         {isBox && packSize > 1 && (
-                                            <div className="text-[10px] text-gray-500 font-normal">Boîte de {packSize} unités</div>
+                                            <div className="text-[9px] text-gray-500 font-normal">Boîte de {packSize} unités</div>
                                         )}
                                         {discount > 0 && (
-                                            <div className="text-[10px] text-red-600 font-bold">Remise appliquée: -{discount}%</div>
+                                            <div className="text-[9px] text-red-600 font-bold">Remise appliquée: -{discount}%</div>
                                         )}
                                     </td>
-                                    <td className="py-2.5 px-3 text-center font-bold text-gray-800">
+                                    <td className="py-1.5 px-2 text-center font-bold text-gray-800">
                                         {qty}
                                     </td>
-                                    <td className="py-2.5 px-4 text-right text-gray-800 whitespace-nowrap">
+                                    <td className="py-1.5 px-3 text-right text-gray-800 whitespace-nowrap">
                                         {price.toLocaleString('fr-FR')}
                                     </td>
-                                    <td className="py-2.5 px-4 text-right font-bold text-gray-900 whitespace-nowrap">
+                                    <td className="py-1.5 px-3 text-right font-bold text-gray-900 whitespace-nowrap">
                                         {total.toLocaleString('fr-FR')} FCFA
                                     </td>
                                 </tr>
@@ -206,54 +223,57 @@ export const InvoiceA4Template = forwardRef<HTMLDivElement, { data: InvoiceData 
                         })}
                     </tbody>
                 </table>
+            </div>
 
+            {/* KEEP-TOGETHER BOTTOM BLOCK: TOTALS, SIGNATURES & FOOTER */}
+            <div className="keep-together relative z-10 pt-2">
                 {/* TOTALS & SUM TEXT */}
-                <div className="flex justify-between items-center mt-4">
+                <div className="flex justify-between items-center mb-6">
                     <div className="w-[52%]">
-                        <p className="text-sm text-gray-600 italic mb-1">
+                        <p className="text-xs text-gray-600 italic mb-0.5">
                             Arrêté la présente facture à la somme de :
                         </p>
-                        <p className="text-base font-black text-gray-900 leading-snug">
+                        <p className="text-sm font-black text-gray-900 leading-snug">
                             {sumInWords}
                         </p>
                     </div>
 
                     <div className="w-[44%]">
-                        <div className="flex justify-between items-center py-3 px-5 font-black text-white rounded-xl bg-[#0f172a] shadow-md">
-                            <span className="text-sm tracking-wider uppercase">NET À PAYER :</span>
-                            <span className="text-2xl font-black text-[#f97316]">
+                        <div className="flex justify-between items-center py-2.5 px-4 font-black text-white rounded-xl bg-[#0f172a] shadow-md">
+                            <span className="text-xs tracking-wider uppercase">NET À PAYER :</span>
+                            <span className="text-xl font-black text-[#f97316]">
                                 {netTotal.toLocaleString('fr-FR')} FCFA
                             </span>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            {/* SIGNATURES */}
-            <div className="flex justify-between mt-12 px-12 relative z-10">
-                <div className="text-center w-48">
-                    <p className="font-bold text-gray-800 mb-14">Le Client</p>
-                    <div className="border-b border-gray-400" />
+                {/* SIGNATURES */}
+                <div className="flex justify-between px-12 mb-6">
+                    <div className="text-center w-44">
+                        <p className="font-bold text-xs text-gray-800 mb-10">Le Client</p>
+                        <div className="border-b border-gray-400" />
+                    </div>
+                    <div className="text-center w-44">
+                        <p className="font-bold text-xs text-gray-800 mb-10">La Direction</p>
+                        <div className="border-b border-gray-400" />
+                    </div>
                 </div>
-                <div className="text-center w-48">
-                    <p className="font-bold text-gray-800 mb-14">La Direction</p>
-                    <div className="border-b border-gray-400" />
-                </div>
-            </div>
 
-            {/* FOOTER */}
-            <div className="mt-auto pt-6 border-t border-gray-200 relative z-10 flex justify-between items-center">
-                <div className="text-center flex-1">
-                    <p className="text-xs font-bold uppercase tracking-wider text-gray-700">
-                        HOLDING PRO — TOUJOURS CLIENT SATISFAIT
-                    </p>
-                    <p className="text-[11px] text-gray-500 mt-0.5">
-                        Les marchandises vendues ne sont ni reprises ni échangées. Merci de votre confiance !
-                    </p>
-                </div>
-                <div className="flex items-center gap-1.5 opacity-60 grayscale shrink-0 ml-4">
-                    <span className="text-[10px] font-semibold tracking-wider text-gray-500 uppercase">Propulsé par JATE</span>
-                    <img src="/jati-icon.png" alt="JATE" className="h-4 object-contain" />
+                {/* FOOTER */}
+                <div className="pt-3 border-t border-gray-200 flex justify-between items-center">
+                    <div className="text-center flex-1">
+                        <p className="text-[11px] font-bold uppercase tracking-wider text-gray-700">
+                            HOLDING PRO — TOUJOURS CLIENT SATISFAIT
+                        </p>
+                        <p className="text-[10px] text-gray-500 mt-0.5">
+                            Les marchandises vendues ne sont ni reprises ni échangées. Merci de votre confiance !
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-1.5 opacity-60 grayscale shrink-0 ml-4">
+                        <span className="text-[9px] font-semibold tracking-wider text-gray-500 uppercase">Propulsé par JATE</span>
+                        <img src="/jati-icon.png" alt="JATE" className="h-3.5 object-contain" />
+                    </div>
                 </div>
             </div>
         </div>

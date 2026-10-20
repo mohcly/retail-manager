@@ -1,6 +1,7 @@
 import React, { forwardRef } from 'react';
 import { format } from "date-fns";
 import { useTranslation } from 'react-i18next';
+import { HOLDING_PRO_LOGO_BASE64 } from '@/assets/holdingProLogo';
 
 export interface InvoiceData {
     id: string;
@@ -98,7 +99,7 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, { data: InvoiceData }>
             <div className="text-center mb-1">
                 <div className="flex justify-center mb-1">
                     <img
-                        src="/holding-pro-logo.png"
+                        src={HOLDING_PRO_LOGO_BASE64}
                         alt="Holding Pro Logo"
                         className="h-14 w-14 object-contain mx-auto rounded-full"
                     />
