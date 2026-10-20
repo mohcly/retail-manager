@@ -82,13 +82,16 @@ export default function ProformaList() {
     const onPrintClick = (proforma: any) => {
         const invoiceData: InvoiceData = {
             id: proforma.id,
-            storeName: "Magasin",
-            workerName: t('edition.seller'),
+            storeName: "HOLDING PRO",
+            storeAddress: "Niamana Dubaï, en face station Shell",
+            storePhone: "+223 79 34 60 73 / 70 68 21 00 / 71 06 65 75",
+            workerName: t('edition.seller') || 'Caisse Niamana',
             customerName: proforma.customer_name,
             customerPhone: proforma.customer_phone,
             created_at: proforma.created_at,
             items: proforma.items,
             total_price: proforma.total_price,
+            subtotal: proforma.total_price,
             type: 'proforma'
         };
         setSelectedInvoice(invoiceData);
