@@ -69,6 +69,8 @@ function SidebarContent({
   t,
 }: SidebarContentProps) {
   const navRef = useRef<HTMLElement>(null);
+  // Preserve scroll position across route changes
+  const location = useLocation();
 
   useEffect(() => {
     if (!mobile && navRef.current) {
@@ -77,7 +79,7 @@ function SidebarContent({
         navRef.current.scrollTop = Number(saved);
       }
     }
-  }, [mobile]);
+  }, [mobile, location.pathname]);
 
   const handleScroll = (e: React.UIEvent<HTMLElement>) => {
     if (!mobile) {
