@@ -44,6 +44,7 @@ Merchants in Bamako buy solutions for only four reasons:
 > 1. **Le poste d'encaissement principal selon vos besoins métier** :  
 >    - **Option A (Quincailleries, Grossistes & Dépôts — 660 000 FCFA TTC tout compris) :** L'ordinateur Tout-en-Un professionnel ASUS Vivo 24 pouces Full HD avec grand écran anti-reflet, clavier complet avec pavé numérique et souris : infiniment plus rapide et ergonomique pour taper les références, chercher dans 2 000 articles et sortir des devis/factures A4.  
 >    - **Option B (Supérettes, Boutiques d'Alimentation & Restaurants — 690 000 FCFA TTC tout compris) :** Le terminal caisse tactile professionnel POS 15.6 pouces capacitif avec châssis renforcé anti-poussière et anti-projections : parfait pour le service rapide au comptoir et l'encaissement tactile direct.  
+>    - **Option C (Formule Éco / Reconditionné Certifié — 585 000 FCFA TTC tout compris) :** Station PC de caisse reconditionnée certifiée (Intel Core i3/i5, 8 Go RAM, SSD 128/256 Go neuf), écran plat 19"-22", clavier AZERTY et souris : la solution ultra-économique pour démarrer immédiatement avec du matériel fiable, testé en atelier et garanti 1 an.  
 > 2. **Le scanner code-barres laser haute précision** : vous bippez, le nom et le prix s'affichent immédiatement. Zéro erreur de prix par le vendeur.  
 > 3. **L'imprimante thermique de reçus 80mm** : chaque client reçoit son ticket officiel avec découpe automatique. Le tiroir-caisse ne s'ouvre **que** lorsqu'un ticket est validé. Impossible d'ouvrir le tiroir en cachette !  
 > 4. **Le tiroir-caisse métallique blindé** connecté directement au système.  
@@ -54,8 +55,8 @@ Merchants in Bamako buy solutions for only four reasons:
 > À tout moment, depuis votre téléphone ou le bureau, vous savez exactement combien de marchandises il reste dans votre boutique, article par article. »*
 
 ### Step 4: The Investment Comparison (The No-Brainer ROI)
-> *« Ce pack complet — poste au choix (Option A ASUS 24" à **660 000 FCFA** ou Option B Tactile à **690 000 FCFA**) neuf garanti 1 an, logiciel Retail Manager à vie (licence 150 000 FCFA sans abonnement mensuel obligatoire), saisie de tous vos articles par notre équipe, et formation complète de vos caissiers (OFFERTE) — représente un investissement vite rentabilisé.  
-> Réfléchissez-y : si le système vous évite simplement de perdre 150 000 FCFA par mois en coulage de stock et en erreurs de caisse, **en moins de 5 mois, votre matériel est totalement amorti**. À partir du 6ème mois, c'est du bénéfice net pur qui reste dans votre poche. »*
+> *« Ce pack complet — poste au choix (Option A ASUS 24" à **660 000 FCFA**, Option B Tactile à **690 000 FCFA**, ou Option C Éco Reconditionné à **585 000 FCFA**) garanti 1 an, logiciel Retail Manager à vie (licence 150 000 FCFA sans abonnement mensuel obligatoire), saisie de tous vos articles par notre équipe, et formation complète de vos caissiers (OFFERTE) — représente un investissement vite rentabilisé.  
+> Réfléchissez-y : si le système vous évite simplement de perdre 150 000 FCFA par mois en coulage de stock et en erreurs de caisse, **en moins de 4 à 5 mois, votre matériel est totalement amorti**. À partir du 5ème mois, c'est du bénéfice net pur qui reste dans votre poche. »*
 
 ---
 
@@ -66,11 +67,12 @@ Merchants in Bamako buy solutions for only four reasons:
 Salam Patron,
 C'est Mohamed de Jati Technologies (Groupe GIE MOUNA SARL), suite à notre échange concernant l'informatisation et la sécurisation de votre magasin et de vos stocks.
 
-Comme promis, je vous transmets ci-joint la facture proforma officielle (Réf. JT-PRO-2026-042) détaillant nos 2 formules Clé en Main au choix :
+Comme promis, je vous transmets ci-joint la facture proforma officielle (Réf. JT-PRO-2026-042) détaillant nos 3 formules Clé en Main au choix :
 🔹 Option A (Quincaillerie / Grossiste / Dépôt) : Grand Tout-en-Un ASUS 24" + Clavier/Souris à 660 000 FCFA TTC tout compris
 🔹 Option B (Supérette / Alimentation / Resto) : Terminal Tactile Pro POS 15.6" Capacitif à 690 000 FCFA TTC tout compris
+🔹 Option C (Pack Éco / Reconditionné Certifié) : Station PC Caisse Intel/SSD + Écran 19"-22" à 585 000 FCFA TTC tout compris
 
-Les 2 packs incluent l'équipement complet garanti 1 an :
+Les 3 packs incluent l'équipement complet garanti 1 an :
 ✅ Scanner Code-barres Laser Double Mode 1D/2D
 ✅ Imprimante Thermique 80mm Rapide (Découpe auto)
 ✅ Tiroir-caisse Métallique Sécurisé (asservi au ticket)
@@ -93,11 +95,11 @@ Je passe vous voir demain pour caler la date d'installation si vous êtes dispon
 ## 5. Objection Handling Playbook
 
 ### Objection 1: "660 000 FCFA or 690 000 FCFA is too expensive for me right now."
-- **Response:** *"Patron, ce n'est pas une dépense, c'est un cadenas sur votre argent. Actuellement, combien perdez-vous chaque mois en produits qui disparaissent ou en monnaie mal rendue ? Même 5 000 FCFA par jour, ça fait 150 000 FCFA le mois et 1,8 million par an qui part en fumée.  
+- **Response:** *"Patron, ce n'est pas une dépense, c'est un cadenas sur votre argent. Si votre budget est serré, nous avons justement créé l'**Option C Reconditionné Certifié à 585 000 FCFA TTC tout compris** avec la même garantie de 12 mois. Actuellement, combien perdez-vous chaque mois en produits qui disparaissent ou en monnaie mal rendue ? Même 5 000 FCFA par jour, ça fait 150 000 FCFA le mois et 1,8 million par an qui part en fumée.  
 Pour vous faciliter la trésorerie, nous proposons un échelonnement en 3 étapes :
-- **40% à la commande** pour réserver le matériel neuf (264 000 FCFA pour Pack A / 276 000 FCFA pour Pack B)
-- **40% à la livraison et installation** dans votre magasin (264 000 FCFA pour Pack A / 276 000 FCFA pour Pack B)
-- **20% restants uniquement après que vos employés ont été formés** et que tout tourne parfaitement (132 000 FCFA pour Pack A / 138 000 FCFA pour Pack B)."*
+- **40% à la commande** pour réserver le matériel (234 000 FCFA pour Pack C / 264 000 FCFA pour Pack A / 276 000 FCFA pour Pack B)
+- **40% à la livraison et installation** dans votre magasin (234 000 FCFA pour Pack C / 264 000 FCFA pour Pack A / 276 000 FCFA pour Pack B)
+- **20% restants uniquement après que vos employés ont été formés** et que tout tourne parfaitement (117 000 FCFA pour Pack C / 132 000 FCFA pour Pack A / 138 000 FCFA pour Pack B)."*
 
 ### Objection 2: "My cashiers don't know anything about computers, it's too complicated."
 - **Response:** *"Nos écrans fonctionnent exactement comme un smartphone avec des boutons tactiles et des photos d'articles. Pour vendre, votre caissier a juste à scanner le code-barres avec le pistolet, et appuyer sur 'Valider'. En 30 minutes de formation, même un apprenti qui n'a jamais touché d'ordinateur sait encaisser et rendre la monnaie."*
@@ -115,6 +117,7 @@ Pour vous faciliter la trésorerie, nous proposons un échelonnement en 3 étape
   - **Moins l'onduleur EDM :** -50 000 FCFA
   ➜ **Économie totale immédiate : -145 000 FCFA !**
   Votre pack passe ainsi au **strict minimum essentiel** :
+  - **Option C Allégée (Poste Reconditionné + Imprimante 80mm + Logiciel à vie + Ingestion + Formation offerte) :** **440 000 FCFA TTC** *(au lieu de 585 000 F)*.
   - **Option A Allégée (Grand écran ASUS 24" + Imprimante 80mm + Logiciel à vie + Ingestion + Formation offerte) :** **515 000 FCFA TTC** *(au lieu de 660 000 F)*.
   - **Option B Allégée (Terminal Tactile 15.6" + Imprimante 80mm + Logiciel à vie + Ingestion + Formation offerte) :** **545 000 FCFA TTC** *(au lieu de 690 000 F)*.
   Et si votre chiffre d'affaires augmente dans 6 mois, vous pourrez rajouter le tiroir-caisse ou le scanner à tout moment sans rien changer à votre logiciel."*
