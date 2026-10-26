@@ -362,3 +362,41 @@
   - Deployed to Vercel ([djati-stores-mobile.vercel.app](https://djati-stores-mobile.vercel.app/)) and triggered Windows build workflow run #39421272767.
 - Status: FIXED
 - Tags: invoice-a4, logo-broken, blue-question-mark, layout-overflow, pagination, keep-together, holding-pro
+
+
+### [2026-10-26] Platform Unification & Multi-Tenant Single Portal by Email
+- Symptom:
+  - Divergent client branches (`main-stores-stihl`, `main-niamana-dubai`, `main-mpm-food`) with separate Vercel deployments (`djati-stihl.vercel.app` and `djati-stores-mobile.vercel.app`) each tied to separate Supabase databases (`fpvrbxmbrotowdlyebqv` for STIHL and `onsqvduklnwffugsiybs` for Holding Pro).
+  - Hardcoded ticket and A4 templates required manual code changes per client.
+- Files involved:
+  - `frontend/src/types/receipt.ts`
+  - `frontend/src/components/printing/ReceiptConfigLoader.ts`
+  - `frontend/src/components/printing/InvoiceTemplate.tsx`
+  - `frontend/src/components/printing/InvoiceA4Template.tsx`
+  - `frontend/src/lib/tenants.ts`
+  - `frontend/src/lib/supabase.ts`
+  - `frontend/src/lib/dataClient.ts`
+  - `frontend/src/services/OfflineAuthService.ts`
+  - `frontend/src/components/auth/AuthPage.tsx`
+  - `frontend/src/components/mobile/Auth/MobileAuthPage.tsx`
+  - `backend/local-bridge/src/db/schema.ts`
+  - `backend/local-bridge/src/db/migrations.ts`
+  - `backend/local-bridge/src/db/types.ts`
+  - `backend/local-bridge/src/db/repositories/stores.repo.ts`
+  - `frontend/src/components/worker/Layout/WorkerMenuBar.tsx`
+  - `frontend/src/components/worker/Layout/WorkerLayout.tsx`
+- Root cause:
+  - Absence of dynamic polymorphic receipt engine and multi-tenant authentication cascade across multiple Supabase project instances.
+- Fix applied:
+  1. Created `StoreReceiptConfig` with default presets (`HOLDING_PRO_DEFAULT_RECEIPT`, `STIHL_DIBIDANI_DEFAULT_RECEIPT`, `STIHL_NIAMAKORO_DEFAULT_RECEIPT`).
+  2. Polymorphic `InvoiceTemplate` (80mm/58mm continuous) and `InvoiceA4Template` (keep-together pagination, French words numbers, dynamic logos/branding).
+  3. Created `tenants.ts` and dynamic multi-tenant Proxy client in `supabase.ts` with transparent cascade authentication (`cascadeSignInWithPassword`).
+  4. Added predictive tenant identification and visual feedback badge on login screens (`AuthPage.tsx` and `MobileAuthPage.tsx`).
+  5. Added `store_type` and `receipt_settings` to local-bridge SQLite schema, migrations, and repositories.
+  6. Added vertical feature-flagging in `WorkerMenuBar.tsx` to omit restaurant tabs (`Tables` / `KDS`) on retail/hardware terminals.
+- Verification:
+  - Verified tenant prediction: `imsnsylla@gmail.com` -> `stihl`, `papirotech26@gmail.com` -> `holdingpro`.
+  - Frontend production build (`npm run build`) succeeded with 0 errors in 13.67s.
+  - Backend local-bridge build (`npm run build`) succeeded with 0 errors.
+- Status: FIXED
+- Tags: multi-tenant, saas, unification, supabase, transparent-auth, dynamic-receipts, store-type
