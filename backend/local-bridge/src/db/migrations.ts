@@ -24,4 +24,14 @@ export const runMigrations = (db: Database.Database) => {
   } catch (err) {
     // ignore if column exists
   }
+  try {
+    db.exec(`ALTER TABLE stores ADD COLUMN store_type TEXT DEFAULT 'retail';`);
+  } catch (err) {
+    // ignore if column exists
+  }
+  try {
+    db.exec(`ALTER TABLE stores ADD COLUMN receipt_settings TEXT;`);
+  } catch (err) {
+    // ignore if column exists
+  }
 };

@@ -33,6 +33,8 @@ export interface LocalStore {
   phone?: string | null;
   owner_id?: string | null;
   default_price_tier: number;
+  store_type?: 'retail' | 'restaurant' | 'supermarket' | string;
+  receipt_settings?: string | null;
   created_at: string;
   updated_at: string;
 }

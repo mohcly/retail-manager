@@ -4,6 +4,8 @@ export type SalesStatus = 'good' | 'bad' | 'worse';
 export type SaleType = 'detail' | 'gros' | 'proforma';
 export type PaymentStatus = 'paid' | 'pending' | 'partial';
 
+export type StoreVertical = 'retail' | 'restaurant' | 'supermarket' | string;
+
 export interface Store {
   id: string;
   name: string;
@@ -11,6 +13,8 @@ export interface Store {
   phone?: string;
   owner_id?: string;
   default_price_tier: number;
+  store_type?: StoreVertical;
+  receipt_settings?: string | any;
   created_at: string;
   updated_at: string;
 }

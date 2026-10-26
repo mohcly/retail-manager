@@ -126,6 +126,7 @@ export function WorkerLayout({ className }: WorkerLayoutProps) {
 
   const [storeId, setStoreId] = useState<string>('');
   const [storeName, setStoreName] = useState<string>('');
+  const [storeType, setStoreType] = useState<string>('retail');
 
   useEffect(() => {
     localStorage.setItem('worker_active_module', activeModule);
@@ -236,7 +237,10 @@ export function WorkerLayout({ className }: WorkerLayoutProps) {
         } else {
           try {
             const localStore = await LocalDatabase.getStore(foundStoreId);
-            if (localStore) foundStoreName = localStore.name;
+            if (localStore) {
+              foundStoreName = localStore.name;
+              if (localStore.store_type) setStoreType(localStore.store_type);
+            }
           } catch (e) {
             console.error('Failed to recover store name from local db', e);
           }
@@ -432,6 +436,7 @@ export function WorkerLayout({ className }: WorkerLayoutProps) {
           activeModule={activeModule}
           onModuleChange={setActiveModule}
           subRole={subRole}
+          storeType={storeType}
         />
         {subRole === 'cashier' && (
           <div className="flex items-center gap-2.5 ml-auto pr-1">

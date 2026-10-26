@@ -39,6 +39,8 @@ export const createStoresRepo = (db: Database.Database) => ({
         phone,
         owner_id,
         default_price_tier,
+        store_type,
+        receipt_settings,
         created_at,
         updated_at
       ) VALUES (
@@ -48,6 +50,8 @@ export const createStoresRepo = (db: Database.Database) => ({
         @phone,
         @owner_id,
         @default_price_tier,
+        @store_type,
+        @receipt_settings,
         @created_at,
         @updated_at
       )
@@ -58,6 +62,8 @@ export const createStoresRepo = (db: Database.Database) => ({
       phone: store.phone ?? null,
       owner_id: store.owner_id ?? null,
       default_price_tier: store.default_price_tier ?? 1,
+      store_type: store.store_type ?? 'retail',
+      receipt_settings: store.receipt_settings ?? null,
     });
     // A store's own id is used as the outbox store_id - there's no other
     // store to attribute the mutation to.

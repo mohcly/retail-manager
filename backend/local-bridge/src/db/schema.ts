@@ -37,6 +37,8 @@ export const initializeSchema = (db: Database.Database) => {
       address TEXT,
       phone TEXT,
       owner_id TEXT,
+      store_type TEXT DEFAULT 'retail',
+      receipt_settings TEXT,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
       FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE SET NULL

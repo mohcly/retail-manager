@@ -62,6 +62,7 @@ interface WorkerMenuBarProps {
   onModuleChange: (module: WorkerModule) => void;
   className?: string;
   subRole?: 'cook' | 'cashier' | 'waiter' | null;
+  storeType?: string;
 }
 
 interface MenuItem {
@@ -79,7 +80,7 @@ interface MenuSection {
   items: MenuItem[];
 }
 
-export function WorkerMenuBar({ activeModule, onModuleChange, className, subRole }: WorkerMenuBarProps) {
+export function WorkerMenuBar({ activeModule, onModuleChange, className, subRole, storeType }: WorkerMenuBarProps) {
   const { t } = useTranslation();
   const isCashier = subRole === 'cashier';
   const isCook = subRole === 'cook';
@@ -199,8 +200,12 @@ export function WorkerMenuBar({ activeModule, onModuleChange, className, subRole
     },
   ];
 
-  // Filter based on subRole
+  // Filter based on storeType and subRole
   const filteredMenuStructure = menuStructure.filter(section => {
+    // If store vertical is retail (hardware/shops), omit restaurant triggers
+    if (section.triggerKey === 'menu.restaurant.trigger' && storeType && storeType !== 'restaurant') {
+      return false;
+    }
     if (subRole === 'cook') {
       return section.triggerKey === 'menu.restaurant.trigger' || section.triggerKey === 'menu.program.trigger';
     }
