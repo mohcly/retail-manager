@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Votre caisse protégée, mois après mois – Retail Manager – Jati Technologies</title>
+<style>
+@page{size:A4 portrait;margin:0}
+:root{--navy:#0B2545;--navy2:#16345E;--gold:#B8893A;--gold-l:#E8D3A5;--ink:#1B2433;--mute:#5B6678;--line:#D5DBE5;--soft:#F3F5F8;--ok:#1F7A4D}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+body{font-family:'Helvetica Neue',Arial,'Liberation Sans',sans-serif;color:var(--ink);background:#DDE2EA;font-size:8.8pt;line-height:1.38}
+.page{width:210mm;height:297mm;margin:0 auto 8mm;padding:11mm 14mm 9mm;background:#fff;display:flex;flex-direction:column;gap:4.2mm;overflow:hidden;page-break-after:always;break-after:page}
+.page:last-child{page-break-after:auto;break-after:auto;margin-bottom:0}
+@media print{body{background:none}.page{margin:0}}
+@media screen and (max-width:820px){.page{width:100%;height:auto;min-height:297mm}.plans{grid-template-columns:1fr!important}.all{grid-template-columns:1fr 1fr!important}.parties,.tiles{grid-template-columns:1fr!important}.plan.star{margin:0!important}}
+.serif{font-family:Georgia,'Times New Roman','Liberation Serif',serif}
+header{display:flex;justify-content:space-between;align-items:center;padding-bottom:3.5mm;border-bottom:2px solid var(--navy)}
+.brand{display:flex;align-items:center;gap:3mm}
+.logo{background:var(--navy);color:var(--gold-l);font-weight:800;letter-spacing:1px;font-size:13pt;padding:5px 11px;border-radius:3px}
+.brand b{display:block;font-size:10.5pt;color:var(--navy)}
+.brand span{font-size:7.4pt;color:var(--mute)}
+.ref{text-align:right;font-size:7.6pt;color:var(--mute);line-height:1.5}
+.ref b{color:var(--navy);font-size:8.6pt}
+.parties{display:grid;grid-template-columns:1fr 1fr;gap:4mm;font-size:7.4pt;color:var(--mute)}
+.parties div{background:var(--soft);border-left:3px solid var(--gold);padding:2mm 3mm;border-radius:2px}
+.parties b{color:var(--navy)}
+.title h1{font-size:21pt;line-height:1.12;color:var(--navy);font-weight:700}
+.title p{margin-top:1.5mm;color:var(--mute);font-size:9.4pt}
+.all{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--line);border-radius:4px;background:var(--soft)}
+.all div{padding:2.4mm 3mm;font-size:7.8pt;line-height:1.3;color:var(--mute);border-right:1px solid var(--line)}
+.all div:last-child{border:0}
+.all b{display:block;color:var(--navy);font-size:8.4pt}
+.plans{display:grid;grid-template-columns:1fr 1.14fr 1fr;gap:3.5mm;align-items:stretch;flex:1}
+.plan{border:1px solid var(--line);border-radius:4px;padding:4mm 3.6mm;display:flex;flex-direction:column;position:relative}
+.plan h2{font-size:11.5pt;line-height:1.2;color:var(--navy)}
+.tag{display:inline-block;margin-top:1.5mm;font-size:7pt;font-weight:700;color:var(--navy);background:var(--soft);border:1px solid var(--line);padding:1px 6px;border-radius:9px;align-self:flex-start}
+.price{margin:3.5mm 0 1mm;font-size:23pt;font-weight:700;color:var(--navy);line-height:1}
+.price small{font-size:8pt;font-weight:400;color:var(--mute);font-family:'Helvetica Neue',Arial,sans-serif}
+.pnote{font-size:7.8pt;color:var(--mute);min-height:6mm}
+.for{margin:2mm 0 2.5mm;padding:2mm 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);font-size:8pt;line-height:1.35}
+ul{list-style:none;display:flex;flex-direction:column;gap:1.6mm;font-size:8.1pt;line-height:1.32}
+li{padding-left:4.2mm;position:relative}
+li:before{content:"✓";position:absolute;left:0;color:var(--ok);font-weight:700}
+.plan.star{background:var(--navy);color:#EAF0F8;border-color:var(--navy);margin:-3mm 0 0 0;box-shadow:0 2px 8px rgba(11,37,69,.15)}
+.plan.star h2,.plan.star .price{color:#fff}
+.plan.star .pnote,.plan.star .price small{color:#B9C6DA}
+.plan.star .for{border-color:#2E4A73}
+.plan.star li:before{color:var(--gold-l)}
+.ribbon{position:absolute;top:-3mm;left:3.6mm;background:var(--gold);color:#fff;font-size:7.6pt;font-weight:700;padding:1.2mm 3mm;border-radius:2px}
+.key{border:1px dashed var(--gold);border-radius:4px;padding:2.8mm 3.5mm;background:#FFFCF5;font-size:8.3pt}
+.key b{color:var(--navy)}
+footer{margin-top:auto;border-top:1px solid var(--line);padding-top:2mm;font-size:7pt;color:var(--mute);display:flex;justify-content:space-between;gap:4mm}
+h3{font-size:13pt;color:var(--navy);padding-bottom:1.5mm;border-bottom:1px solid var(--gold);margin-bottom:3mm}
+table{width:100%;border-collapse:collapse;font-size:8.4pt}
+th{background:var(--navy);color:#fff;text-align:left;padding:2.2mm 2.5mm;font-weight:600}
+th:last-child,td:last-child{text-align:right;white-space:nowrap}
+td{padding:1.2mm 2.5mm;border-bottom:1px solid var(--line);color:var(--mute)}
+td:first-child{color:var(--ink);font-weight:600}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:3.5mm}
+.tile{border:1px solid var(--line);border-top:3px solid var(--navy);border-radius:3px;padding:3.2mm;font-size:8.2pt;line-height:1.42;color:var(--mute)}
+.tile b{display:block;color:var(--navy);font-size:9.6pt;margin-bottom:1.2mm}
+.cond{font-size:8.1pt;color:var(--mute);display:flex;flex-direction:column;gap:1mm}
+.cond b{color:var(--navy)}
+.page{gap:3.4mm}.one{white-space:nowrap;font-size:7.4pt}.sign{display:grid;grid-template-columns:1.4fr 1fr;gap:5mm;font-size:8pt;margin-top:auto}
+.sign div{border:1px solid var(--line);border-radius:4px;padding:3mm;min-height:20mm}
+.sign b{color:var(--navy)}
+.box{display:flex;flex-direction:column;gap:1.5mm;margin:1.5mm 0}
+</style></head>
+<body>
+
+<section class="page">
+  <header>
+    <div class="brand"><div class="logo">JATI</div><div><b>Jati Technologies SARL</b><span>Groupe GIE Mouna · Systèmes d'encaissement et gestion commerciale souveraine</span></div></div>
+    <div class="ref"><b>Réf. JT-PLANS-2026-051</b><br>26 octobre 2026 · Validité 30 jours</div>
+  </header>
+
+  <div class="parties">
+    <div><b>Prestataire</b> : Groupe GIE Mouna et Jati Technologies<br>Représenté par M. Mohamed N’gouro Coulibaly · <span style="white-space:nowrap">+223 75 72 33 80</span><br>Bamako, Mali · moh.kuhh@gmail.com</div>
+    <div><b>Établissement bénéficiaire</b> : magasin ou commerce client<br>Quincaillerie, supérette, alimentation générale, dépôt de vente<br>Bamako, Mali · Clients équipés de Retail Manager</div>
+  </div>
+
+  <div class="title">
+    <h1 class="serif">Votre caisse protégée, mois après mois</h1>
+    <p>Votre caisse tourne sans souci, votre matériel est suivi, et vous savez où en est votre commerce. Un abonnement de service, jamais une taxe sur votre logiciel.</p>
+  </div>
+
+  <div class="all">
+    <div><b>Licence toujours à vous</b>Aucun blocage si vous arrêtez</div>
+    <div><b>Engagement de 6 mois</b>Puis résiliable avec 30 jours de préavis</div>
+    <div><b>Paiement simple</b>Orange Money, Moov Money ou espèces</div>
+    <div><b>1 mois offert</b>Si paiement annuel d'avance</div>
+  </div>
+
+  <div class="plans">
+    <article class="plan">
+      <h2 class="serif">Plan Essentiel</h2><span class="tag">Assistance de base</span>
+      <div class="price serif">7 500 <small>FCFA / mois</small></div>
+      <div class="pnote">82 500 FCFA / an (1 mois offert)</div>
+      <div class="for"><b>Pour qui :</b> petits commerces (Tier 1) qui veulent simplement être dépannés vite.</div>
+      <ul>
+        <li>Assistance téléphonique 6 j/7</li>
+        <li>Assistance à distance sur le poste</li>
+        <li>Portail web en lecture seule : ventes du jour et niveaux de stock</li>
+        <li>Mises à jour du logiciel Retail Manager</li>
+        <li>Vérification de la sauvegarde chaque trimestre</li>
+        <li>Intervention sur site facturée au tarif du jour</li>
+      </ul>
+    </article>
+
+    <article class="plan star">
+      <span class="ribbon">★ Recommandé</span>
+      <h2 class="serif">Plan Sérénité</h2><span class="tag">Suivi complet</span>
+      <div class="price serif">12 500 <small>FCFA / mois</small></div>
+      <div class="pnote">137 500 FCFA / an (1 mois offert)</div>
+      <div class="for"><b>Pour qui :</b> supérettes, boutiques et grossistes (Tier 2) dont la caisse ne doit jamais s'arrêter.</div>
+      <ul>
+        <li>Tout le Plan Essentiel, avec portail web complet : 1 compte propriétaire (ventes, stock, caisse) sur téléphone ou ordinateur</li>
+        <li>Support prioritaire : réponse sous 4 h ouvrées</li>
+        <li>1 visite de contrôle sur site tous les 2 mois</li>
+        <li>Vérification mensuelle de la sauvegarde</li>
+        <li>Résumé mensuel des ventes et marges par WhatsApp</li>
+        <li>Saisie de 25 nouveaux articles par mois</li>
+        <li>Matériel de prêt si une réparation dure plus de 48 h, même après la garantie</li>
+      </ul>
+    </article>
+
+    <article class="plan">
+      <h2 class="serif">Plan Premium</h2><span class="tag">Multi-postes</span>
+      <div class="price serif">25 000 <small>FCFA / mois</small></div>
+      <div class="pnote">275 000 FCFA / an (1 mois offert)</div>
+      <div class="for"><b>Pour qui :</b> magasins structurés (Tier 3) avec bureau gérant et plusieurs caissiers.</div>
+      <ul>
+        <li>Tout le Plan Sérénité, avec portail web multi-utilisateurs et multi-boutiques (gérant, comptable)</li>
+        <li>1 visite sur site par mois</li>
+        <li>Couverture des 2 postes en réseau</li>
+        <li>Saisie de 100 nouveaux articles par mois</li>
+        <li>Formation des nouveaux caissiers</li>
+        <li>Rapport hebdomadaire ventes, marges et stocks bas</li>
+        <li>Sauvegarde externe chiffrée (option, activée sur demande)</li>
+      </ul>
+    </article>
+  </div>
+
+  <div class="key"><b>Promesse claire :</b> votre licence Retail Manager reste acquise à vie. Le plan finance le portail web et le service : assistance, suivi, visites et mises à jour. Si vous arrêtez le plan, votre caisse continue de fonctionner ; seuls le portail et les services s'arrêtent.</div>
+
+  <footer><span>Jati Technologies SARL · Groupe GIE Mouna · RCCM : MA.BKO.2017.C.8036 · NIF : En cours d'attribution DGI</span><span>Page 1 / 3</span></footer>
+</section>
+
+<section class="page">
+  <header>
+    <div class="brand"><div class="logo">JATI</div><div><b>Jati Technologies SARL</b><span>Offre de services · Retail Manager</span></div></div>
+    <div class="ref"><b>Réf. JT-PLANS-2026-051</b><br>26 octobre 2026 · Validité 30 jours</div>
+  </header>
+
+  <div>
+    <h3 class="serif">Postes tout-en-un et compléments à la carte</h3>
+    <table>
+      <tr><th>Complément</th><th>Détail</th><th>Prix (FCFA TTC)</th></tr>
+      <tr><td>Poste tout-en-un ASUS Vivo 24"</td><td>Écran Full HD, 8 Go RAM, SSD 256 Go, clavier et souris (Pack quincaillerie / grossiste)</td><td>245 000</td></tr>
+      <tr><td>Terminal tactile POS 15.6" étanche</td><td>Quad-Core, 4 Go RAM, 64 Go SSD (Pack supérette / restaurant)</td><td>275 000</td></tr>
+      <tr><td>Poste caisse reconditionné certifié</td><td>Core i3/i5, 8 Go RAM, SSD neuf, écran 19"-22" (Pack éco / PME)</td><td>170 000</td></tr>
+      <tr><td>Scanner laser 1D/2D</td><td>Support mains libres, câble renforcé</td><td>45 000</td></tr>
+      <tr><td>Tiroir-caisse blindé</td><td>Ouverture commandée par le ticket</td><td>50 000</td></tr>
+      <tr><td>Onduleur protecteur EDM</td><td>800 à 1000 VA</td><td>50 000</td></tr>
+      <tr><td>Étiquetage des codes-barres</td><td>Impression et pose sur vos articles</td><td>Sur devis</td></tr>
+      <tr><td>Lot de 10 rouleaux thermiques 80 mm</td><td>Livraison à Bamako</td><td>8 000</td></tr>
+      <tr><td>Clé miroir USB supplémentaire</td><td>Sauvegarde locale chiffrée</td><td>15 000</td></tr>
+      <tr><td>2<sup>e</sup> poste et licence réseau</td><td>Évolution vers le Tier 3, licence conservée</td><td>Sur devis</td></tr>
+    </table>
+  </div>
+
+  <div>
+    <h3 class="serif">Portail web Retail Manager : votre commerce dans la poche</h3>
+    <div class="key">Suivez vos ventes, votre caisse et votre stock depuis votre téléphone ou un ordinateur, où que vous soyez. <b>La caisse fonctionne toujours sans internet</b> : le portail se met à jour dès qu'une connexion est disponible, et la caisse ne dépend jamais de lui. Le portail est inclus dans les plans (lecture seule en Essentiel, compte propriétaire en Sérénité, multi-utilisateurs et multi-boutiques en Premium) et s'arrête si le plan n'est plus payé.</div>
+  </div>
+
+  <div>
+    <h3 class="serif">Offre de lancement</h3>
+    <div class="key"><b>3 mois du Plan Sérénité offerts</b> pour tout achat d'un pack Tier 2 ou Tier 3 signé avant la fin de validité de cette offre. Au bout de 3 mois, vous décidez de continuer ou non. Les 3 mois offerts ne comptent pas dans la durée minimale d'engagement.</div>
+  </div>
+
+  <div>
+    <h3 class="serif">Engagement et paiement</h3>
+    <div class="cond">
+      <div><b>1. Durée minimale :</b> 6 mois payés, puis reconduction mensuelle. Résiliation avec 30 jours de préavis écrit après la durée minimale. En cas de départ avant 6 mois, les mois restants de la durée minimale restent dus.</div>
+      <div><b>2. Paiement :</b> mensuel d'avance (le 5 de chaque mois) ou annuel d'avance avec 1 mois offert, par Orange Money, Moov Money ou espèces. Reçu remis à chaque règlement. Les sommes payées d'avance ne sont pas remboursables.</div>
+      <div><b>3. Retard de paiement :</b> au-delà de 15 jours de retard, le portail et les services sont suspendus (la caisse continue de fonctionner) et une pénalité de retard de 5 % du montant dû est appliquée. La remise en service se fait après règlement des sommes dues.</div>
+      <div><b>4. Délai de carence :</b> le prêt de matériel et les interventions de remplacement ne s'appliquent qu'après 30 jours d'abonnement. Les pannes ou problèmes existant avant la souscription ne sont pas couverts.</div>
+    </div>
+  </div>
+
+  <footer><span>Jati Technologies SARL · Groupe GIE Mouna · RCCM : MA.BKO.2017.C.8036 · NIF : En cours d'attribution DGI</span><span>Page 2 / 3</span></footer>
+</section>
+
+<section class="page">
+  <header>
+    <div class="brand"><div class="logo">JATI</div><div><b>Jati Technologies SARL</b><span>Offre de services · Retail Manager</span></div></div>
+    <div class="ref"><b>Réf. JT-PLANS-2026-051</b><br>26 octobre 2026 · Validité 30 jours</div>
+  </header>
+
+  <div>
+    <h3 class="serif">Licence, responsabilité et litiges</h3>
+    <div class="cond">
+      <div><b>5. Licence non cessible :</b> la licence Retail Manager est personnelle, non exclusive et non transférable. Elle est limitée à un seul commerce et aux postes déclarés, et liée à chaque poste installé. La copie, le prêt, la revente, la location et l'ingénierie inverse du logiciel sont interdits. Tout poste ou boutique supplémentaire nécessite une licence supplémentaire.</div>
+      <div><b>6. Usage raisonnable :</b> l'assistance couvre Retail Manager et le matériel fourni par Jati, du lundi au samedi aux heures ouvrées. La formation du personnel au-delà de celle incluse, les articles et visites au-delà du quota mensuel, et les demandes sans rapport avec le système sont facturés. Les quotas ne sont pas reportables. Un seul prêt de matériel par an.</div>
+      <div><b>7. Poste dédié :</b> le poste de caisse est réservé à Retail Manager. L'installation de logiciels non autorisés ou piratés, de jeux ou de programmes tiers peut entraîner la suspension du support gratuit et la facturation de l'intervention.</div>
+      <div><b>8. Exclusions du matériel :</b> dégâts d'eau, chocs, mauvaise utilisation, ouverture du matériel par un tiers et surtensions sur un poste non protégé par onduleur ne sont pas couverts par les échanges gratuits.</div>
+      <div><b>9. Sauvegardes et responsabilité :</b> le client suit la procédure de sauvegarde et conserve ses clés miroir en lieu sûr. La réinstallation en 4 heures s'entend lorsqu'une sauvegarde valide est disponible. La responsabilité de Jati se limite au rétablissement à partir de la dernière sauvegarde valide et ne peut dépasser les sommes versées par le client sur les 12 derniers mois. Jati n'est pas responsable des pertes indirectes (manque à gagner), des coupures d'électricité ou d'internet, ni des cas de force majeure.</div>
+      <div><b>10. Accès à distance et données :</b> Jati n'accède au poste à distance qu'avec l'accord du client et s'engage à la confidentialité. Les données du commerce restent la propriété du client et ne sont utilisées que pour fournir le service. Le code source et le logiciel restent la propriété de Jati.</div>
+      <div><b>11. Signataire :</b> la personne qui signe déclare avoir qualité pour engager l'établissement client.</div>
+      <div><b>12. Litiges :</b> les parties cherchent d'abord une solution amiable. À défaut, le droit malien s'applique et le tribunal de commerce de Bamako est compétent. Le français fait foi.</div>
+      <div><b>13. Prix :</b> prix valables 30 jours. Après versement de l'acompte de 40 %, le prix du pack commandé est garanti. Au-delà de la période de validité, les prix du matériel peuvent évoluer avec les taux de change.</div>
+    </div>
+  </div>
+
+  <div class="sign">
+    <div>
+      <b>Pour le prestataire</b>
+      <p>M. Mohamed N’gouro Coulibaly<br><span class="one">Gérant et directeur technique · Jati Technologies / Groupe GIE Mouna</span><br>Fait à Bamako, le 26 octobre 2026 · Signature et cachet</p>
+    </div>
+    <div>
+      <b>Pour le client : bon pour accord</b>
+      <div class="box">
+        <p>[&nbsp;&nbsp;&nbsp;] Essentiel · 7 500 F/mois</p>
+        <p>[&nbsp;&nbsp;&nbsp;] Sérénité · 12 500 F/mois</p>
+        <p>[&nbsp;&nbsp;&nbsp;] Premium · 25 000 F/mois</p>
+        <p>[&nbsp;&nbsp;&nbsp;] Paiement annuel d'avance</p>
+      </div>
+      <p>Nom du magasin et du signataire : ____________________<br>Mention « Bon pour accord », signature et cachet</p>
+    </div>
+  </div>
+
+  <footer><span>Jati Technologies SARL · Groupe GIE Mouna · RCCM : MA.BKO.2017.C.8036 · NIF : En cours d'attribution DGI</span><span>Page 3 / 3</span></footer>
+</section>
+</body></html>
