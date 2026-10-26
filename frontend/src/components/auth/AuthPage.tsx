@@ -16,6 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher';
 import { useDevice } from '@/contexts/DeviceContext';
 import { MobileAuthPage } from '@/components/mobile/Auth/MobileAuthPage';
+import { predictTenantByEmail, REGISTERED_TENANTS } from '@/lib/tenants';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -59,6 +60,9 @@ export default function AuthPage() {
     confirmPassword: '',
     fullName: ''
   });
+
+  const detectedTenantId = loginData.email ? predictTenantByEmail(loginData.email) : null;
+  const detectedTenant = detectedTenantId ? REGISTERED_TENANTS[detectedTenantId] : null;
 
   useEffect(() => {
     console.log('🔐 AuthPage useEffect - user:', !!user, 'rolesLoading:', rolesLoading, 'roles.length:', roles.length, 'authLoading:', authLoading, 'fromGetStarted:', fromGetStarted);
@@ -243,6 +247,12 @@ export default function AuthPage() {
                     disabled={loading}
                     className={errors.email ? 'border-destructive' : ''}
                   />
+                  {detectedTenant && (
+                    <div className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-md bg-muted/60 border border-muted-foreground/20 text-foreground animate-in fade-in duration-200">
+                      <span className="w-2 h-2 rounded-full inline-block shrink-0" style={{ backgroundColor: detectedTenant.accentColor }} />
+                      <span>{detectedTenant.name}</span>
+                    </div>
+                  )}
                   {errors.email && (
                     <p className="text-sm text-destructive">{errors.email}</p>
                   )}

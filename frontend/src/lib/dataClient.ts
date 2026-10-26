@@ -1,3 +1,5 @@
+import { getActiveTenantSupabaseUrl } from './supabase';
+
 export type AppMode = 'cloud' | 'hybrid' | 'offline';
 
 const localBridgeBaseUrl = (import.meta.env.VITE_LOCALBRIDGE_URL || 'http://127.0.0.1:8787').replace(/\/$/, '');
@@ -52,7 +54,7 @@ export function getDataClient(): DataClient {
   const localFirst = (tauri || forceLocal || (isLocalHost && !android)) && !android && !forceCloud;
   const baseUrl = localFirst
     ? localBridgeBaseUrl
-    : (import.meta.env.VITE_SUPABASE_URL || 'https://placeholder-project.supabase.co').replace(/\/$/, '');
+    : (import.meta.env.VITE_SUPABASE_URL || getActiveTenantSupabaseUrl()).replace(/\/$/, '');
 
   console.log(
     `🔑 [DataClient] mode: offline, isLocalFirst: ${localFirst}, android: ${android}, isHttps: ${isHttps}, tauri: ${tauri}, localhost: ${isLocalHost}, baseUrl: ${baseUrl}`

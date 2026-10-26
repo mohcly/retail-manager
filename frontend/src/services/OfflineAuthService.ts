@@ -9,7 +9,7 @@ import { toast } from '@/hooks/use-toast';
 import { getDataClient } from '@/lib/dataClient';
 import { TokenManager } from '@/utils/tokenManager';
 import { smartFetch } from '@/lib/dataClient';
-import { supabase } from '@/lib/supabase';
+import { supabase, getActiveTenantSupabaseUrl } from '@/lib/supabase';
 import i18n from '@/i18n/config';
 import { supabase } from '../lib/supabase';
 
@@ -88,7 +88,7 @@ export class OfflineAuthService {
   private static getLocalBridgeBaseUrl(): string {
     const dc = getDataClient();
     if (!dc.isLocalFirst) {
-      return (import.meta.env.VITE_SUPABASE_URL || 'https://placeholder-project.supabase.co').replace(/\/$/, '');
+      return (import.meta.env.VITE_SUPABASE_URL || getActiveTenantSupabaseUrl()).replace(/\/$/, '');
     }
     return dc.localBridgeBaseUrl;
   }
