@@ -57,11 +57,17 @@ export function getTenantClient(tenantId: string): SupabaseClient {
   return getOrCreateClient(config);
 }
 
+// Hard cap on how many tenant backends a single login attempt will send the
+// user's password to. Keeps the fan-out bounded as REGISTERED_TENANTS grows,
+// instead of broadcasting credentials to every registered org.
+const MAX_CASCADE_CANDIDATES = 3;
+
 /**
  * Executes a cascade sign-in across tenants based on the user's email:
  * 1. Checks if email matches known tenant domains/emails.
  * 2. If not, attempts sign-in on the active tenant.
- * 3. If invalid credentials, cascades to all other registered tenants.
+ * 3. If invalid credentials, cascades to up to MAX_CASCADE_CANDIDATES other
+ *    registered tenants (bounded fan-out, not every tenant unconditionally).
  * 4. On success, permanently switches the active tenant and returns the session.
  */
 async function cascadeSignInWithPassword(credentials: { email: string; password: string }) {
@@ -81,8 +87,9 @@ async function cascadeSignInWithPassword(credentials: { email: string; password:
     candidates.push(activeTenantId);
   }
 
-  // Add remaining tenants
+  // Add remaining tenants, bounded by MAX_CASCADE_CANDIDATES
   for (const id of Object.keys(REGISTERED_TENANTS)) {
+    if (candidates.length >= MAX_CASCADE_CANDIDATES) break;
     if (!candidates.includes(id)) {
       candidates.push(id);
     }
@@ -94,12 +101,11 @@ async function cascadeSignInWithPassword(credentials: { email: string; password:
     const config = REGISTERED_TENANTS[tenantId];
     const client = getOrCreateClient(config);
 
-    console.log(`🔑 [MultiTenant Auth] Trying sign-in for "${cleanEmail}" on tenant: ${config.shortName}...`);
     try {
       const result = await client.auth.signInWithPassword({ email: cleanEmail, password });
 
       if (!result.error && result.data.user) {
-        console.log(`✅ [MultiTenant Auth] Authentication successful for tenant: ${config.shortName}! Activating.`);
+        console.log(`🏢 [MultiTenant Auth] Activating tenant: ${config.shortName}`);
         setActiveTenant(tenantId);
         return result;
       }
