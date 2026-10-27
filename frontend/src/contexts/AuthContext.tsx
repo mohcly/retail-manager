@@ -19,6 +19,7 @@ interface AuthContextType {
   rolesLoading: boolean;
   isOffline: boolean;
   isBackendReady: boolean;
+  isBootstrapped: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
@@ -1009,6 +1010,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     rolesLoading,
     isOffline,
     isBackendReady,
+    isBootstrapped,
     signIn,
     signUp,
     signOut,
