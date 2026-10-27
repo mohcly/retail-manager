@@ -11,7 +11,6 @@ import { TokenManager } from '@/utils/tokenManager';
 import { smartFetch } from '@/lib/dataClient';
 import { supabase, getActiveTenantSupabaseUrl } from '@/lib/supabase';
 import i18n from '@/i18n/config';
-import { supabase } from '../lib/supabase';
 
 /** Minimal User type replacing @supabase/supabase-js User */
 export interface User {
