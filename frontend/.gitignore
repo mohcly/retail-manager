@@ -27,3 +27,8 @@ release/
 .env*.local
 
 testsprite_tests/tmp/config.json
+
+# Playwright
+test-results/
+playwright-report/
+*.tsbuildinfo

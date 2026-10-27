@@ -310,7 +310,7 @@ export async function registerSalesRoutes(app: FastifyInstance) {
   });
 
   app.delete('/rest/v1/sales/:id', async (request, reply) => {
-    const claims = authenticateRequest(request, reply, ['master']);
+    const claims = authenticateRequest(request, reply, ['master', 'worker']);
     if (!claims) return;
 
     const saleId = (request.params as { id: string }).id;
@@ -320,6 +320,13 @@ export async function registerSalesRoutes(app: FastifyInstance) {
     }
     if (claims.store_id && claims.store_id !== existing.store_id) {
       return reply.status(403).send({ error: 'Forbidden', message: 'Cannot delete sale.' });
+    }
+
+    // Cashiers (role 'worker') may only delete unpaid proformas/drafts, never a paid sale.
+    const isUnpaidDraft = existing.sale_type === 'proforma'
+      || (existing.payment_status === 'pending' && Number(existing.amount_paid) === 0);
+    if (claims.role === 'worker' && !isUnpaidDraft) {
+      return reply.status(403).send({ error: 'Forbidden', message: 'Cannot delete a paid sale.' });
     }
 
     db.deleteSale(saleId);

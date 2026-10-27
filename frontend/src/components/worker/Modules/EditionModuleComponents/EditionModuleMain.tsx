@@ -15,10 +15,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { 
-  Search, CalendarIcon, FileText, Users, 
-  ShoppingBag, Eye, WifiOff, RefreshCw, Printer, Download
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import {
+  Search, CalendarIcon, FileText, Users,
+  ShoppingBag, Eye, WifiOff, RefreshCw, Printer, Download, Trash2
 } from 'lucide-react';
 import { format, startOfDay, endOfDay, subDays } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
@@ -29,6 +29,7 @@ import {
   PurchaseWithSupplier 
 } from '@/services/OfflineDataService';
 import { OfflineInventoryService } from '@/services/OfflineInventoryService';
+import { OfflineSalesService } from '@/services/OfflineSalesService';
 import { OfflineTeamService, TeamMember } from '@/services/OfflineTeamService';
 import { LocalDatabase } from '@/services/LocalDatabase';
 import { useMasterDataStore } from '@/stores/useMasterDataStore';
@@ -94,6 +95,8 @@ export function EditionModule({ storeId, mode }: EditionModuleProps) {
 
   const [sales, setSales] = useState<SaleWithItems[]>([]);
   const [selectedSale, setSelectedSale] = useState<SaleWithItems | null>(null);
+  const [saleToDelete, setSaleToDelete] = useState<SaleWithItems | null>(null);
+  const [isDeletingSale, setIsDeletingSale] = useState(false);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [purchases, setPurchases] = useState<PurchaseWithSupplier[]>([]);
   const [purchasesByFamily, setPurchasesByFamily] = useState<ProductFamily[]>([]);
@@ -263,6 +266,22 @@ export function EditionModule({ storeId, mode }: EditionModuleProps) {
     window.addEventListener('localDbDataUpdated', handleDbUpdate);
     return () => window.removeEventListener('localDbDataUpdated', handleDbUpdate);
   }, [loadData, storeId]);
+
+  const isUnpaidDraftSale = (sale: SaleWithItems) =>
+    sale.sale_type === 'proforma' || sale.payment_status === 'pending';
+
+  const handleConfirmDeleteSale = async () => {
+    if (!saleToDelete) return;
+    setIsDeletingSale(true);
+    const { success, error } = await OfflineSalesService.deleteSale(saleToDelete.id);
+    setIsDeletingSale(false);
+    if (success) {
+      toast.success(t('edition.saleDeleted', 'Devis/brouillon supprimé'));
+      setSaleToDelete(null);
+    } else {
+      toast.error(error?.message || t('common.error'));
+    }
+  };
 
   const filteredStatement = useMemo(() => {
     return statementData.filter(t => {
@@ -674,9 +693,16 @@ export function EditionModule({ storeId, mode }: EditionModuleProps) {
                           <TableCell className="text-xs font-medium">{workerMap[sale.worker_id || ''] || ((isLoading && !workerMap[sale.worker_id || '']) ? '...' : (sale.worker_id ? (sale.worker_id.length < 15 ? sale.worker_id : `ID: ${sale.worker_id.slice(0,8)}`) : '—'))}</TableCell>
                           <TableCell className="text-xs text-right font-black font-mono text-primary">{formatCurrency(sale.total_price)}</TableCell>
                           <TableCell className="text-center">
-                            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-primary/10" onClick={() => setSelectedSale(sale)}>
-                              <Eye className="h-4 w-4 text-primary" />
-                            </Button>
+                            <div className="flex items-center justify-center gap-1">
+                              <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-primary/10" onClick={() => setSelectedSale(sale)}>
+                                <Eye className="h-4 w-4 text-primary" />
+                              </Button>
+                              {isUnpaidDraftSale(sale) && (
+                                <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10" onClick={() => setSaleToDelete(sale)}>
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              )}
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -1067,10 +1093,28 @@ export function EditionModule({ storeId, mode }: EditionModuleProps) {
         </div>
       </div>
       {renderContent()}
-      <InvoiceDetailsDialog 
-        sale={selectedSale} 
-        onClose={() => setSelectedSale(null)} 
+      <InvoiceDetailsDialog
+        sale={selectedSale}
+        onClose={() => setSelectedSale(null)}
       />
+      <Dialog open={!!saleToDelete} onOpenChange={(open) => !open && setSaleToDelete(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('edition.confirmDeleteSale', 'Supprimer ce devis/brouillon ?')}</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            {saleToDelete?.invoice_number || saleToDelete?.id.slice(0, 8)}
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSaleToDelete(null)} disabled={isDeletingSale}>
+              {t('common.cancel')}
+            </Button>
+            <Button variant="destructive" onClick={handleConfirmDeleteSale} disabled={isDeletingSale}>
+              {t('common.delete', 'Supprimer')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

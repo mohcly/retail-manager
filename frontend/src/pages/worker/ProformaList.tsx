@@ -12,13 +12,21 @@ import {
     TableRow
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { FileText, Printer, ShoppingCart } from "lucide-react";
+import {
+    Dialog,
+    DialogContent,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import { FileText, Printer, ShoppingCart, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { usePOSStore } from "@/stores/usePOSStore";
 import { useNavigate } from "react-router-dom";
 import { useReactToPrint } from "react-to-print";
 import { InvoiceTemplate, InvoiceData } from "@/components/printing/InvoiceTemplate";
 import { useTranslation } from "react-i18next";
+import { OfflineStoreService } from "@/services/OfflineStoreService";
 
 export default function ProformaList() {
     const { t, i18n } = useTranslation();
@@ -30,6 +38,9 @@ export default function ProformaList() {
 
     const printRef = useRef<HTMLDivElement>(null);
     const [selectedInvoice, setSelectedInvoice] = useState<InvoiceData | null>(null);
+    const [storeName, setStoreName] = useState<string>(t('index.title'));
+    const [proformaToDelete, setProformaToDelete] = useState<any | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const handlePrint = useReactToPrint({
         contentRef: printRef,
@@ -44,10 +55,14 @@ export default function ProformaList() {
         setIsLoading(true);
         try {
             const offlineSession = await OfflineAuthService.getOfflineSession();
-            if (!offlineSession?.user?.user_metadata?.store_id) return;
+            const storeId = offlineSession?.user?.user_metadata?.store_id;
+            if (!storeId) return;
 
-            const data = await OfflineSalesService.getProformas(offlineSession.user.user_metadata.store_id);
+            const data = await OfflineSalesService.getProformas(storeId);
             setProformas(data);
+
+            const { data: store } = await OfflineStoreService.getStore(storeId);
+            if (store?.name) setStoreName(store.name);
         } catch (error) {
             console.error(error);
             toast({ variant: "destructive", title: t('common.error'), description: t('common.failedToLoad') });
@@ -82,7 +97,7 @@ export default function ProformaList() {
     const onPrintClick = (proforma: any) => {
         const invoiceData: InvoiceData = {
             id: proforma.id,
-            storeName: "Magasin",
+            storeName,
             workerName: t('edition.seller'),
             customerName: proforma.customer_name,
             customerPhone: proforma.customer_phone,
@@ -96,6 +111,20 @@ export default function ProformaList() {
         setTimeout(() => {
             handlePrint();
         }, 100);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!proformaToDelete) return;
+        setIsDeleting(true);
+        const { success, error } = await OfflineSalesService.deleteSale(proformaToDelete.id);
+        setIsDeleting(false);
+        if (success) {
+            toast({ title: t('common.success'), description: t('edition.saleDeleted', 'Devis/brouillon supprimé') });
+            setProformaToDelete(null);
+            loadProformas();
+        } else {
+            toast({ variant: "destructive", title: t('common.error'), description: error?.message || t('common.error') });
+        }
     };
 
     return (
@@ -142,6 +171,9 @@ export default function ProformaList() {
                                                 <Button size="sm" onClick={() => handleConvertToSale(p)}>
                                                     <ShoppingCart className="w-4 h-4 mr-1" /> {t('common.clear')}
                                                 </Button>
+                                                <Button size="sm" variant="ghost" className="hover:bg-destructive/10" onClick={() => setProformaToDelete(p)}>
+                                                    <Trash2 className="w-4 h-4 text-destructive" />
+                                                </Button>
                                             </div>
                                         </TableCell>
                                     </TableRow>
@@ -155,6 +187,22 @@ export default function ProformaList() {
             <div style={{ display: "none" }}>
                 {selectedInvoice && <InvoiceTemplate ref={printRef} data={selectedInvoice} />}
             </div>
+
+            <Dialog open={!!proformaToDelete} onOpenChange={(open) => !open && setProformaToDelete(null)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{t('edition.confirmDeleteSale', 'Supprimer ce devis/brouillon ?')}</DialogTitle>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setProformaToDelete(null)} disabled={isDeleting}>
+                            {t('common.cancel')}
+                        </Button>
+                        <Button variant="destructive" onClick={handleConfirmDelete} disabled={isDeleting}>
+                            {t('common.delete', 'Supprimer')}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </POSLayout>
     );
 }

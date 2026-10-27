@@ -1,4 +1,5 @@
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { OfflineStoreService } from '@/services/OfflineStoreService';
 import {
   Dialog,
   DialogContent,
@@ -26,9 +27,17 @@ interface InvoiceDetailsDialogProps {
 export function InvoiceDetailsDialog({ sale, onClose }: InvoiceDetailsDialogProps) {
   const { t } = useTranslation();
   const { formatCurrency, formatDate } = useFormatters();
+  const [store, setStore] = useState<any>(null);
 
   const thermalRef = useRef<HTMLDivElement>(null);
   const a4Ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!sale?.store_id) return;
+    OfflineStoreService.getStore(sale.store_id)
+      .then(({ data }) => data && setStore(data))
+      .catch((error) => console.error('[InvoiceDetailsDialog] Store fetch error:', error));
+  }, [sale?.store_id]);
 
   const printThermal = useReactToPrint({
     contentRef: thermalRef,
@@ -64,8 +73,8 @@ export function InvoiceDetailsDialog({ sale, onClose }: InvoiceDetailsDialogProp
     id: sale.id,
     invoice_number: sale.invoice_number || sale.id.slice(0, 8),
     order_ref: sale.order_ref || undefined,
-    storeName: 'Quincaillerie De La Paix',
-    storeAddress: 'Face à Djoliba, près du Trésor',
+    storeName: store?.name || t('index.title'),
+    storeAddress: store?.address || undefined,
     workerName: undefined,
     customerName: sale.customer_name || undefined,
     customerPhone: sale.customer_phone || undefined,
