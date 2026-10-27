@@ -515,7 +515,7 @@ export function FichiersFournisseursModule({ storeId }: FichiersFournisseursModu
                         <TableBody>
                           {transactions.map(t => (
                             <TableRow key={t.id} className="h-10 hover:bg-muted/30 transition-colors">
-                              <TableCell className="text-[10px] font-mono">{format(new Date(t.created_at), 'dd/MM/yy')}</TableCell>
+                              <TableCell className="text-[10px] font-mono">{(() => { try { return format(new Date(t.created_at), 'dd/MM/yy'); } catch { return '—'; } })()}</TableCell>
                               <TableCell className={cn(
                                 "text-[10px] text-right font-bold",
                                 t.type === 'purchase' ? "text-destructive" : "text-success"

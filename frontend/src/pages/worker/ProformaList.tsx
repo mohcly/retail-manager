@@ -130,7 +130,7 @@ export default function ProformaList() {
                             ) : (
                                 proformas.map((p) => (
                                     <TableRow key={p.id}>
-                                        <TableCell>{format(new Date(p.created_at), 'dd/MM/yyyy HH:mm')}</TableCell>
+                                        <TableCell>{(() => { try { return format(new Date(p.created_at), 'dd/MM/yyyy HH:mm'); } catch { return '—'; } })()}</TableCell>
                                         <TableCell className="font-medium">{p.customer_name || t('common.unknown')}</TableCell>
                                         <TableCell>{p.items?.length || 0} {t('pos.totals.items')}</TableCell>
                                         <TableCell className="text-right font-bold">{formatCurrency(p.total_price || 0)}</TableCell>

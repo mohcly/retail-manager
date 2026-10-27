@@ -376,7 +376,7 @@ export function ReglementsFournisseursModule({ storeId, isMasterView }: Reglemen
                   {filteredHistory.map(payment => (
                     <TableRow key={payment.id} className="h-11 border-b hover:bg-muted/5 transition-colors">
                       <TableCell className="text-[10px] font-mono text-muted-foreground">
-                        {format(new Date(payment.created_at), 'dd/MM HH:mm')}
+                        {(() => { try { return format(new Date(payment.created_at), 'dd/MM HH:mm'); } catch { return '—'; } })()}
                       </TableCell>
                       <TableCell className="text-xs font-black uppercase">{payment.supplier?.name}</TableCell>
                       <TableCell>

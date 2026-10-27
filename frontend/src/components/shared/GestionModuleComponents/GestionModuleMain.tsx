@@ -401,7 +401,7 @@ const items = (sale.items?.length ? sale.items : (sale.sale_items?.length ? sale
   const weeklyRevenue = useMemo(() => {
     if (analytics?.weekly_revenue) {
       return analytics.weekly_revenue.map(d => ({
-        date: format(new Date(d.date), 'EEE', { locale: getLocale() }),
+        date: (() => { try { return format(new Date(d.date), 'EEE', { locale: getLocale() }); } catch { return '—'; } })(),
         revenue: d.revenue
       }));
     }
@@ -588,7 +588,7 @@ const items = (sale.items?.length ? sale.items : sale.sale_items) || [];
                       {cashEntries.map(entry => (
                         <TableRow key={entry.id} className={cn("h-11 border-b hover:bg-muted/10 transition-colors", (entry as any).isCredit && "opacity-60 bg-muted/20 italic")}>
                           <TableCell className="text-xs font-mono text-muted-foreground">
-                            {format(new Date(entry.date), 'HH:mm')}
+                            {(() => { try { return format(new Date(entry.date), 'HH:mm'); } catch { return '—'; } })()}
                           </TableCell>
                           <TableCell className="text-xs font-bold uppercase truncate max-w-[250px]">
                             {entry.description}

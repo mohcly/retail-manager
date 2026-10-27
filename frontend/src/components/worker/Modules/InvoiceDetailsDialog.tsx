@@ -11,8 +11,6 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { SaleWithItems } from '@/services/OfflineDataService';
-import { format } from 'date-fns';
-import { fr, enUS } from 'date-fns/locale';
 import { useTranslation } from 'react-i18next';
 import { useFormatters } from '@/utils/formatting';
 import { Printer, FileText } from 'lucide-react';
@@ -26,8 +24,8 @@ interface InvoiceDetailsDialogProps {
 }
 
 export function InvoiceDetailsDialog({ sale, onClose }: InvoiceDetailsDialogProps) {
-  const { t, i18n } = useTranslation();
-  const { formatCurrency } = useFormatters();
+  const { t } = useTranslation();
+  const { formatCurrency, formatDate } = useFormatters();
 
   const thermalRef = useRef<HTMLDivElement>(null);
   const a4Ref = useRef<HTMLDivElement>(null);
@@ -43,11 +41,6 @@ export function InvoiceDetailsDialog({ sale, onClose }: InvoiceDetailsDialogProp
   });
 
   if (!sale) return null;
-
-  const getLocale = () => {
-    if (i18n.language === 'fr' || i18n.language === 'bm') return fr;
-    return enUS;
-  };
 
   // Build InvoiceData from the SaleWithItems record
   const saleItems = (sale.items?.length ? sale.items : sale.sale_items) || [];
@@ -92,7 +85,7 @@ export function InvoiceDetailsDialog({ sale, onClose }: InvoiceDetailsDialogProp
             <div className="flex items-center gap-2">
               <span>{t('sales.invoice_number')}: {sale.invoice_number || sale.id.slice(0, 8)}</span>
               <span className="text-sm font-normal text-muted-foreground">
-                - {format(new Date(sale.created_at), 'PPP p', { locale: getLocale() })}
+                - {formatDate(sale.created_at, 'PPP p')}
               </span>
             </div>
             {sale.order_ref && (

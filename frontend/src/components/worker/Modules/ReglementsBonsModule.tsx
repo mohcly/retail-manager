@@ -286,7 +286,7 @@ export function ReglementsBonsModule({ storeId }: ReglementsBonsModuleProps) {
                   className="grid grid-cols-[100px_1fr_120px_150px_120px_100px_80px_100px] text-white text-sm border-b border-white/20 dark:border-[#F5C518]/10 hover:bg-white/10 dark:hover:bg-[#F5C518]/5"
                 >
                   <div className="px-2 py-2 border-r border-white/20 dark:border-[#F5C518]/10">
-                    {format(new Date(sale.created_at), 'dd/MM/yyyy', { locale: getLocale() })}
+                    {(() => { try { return format(new Date(sale.created_at), 'dd/MM/yyyy', { locale: getLocale() }); } catch { return '—'; } })()}
                   </div>
                   <div className="px-2 py-2 border-r border-white/20 dark:border-[#F5C518]/10 truncate">
                     {sale.customer_name || t('common.unknown')}
