@@ -41,20 +41,6 @@ export const REGISTERED_TENANTS: Record<string, TenantConfig> = {
       'niamana@gmail.com',
       'holdingpro@gmail.com'
     ]
-  },
-  restaurants: {
-    id: 'restaurants',
-    name: 'RESTAURANTS MPM FOOD',
-    shortName: 'MPM FOOD',
-    supabaseUrl: 'https://kvxqutffphaxlhjyyjsw.supabase.co',
-    supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2eHF1dGZmcGhheGxoanl5anN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5Nzg3MjksImV4cCI6MjA5NjU1NDcyOX0.Ag6hB8LIXTrYHTcmSgDMoItU13Ql59JRXQvrwpI5v7c',
-    accentColor: '#10b981',
-    logoUrl: '/logo.png',
-    knownDomains: ['mpmfood.com', 'mpm-food.com'],
-    knownEmails: [
-      'mpmfood@gmail.com',
-      'restaurant@gmail.com'
-    ]
   }
 };
 

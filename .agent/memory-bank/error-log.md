@@ -476,3 +476,29 @@
   - Deployed to Vercel production: `https://djati-stihl.vercel.app` (HTTP 200 OK).
 - Status: FIXED
 - Tags: auth, direct-cloud-signin, session-hydration, vercel
+
+### [2026-10-28] Fix cloud license wall bypass, TermsOfService modal block, and eliminate dead restaurant host
+- Symptom:
+  - Users could not log in on `https://djati-stihl.vercel.app/#/auth`.
+  - App displayed hardware activation modal ("Activation du Menus") or TermsOfService blocking dialog, preventing access to login form.
+  - Cascade login threw `TypeError: Failed to fetch (ERR_NAME_NOT_RESOLVED)` due to unresolvable restaurant backend host.
+- Files involved:
+  - `frontend/src/contexts/LicenseContext.tsx`
+  - `frontend/src/components/license/TermsOfServiceGate.tsx`
+  - `frontend/src/lib/tenants.ts`
+  - `frontend/src/lib/supabase.ts`
+- Root cause:
+  - `LicenseContext` and `TermsOfServiceGate` were missing the `!dc.isLocalFirst` bypass for pure cloud / web environments. On desktop Tauri, activation locks the till; on Vercel, it blocked the whole UI.
+  - `REGISTERED_TENANTS` contained an obsolete restaurant tenant with a non-existent Supabase hostname (`kvxqutffphaxlhjyyjsw.supabase.co`).
+  - `cascadeSignInWithPassword` unnecessarily cascaded across unrelated backends even when the tenant was already predicted from the email.
+- Fix applied:
+  1. Added `if (!dc.isLocalFirst)` bypass in `LicenseContext` and `TermsOfServiceGate` so cloud users land directly on the app.
+  2. Pruned `restaurants` from `REGISTERED_TENANTS`, retaining only active retail instances (`stihl` and `holdingpro`).
+  3. Optimized `cascadeSignInWithPassword` to directly authenticate against the predicted tenant without cascading to other instances.
+- Verification:
+  - Executed automated browser test with Playwright using headless Chrome on live production URL.
+  - Confirmed `imsnsylla@gmail.com` connects directly to STIHL Supabase (`fpvrbxmbrotowdlyebqv.supabase.co`).
+  - Confirmed `papirotech26@gmail.com` connects directly to Niamana Dubaï Supabase (`onsqvduklnwffugsiybs.supabase.co`).
+  - Zero unhandled exceptions or modal blockers.
+- Status: FIXED
+- Tags: playwright, license-bypass, terms-of-service, multi-tenant-auth, vercel

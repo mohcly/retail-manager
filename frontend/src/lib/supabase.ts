@@ -87,18 +87,14 @@ async function cascadeSignInWithPassword(credentials: { email: string; password:
 
   if (predictedId && REGISTERED_TENANTS[predictedId]) {
     candidates.push(predictedId);
-  }
-
-  // Add currently active tenant if not already first candidate
-  if (!candidates.includes(activeTenantId)) {
-    candidates.push(activeTenantId);
-  }
-
-  // Add remaining tenants, bounded by MAX_CASCADE_CANDIDATES
-  for (const id of Object.keys(REGISTERED_TENANTS)) {
-    if (candidates.length >= MAX_CASCADE_CANDIDATES) break;
-    if (!candidates.includes(id)) {
-      candidates.push(id);
+  } else {
+    if (!candidates.includes(activeTenantId)) {
+      candidates.push(activeTenantId);
+    }
+    for (const id of Object.keys(REGISTERED_TENANTS)) {
+      if (!candidates.includes(id)) {
+        candidates.push(id);
+      }
     }
   }
 

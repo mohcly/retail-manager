@@ -3,6 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { LicenseBanner } from '@/components/shared/LicenseBanner';
 import { ActivationGate } from '@/components/license/ActivationGate';
 import { LicenseService } from '@/services/LicenseService';
+import { getDataClient } from '@/lib/dataClient';
 
 export interface LicenseStore {
   store_id: string;
@@ -37,7 +38,21 @@ export function LicenseProvider({ children }: { children: React.ReactNode }) {
 
   const refreshStatus = async () => {
     try {
-      // Fallback for web dev
+      const dc = getDataClient();
+      // Completely bypass the activation gate in cloud mode (Vercel)
+      if (!dc.isLocalFirst) {
+        setLicense({
+          status: 'active',
+          days_remaining: 365,
+          stores: [],
+          device_hash: 'cloud',
+        });
+        setShowGate(false);
+        setLoading(false);
+        return;
+      }
+
+      // Fallback for web dev in local-first mode
       if (!(window as any).__TAURI_INTERNALS__) {
         const isActivated = localStorage.getItem('rm_activated') === 'true';
         setLicense({
