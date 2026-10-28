@@ -19,14 +19,20 @@ import {
   HelpCircle,
   Cloud,
   KeyRound,
-  FlaskConical
+  Wifi,
+  WifiOff,
+  Clock,
+  ShieldAlert,
+  CloudOff,
+  AlertTriangle
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
-import { useStockAlerts } from '@/hooks/useStockAlerts';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useState, useEffect, useRef } from 'react';
+import { cn } from '@/lib/utils';
+import { LocalBridgeSyncService, type NetworkHealthStatus } from '@/services/LocalBridgeSyncService';
 import { useNavigate } from 'react-router-dom';
 import { NotificationCenter } from '@/components/shared/NotificationCenter';
 import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher';
@@ -44,13 +50,14 @@ import { MobileWorkerLayout } from '@/components/mobile/MobileWorkerLayout';
 interface SidebarContentProps {
   mobile?: boolean;
   user: any;
-  navItems: Array<{
-    title: string;
-    url: string;
-    icon: any;
+  navGroups: Array<{
+    label: string;
+    items: Array<{
+      title: string;
+      url: string;
+      icon: any;
+    }>;
   }>;
-  lowStockCount?: number;
-  expiringCount?: number;
   onNavigate?: () => void;
   onOpenPasswordDialog: () => void;
   onSignOut: () => void;
@@ -60,17 +67,13 @@ interface SidebarContentProps {
 function SidebarContent({
   mobile = false,
   user,
-  navItems,
-  lowStockCount = 0,
-  expiringCount = 0,
+  navGroups,
   onNavigate,
   onOpenPasswordDialog,
   onSignOut,
   t,
 }: SidebarContentProps) {
   const navRef = useRef<HTMLElement>(null);
-  // Preserve scroll position across route changes
-  const location = useLocation();
 
   useEffect(() => {
     if (!mobile && navRef.current) {
@@ -79,7 +82,7 @@ function SidebarContent({
         navRef.current.scrollTop = Number(saved);
       }
     }
-  }, [mobile, location.pathname]);
+  }, [mobile]);
 
   const handleScroll = (e: React.UIEvent<HTMLElement>) => {
     if (!mobile) {
@@ -104,25 +107,29 @@ function SidebarContent({
       <nav
         ref={navRef}
         onScroll={handleScroll}
-        className="flex-1 space-y-1 p-4 overflow-y-auto"
+        className="flex-1 space-y-4 p-4 overflow-y-auto"
       >
-        {navItems.map((item) => (
-          <NavLink
-            key={item.url}
-            to={item.url}
-            end
-            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-            activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-            onClick={onNavigate}
-          >
-            <item.icon className="h-5 w-5" />
-            <span className="flex-1">{item.title}</span>
-            {item.url === '/master/ingredients' && (lowStockCount + expiringCount) > 0 && (
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[9px] font-black text-white shrink-0">
-                {lowStockCount + expiringCount}
-              </span>
-            )}
-          </NavLink>
+        {navGroups.map((group) => (
+          <div key={group.label}>
+            <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/50">
+              {group.label}
+            </p>
+            <div className="space-y-1">
+              {group.items.map((item) => (
+                <NavLink
+                  key={item.url}
+                  to={item.url}
+                  end
+                  className="flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                  activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                  onClick={onNavigate}
+                >
+                  <item.icon className="h-5 w-5" />
+                  <span>{item.title}</span>
+                </NavLink>
+              ))}
+            </div>
+          </div>
         ))}
       </nav>
 
@@ -165,16 +172,34 @@ export function MasterLayout() {
   const location = useLocation();
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
-  const { lowStockCount, expiringCount } = useStockAlerts();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const { isDesktop } = useDevice();
 
-  if (!isDesktop) {
-    return <MobileWorkerLayout />;
-  }
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [networkHealth, setNetworkHealth] = useState<NetworkHealthStatus>('ONLINE');
+  const [networkMessage, setNetworkMessage] = useState('Connected to cloud');
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    const unsubscribeHealth = LocalBridgeSyncService.onHealthChange((status, message) => {
+      setNetworkHealth(status);
+      setNetworkMessage(message);
+    });
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      unsubscribeHealth();
+    };
+  }, []);
 
   const handleSignOut = async () => {
     await signOut();
@@ -192,22 +217,10 @@ export function MasterLayout() {
     }
     setIsChangingPassword(true);
     try {
-      const { getDataClient } = await import('@/lib/dataClient');
       const { OfflineAuthService } = await import('@/services/OfflineAuthService');
-      const dc = getDataClient();
-      const headers = await OfflineAuthService.getAuthHeaders();
-      if (!headers) throw new Error('Session expired');
-      const res = await fetch(`${dc.localBridgeBaseUrl}/rest/v1/auth/update-password`, {
-        method: 'POST',
-        headers: { ...headers, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          currentPassword: passwordForm.currentPassword,
-          newPassword: passwordForm.newPassword 
-        }),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body?.message || body?.error || 'Password update failed');
+      const result = await OfflineAuthService.changePassword(passwordForm.currentPassword, passwordForm.newPassword);
+      if (!result.success) {
+        throw new Error(result.error || 'Password update failed');
       }
       toast.success('Password updated successfully');
       setIsPasswordDialogOpen(false);
@@ -219,97 +232,56 @@ export function MasterLayout() {
     }
   };
 
-  const navItems = [
+  const navGroups = [
     {
-      title: t('sidebar.dashboard'),
-      url: '/master/dashboard',
-      icon: LayoutDashboard,
+      label: t('sidebar.groupOverview'),
+      items: [
+        { title: t('sidebar.dashboard'), url: '/master/dashboard', icon: LayoutDashboard },
+        { title: t('sidebar.analytics'), url: '/master/analytics', icon: BarChart3 },
+      ],
     },
     {
-      title: t('sidebar.stores'),
-      url: '/master/stores',
-      icon: StoreIcon,
+      label: t('sidebar.groupOperations'),
+      items: [
+        { title: t('sidebar.stores'), url: '/master/stores', icon: StoreIcon },
+        { title: t('sidebar.inventory'), url: '/master/inventory', icon: Package },
+        { title: t('sidebar.sales'), url: '/master/sales', icon: ShoppingCart },
+        { title: t('sidebar.purchases'), url: '/master/purchases', icon: ShoppingBag },
+        { title: t('menu.files.title') || 'Fichiers', url: '/master/files', icon: ScrollText },
+      ],
     },
     {
-      title: 'Menu',
-      url: '/master/files',
-      icon: ScrollText,
+      label: t('sidebar.groupLogistics'),
+      items: [
+        { title: t('sidebar.deliverers'), url: '/master/deliverers', icon: Truck },
+        { title: t('sidebar.deliveries'), url: '/master/deliveries', icon: TruckIcon },
+      ],
     },
     {
-      title: 'Inventaire',
-      url: '/master/inventory',
-      icon: Package,
+      label: t('sidebar.groupTeam'),
+      items: [
+        { title: t('sidebar.team'), url: '/master/team', icon: UsersRound },
+        { title: t('sidebar.invitations'), url: '/master/invitations', icon: Mail },
+      ],
     },
     {
-      title: 'Ingrédients',
-      url: '/master/ingredients',
-      icon: FlaskConical,
-    },
-    {
-      title: t('sidebar.sales'),
-      url: '/master/sales',
-      icon: ShoppingCart,
-    },
-    {
-      title: t('sidebar.purchases'),
-      url: '/master/purchases',
-      icon: ShoppingBag,
-    },
-    {
-      title: t('sidebar.deliverers'),
-      url: '/master/deliverers',
-      icon: Truck,
-    },
-    {
-      title: t('sidebar.deliveries'),
-      url: '/master/deliveries',
-      icon: TruckIcon,
-    },
-    {
-      title: t('sidebar.analytics'),
-      url: '/master/analytics',
-      icon: BarChart3,
-    },
-    {
-      title: t('menu.files.title') || 'Fichiers',
-      url: '/master/files',
-      icon: ScrollText, 
-    },
-    {
-      title: t('sidebar.invitations'),
-      url: '/master/invitations',
-      icon: Mail,
-    },
-    {
-      title: t('sidebar.team'),
-      url: '/master/team',
-      icon: UsersRound,
-    },
-    {
-      title: t('sidebar.systemLogs'),
-      url: '/master/audit-logs',
-      icon: ScrollText,
-    },
-    {
-      title: 'Cloud Sync',
-      url: '/master/cloud-sync',
-      icon: Cloud,
-    },
-    {
-      title: t('common.help'),
-      url: '/master/help',
-      icon: HelpCircle,
+      label: t('sidebar.groupSystem'),
+      items: [
+        { title: t('sidebar.systemLogs'), url: '/master/audit-logs', icon: ScrollText },
+        { title: 'Cloud Sync', url: '/master/cloud-sync', icon: Cloud },
+        { title: t('common.help'), url: '/master/help', icon: HelpCircle },
+      ],
     },
   ];
 
-  return (
+  return !isDesktop ? (
+    <MobileWorkerLayout />
+  ) : (
     <div className="flex h-full w-full">
       <aside className="hidden lg:flex lg:w-64 lg:flex-col border-r border-sidebar-border bg-sidebar">
         <SidebarContent
           user={user}
-          navItems={navItems}
-          lowStockCount={lowStockCount}
-          expiringCount={expiringCount}
+          navGroups={navGroups}
           onOpenPasswordDialog={() => setIsPasswordDialogOpen(true)}
           onSignOut={handleSignOut}
           t={t}
@@ -330,9 +302,7 @@ export function MasterLayout() {
           <SidebarContent
             mobile
             user={user}
-            navItems={navItems}
-            lowStockCount={lowStockCount}
-            expiringCount={expiringCount}
+            navGroups={navGroups}
             onNavigate={() => setMobileMenuOpen(false)}
             onOpenPasswordDialog={() => setIsPasswordDialogOpen(true)}
             onSignOut={handleSignOut}
@@ -344,6 +314,33 @@ export function MasterLayout() {
       <main className="flex-1 overflow-y-auto">
         <div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
           <div className="flex items-center justify-end gap-4 px-6 py-3">
+            <div 
+              className={cn(
+                'flex items-center gap-1 px-2 py-1 rounded-md text-xs cursor-help transition-colors mr-auto',
+                isOnline && networkHealth === 'ONLINE' 
+                  ? 'bg-success/20 text-success-foreground' 
+                  : networkHealth === 'CLOCK_SKEW' || networkHealth === 'FIREWALL_BLOCKED' || networkHealth === 'ISP_BLOCKED'
+                    ? 'bg-danger/20 text-danger-foreground font-bold border border-danger/50 shadow-[0_0_8px_rgba(239,68,68,0.5)]'
+                    : 'bg-warning/20 text-warning-foreground'
+              )}
+              title={!isOnline ? "No WiFi connection detected" : networkMessage}
+            >
+              {!isOnline ? (
+                <><WifiOff className="h-3.5 w-3.5" /> <span className="font-medium hidden sm:inline">{t('common.offline')}</span></>
+              ) : networkHealth === 'ONLINE' ? (
+                <><Wifi className="h-3.5 w-3.5" /> <span className="font-medium hidden sm:inline">{t('common.online')}</span></>
+              ) : networkHealth === 'CLOCK_SKEW' ? (
+                <><Clock className="h-3.5 w-3.5" /> <span className="font-bold hidden sm:inline">Check Clock</span></>
+              ) : networkHealth === 'FIREWALL_BLOCKED' ? (
+                <><ShieldAlert className="h-3.5 w-3.5" /> <span className="font-bold hidden sm:inline">Firewall Blocked</span></>
+              ) : networkHealth === 'ISP_BLOCKED' ? (
+                <><CloudOff className="h-3.5 w-3.5" /> <span className="font-bold hidden sm:inline">ISP Blocked</span></>
+              ) : networkHealth === 'RATE_LIMITED' ? (
+                <><AlertTriangle className="h-3.5 w-3.5" /> <span className="font-bold hidden sm:inline">Rate Limited</span></>
+              ) : (
+                <><WifiOff className="h-3.5 w-3.5" /> <span className="font-medium hidden sm:inline">Cloud Unreachable</span></>
+              )}
+            </div>
             <StoreMultiSelector />
             <HardwareStatus />
             <CurrencySwitcher />

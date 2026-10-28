@@ -4,8 +4,12 @@ import { useToast } from '@/hooks/use-toast';
 import { useFormatters } from '@/utils/formatting';
 import { OfflineSalesService } from '@/services/OfflineSalesService';
 import { OfflineAuthService } from '@/services/OfflineAuthService';
-import { ArrowLeft, Search, FileText, Calendar, CreditCard, CheckCircle2, AlertCircle, ShoppingBag, Eye } from 'lucide-react';
+import { ArrowLeft, Search, FileText, Calendar as CalendarIcon, CreditCard, CheckCircle2, AlertCircle, ShoppingBag, Eye } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Calendar } from '@/components/ui/calendar';
+import { DateRange } from 'react-day-picker';
+import { subDays, startOfDay, endOfDay, isSameDay, format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 interface MobileSuiviVentesJourProps {
   onBack: () => void;
@@ -22,30 +26,62 @@ export function MobileSuiviVentesJour({ onBack }: MobileSuiviVentesJourProps) {
   const [storeId, setStoreId] = useState('');
   const [selectedSale, setSelectedSale] = useState<any | null>(null);
 
+  const today = useMemo(() => new Date(), []);
+  const [dateRange, setDateRange] = useState<DateRange>({ from: today, to: today });
+  const [draftRange, setDraftRange] = useState<DateRange | undefined>(dateRange);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
   useEffect(() => {
     OfflineAuthService.getOfflineSession().then(session => {
-      if (session?.user?.user_metadata?.store_id) {
-        setStoreId(session.user.user_metadata.store_id);
-        loadDailySales(session.user.user_metadata.store_id);
+      const sid = session?.roles?.find(r => r.store_id)?.store_id || session?.user?.user_metadata?.store_id;
+      if (sid) {
+        setStoreId(sid);
+        loadSales(sid, dateRange);
       }
     });
   }, []);
 
-  const loadDailySales = async (sid: string) => {
+  const loadSales = async (sid: string, range: DateRange) => {
     setLoading(true);
     try {
-      const allSales = await OfflineSalesService.getSales(sid);
-      // Filter for today's sales
-      const todayStr = new Date().toISOString().split('T')[0];
-      const todaySales = allSales.filter(s => s.created_at?.startsWith(todayStr));
-      setSales(todaySales.length > 0 ? todaySales : allSales.slice(0, 50)); // Fallback to recent 50 if none today
+      const from = range.from ? startOfDay(range.from) : undefined;
+      const to = range.to ? endOfDay(range.to) : (range.from ? endOfDay(range.from) : undefined);
+      const results = await OfflineSalesService.getSales(sid, from, to);
+      setSales(results);
     } catch (err) {
       console.error(err);
-      toast({ title: t('common.error'), description: 'Erreur lors du chargement des ventes journalières', variant: 'destructive' });
+      toast({ title: t('common.error'), description: 'Erreur lors du chargement des ventes', variant: 'destructive' });
     } finally {
       setLoading(false);
     }
   };
+
+  const applyRange = (range: DateRange) => {
+    setDateRange(range);
+    setDraftRange(range);
+    setShowDatePicker(false);
+    if (storeId) loadSales(storeId, range);
+  };
+
+  const quickRanges: { label: string; range: DateRange }[] = [
+    { label: "Aujourd'hui", range: { from: today, to: today } },
+    { label: 'Hier', range: { from: subDays(today, 1), to: subDays(today, 1) } },
+    { label: '7 derniers jours', range: { from: subDays(today, 6), to: today } },
+    { label: '30 derniers jours', range: { from: subDays(today, 29), to: today } },
+  ];
+
+  const rangeLabel = useMemo(() => {
+    if (!dateRange.from) return 'Sélectionner une date';
+    const matchingQuick = quickRanges.find(
+      q => q.range.from && dateRange.from && isSameDay(q.range.from, dateRange.from) &&
+           q.range.to && dateRange.to && isSameDay(q.range.to, dateRange.to)
+    );
+    if (matchingQuick) return matchingQuick.label;
+    if (dateRange.to && !isSameDay(dateRange.from, dateRange.to)) {
+      return `${format(dateRange.from, 'dd/MM/yy')} - ${format(dateRange.to, 'dd/MM/yy')}`;
+    }
+    return format(dateRange.from, 'dd MMMM yyyy', { locale: fr });
+  }, [dateRange]);
 
   const filteredSales = useMemo(() => {
     return sales.filter(s => 
@@ -70,8 +106,20 @@ export function MobileSuiviVentesJour({ onBack }: MobileSuiviVentesJourProps) {
           <div className="w-8 h-8 rounded bg-rs-surface-tint/20 flex items-center justify-center">
             <FileText className="w-4 h-4 text-rs-surface-tint" />
           </div>
-          <h1 className="text-lg font-bold text-white uppercase tracking-wider">Commandes Journalières</h1>
+          <h1 className="text-lg font-bold text-white uppercase tracking-wider">Commandes</h1>
         </div>
+
+        {/* Date range selector */}
+        <button
+          onClick={() => { setDraftRange(dateRange); setShowDatePicker(true); }}
+          className="w-full flex items-center justify-between gap-2 h-11 bg-rs-surface-container border border-rs-surface-container-highest rounded-xl px-3.5 mb-3 active:scale-[0.98] transition-transform"
+        >
+          <span className="flex items-center gap-2 text-sm font-semibold text-white">
+            <CalendarIcon className="w-4 h-4 text-rs-surface-tint" />
+            {rangeLabel}
+          </span>
+          <span className="material-symbols-outlined text-rs-on-surface-variant/60 text-[20px]">expand_more</span>
+        </button>
 
         {/* Stats bar */}
         <div className="grid grid-cols-2 gap-2 bg-[#1A1A1A] p-3 rounded-xl border border-rs-surface-container-highest/60 mb-3">
@@ -108,7 +156,7 @@ export function MobileSuiviVentesJour({ onBack }: MobileSuiviVentesJourProps) {
         ) : filteredSales.length === 0 ? (
           <div className="text-center py-20 text-rs-on-surface-variant">
             <FileText className="h-12 w-12 mx-auto text-rs-on-surface-variant opacity-40 mb-3" />
-            <p>Aucune vente enregistrée aujourd'hui.</p>
+            <p>Aucune vente enregistrée pour cette période.</p>
           </div>
         ) : (
           <div className="flex flex-col gap-3">
@@ -127,7 +175,7 @@ export function MobileSuiviVentesJour({ onBack }: MobileSuiviVentesJourProps) {
                       </span>
                     </div>
                     <p className="text-xs text-rs-on-surface-variant mt-1.5 flex items-center gap-1">
-                      <Calendar className="w-3.5 h-3.5" />
+                      <CalendarIcon className="w-3.5 h-3.5" />
                       {formatDate(sale.created_at, 'Pp')}
                     </p>
                   </div>
@@ -199,6 +247,48 @@ export function MobileSuiviVentesJour({ onBack }: MobileSuiviVentesJourProps) {
               </div>
             </div>
           )}
+        </SheetContent>
+      </Sheet>
+
+      {/* Date Range Picker Sheet */}
+      <Sheet open={showDatePicker} onOpenChange={setShowDatePicker}>
+        <SheetContent side="bottom" className="max-h-[90dvh] overflow-y-auto bg-[#141414] text-white border-t border-rs-surface-container-highest rounded-t-2xl p-6 dark">
+          <SheetHeader className="text-left mb-4">
+            <SheetTitle className="text-xl font-bold text-white">Choisir une période</SheetTitle>
+          </SheetHeader>
+
+          {/* Quick-select chips */}
+          <div className="grid grid-cols-2 gap-2 mb-4">
+            {quickRanges.map(q => (
+              <button
+                key={q.label}
+                onClick={() => applyRange(q.range)}
+                className="h-10 rounded-xl border border-rs-surface-container-highest bg-rs-surface-container text-sm font-semibold text-white active:scale-95 transition-transform"
+              >
+                {q.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Custom range calendar */}
+          <div className="flex justify-center bg-rs-surface-container-low rounded-xl border border-rs-surface-container-highest/60 mb-4">
+            <Calendar
+              mode="range"
+              numberOfMonths={1}
+              selected={draftRange}
+              onSelect={setDraftRange}
+              locale={fr}
+              className="text-white"
+            />
+          </div>
+
+          <button
+            onClick={() => draftRange?.from && applyRange({ from: draftRange.from, to: draftRange.to || draftRange.from })}
+            disabled={!draftRange?.from}
+            className="w-full h-12 rounded-xl bg-rs-surface-tint text-rs-on-primary font-bold disabled:opacity-40 active:scale-[0.98] transition-transform"
+          >
+            Appliquer
+          </button>
         </SheetContent>
       </Sheet>
     </div>

@@ -3,7 +3,7 @@
  */
 
 const DB_NAME = 'retail_manager_offline';
-const DB_VERSION = 9; // Upgraded for cash_closings
+const DB_VERSION = 10; // Upgraded for cashier_credits + stock_adjustments
 
 export interface LocalCashClosing {
   id: string;
@@ -40,6 +40,7 @@ export interface LocalSupplier {
   email?: string;
   address?: string;
   balance: number;
+  default_purchase_type?: string;
   created_at: string;
   updated_at: string;
   synced: boolean;
@@ -62,7 +63,7 @@ export interface LocalRole {
   user_id: string;
   role: 'master' | 'worker' | 'deliverer';
   store_id?: string;
-  sub_role?: 'cook' | 'cashier' | 'waiter' | null;
+  sub_role?: string;
   created_at: string;
   synced: boolean;
 }
@@ -83,6 +84,7 @@ export interface LocalSale {
   payment_status?: string;
   created_at: string;
   synced: boolean;
+  deleted_at?: string;
 }
 
 export interface LocalInventory {
@@ -96,6 +98,9 @@ export interface LocalInventory {
   wholesale_price?: number;
   wholesale_price_ht?: number;
   wholesale_price_ttc?: number;
+  selling_price_2?: number;
+  selling_price_3?: number;
+  selling_price_4?: number;
   cost?: number;
   category?: string;
   aisle?: string;
@@ -105,15 +110,32 @@ export interface LocalInventory {
   expiry_date?: string;
   reorder_quantity?: number;
   low_stock_threshold?: number;
-  // Restaurant-specific fields
-  prep_time_minutes?: number;
-  is_available?: boolean;
-  allergens?: string[] | string;
-  course_type?: string;
-  modifiers?: any[] | string;
-  item_type?: 'product' | 'dish' | 'pack' | null;
-  pack_items?: string | string[] | null;
   updated_at: string;
+  synced: boolean;
+}
+
+export interface LocalCashierCredit {
+  id: string;
+  store_id: string;
+  worker_id?: string;
+  client_name: string;
+  amount: number;
+  status: string;
+  notes?: string | null;
+  created_at: string;
+  updated_at: string;
+  synced: boolean;
+}
+
+export interface LocalStockAdjustment {
+  id: string;
+  store_id: string;
+  worker_id?: string;
+  product_id: string;
+  adjustment_type: string;
+  quantity_adjusted: number;
+  reason?: string | null;
+  created_at: string;
   synced: boolean;
 }
 
@@ -132,7 +154,7 @@ export interface LocalPurchaseOrder {
 
 export interface SyncQueueItem {
   id: string;
-  type: 'user_create' | 'user_update' | 'user_delete' | 'role_create' | 'role_delete' | 'sale' | 'sale_delete' | 'inventory_update' | 'inventory_delete' | 'delivery_update' | 'store_create' | 'store_update' | 'pending_mutation' | 'supplier_create' | 'supplier_update' | 'supplier_payment' | 'purchase_create' | 'purchase_update';
+  type: 'user_create' | 'user_update' | 'user_delete' | 'role_create' | 'role_delete' | 'sale' | 'sale_delete' | 'inventory_update' | 'inventory_delete' | 'delivery_update' | 'store_create' | 'store_update' | 'store_delete' | 'pending_mutation' | 'supplier_create' | 'supplier_update' | 'supplier_payment' | 'purchase_create' | 'purchase_update' | 'password_change';
   data: any;
   timestamp: number;
   retries: number;
@@ -163,12 +185,27 @@ class LocalDatabaseService {
     this.initPromise = new Promise((resolve, reject) => {
       const request = indexedDB.open(DB_NAME, DB_VERSION);
 
+      const timer = setTimeout(() => {
+        if (!this.db) {
+          console.warn('LocalDatabase: IndexedDB open timed out after 3000ms, continuing gracefully');
+          resolve();
+        }
+      }, 3000);
+
       request.onerror = () => {
+        clearTimeout(timer);
         console.error('LocalDatabase: Failed to open', request.error);
         reject(request.error);
       };
 
+      request.onblocked = () => {
+        console.warn('LocalDatabase: Database open blocked by another tab');
+        clearTimeout(timer);
+        resolve();
+      };
+
       request.onsuccess = () => {
+        clearTimeout(timer);
         this.db = request.result;
         console.log('LocalDatabase: Opened successfully (V' + DB_VERSION + ')');
         resolve();
@@ -189,6 +226,8 @@ class LocalDatabaseService {
             { name: 'purchase_orders', indexes: ['store_id', 'status', 'synced'] },
             { name: 'purchase_items', indexes: ['order_id'] },
             { name: 'cash_closings', indexes: ['store_id', 'synced'] },
+            { name: 'cashier_credits', indexes: ['store_id', 'synced'] },
+            { name: 'stock_adjustments', indexes: ['store_id', 'synced'] },
             { name: 'sync_queue', indexes: ['type', 'timestamp'] },
             { name: 'system_settings', indexes: [] }
         ];
@@ -234,12 +273,93 @@ class LocalDatabaseService {
     });
   }
 
+  async markCashClosingSynced(id: string): Promise<void> {
+    const db = await this.ensureDb();
+    const tx = db.transaction('cash_closings', 'readwrite');
+    const store = tx.objectStore('cash_closings');
+    const req = store.get(id);
+    req.onsuccess = () => {
+        if (req.result) {
+            req.result.synced = true;
+            store.put(req.result);
+        }
+    };
+  }
+
+  // ==================== CASHIER CREDITS ====================
+
+  async saveCashierCredit(credit: LocalCashierCredit): Promise<void> {
+    const db = await this.ensureDb();
+    const tx = db.transaction('cashier_credits', 'readwrite');
+    tx.objectStore('cashier_credits').put(credit);
+  }
+
+  async getCashierCredits(storeId?: string): Promise<LocalCashierCredit[]> {
+    const db = await this.ensureDb();
+    return new Promise(r => {
+      const store = db.transaction('cashier_credits', 'readonly').objectStore('cashier_credits');
+      const req = storeId ? store.index('store_id').getAll(storeId) : store.getAll();
+      req.onsuccess = () => r(req.result || []);
+      req.onerror = () => r([]);
+    });
+  }
+
+  async markCashierCreditSynced(id: string): Promise<void> {
+    const db = await this.ensureDb();
+    const tx = db.transaction('cashier_credits', 'readwrite');
+    const store = tx.objectStore('cashier_credits');
+    const req = store.get(id);
+    req.onsuccess = () => {
+        if (req.result) {
+            req.result.synced = true;
+            store.put(req.result);
+        }
+    };
+  }
+
+  // ==================== STOCK ADJUSTMENTS ====================
+
+  async saveStockAdjustment(adjustment: LocalStockAdjustment): Promise<void> {
+    const db = await this.ensureDb();
+    const tx = db.transaction('stock_adjustments', 'readwrite');
+    tx.objectStore('stock_adjustments').put(adjustment);
+  }
+
+  async getStockAdjustments(storeId?: string): Promise<LocalStockAdjustment[]> {
+    const db = await this.ensureDb();
+    return new Promise(r => {
+      const store = db.transaction('stock_adjustments', 'readonly').objectStore('stock_adjustments');
+      const req = storeId ? store.index('store_id').getAll(storeId) : store.getAll();
+      req.onsuccess = () => r(req.result || []);
+      req.onerror = () => r([]);
+    });
+  }
+
+  async markStockAdjustmentSynced(id: string): Promise<void> {
+    const db = await this.ensureDb();
+    const tx = db.transaction('stock_adjustments', 'readwrite');
+    const store = tx.objectStore('stock_adjustments');
+    const req = store.get(id);
+    req.onsuccess = () => {
+        if (req.result) {
+            req.result.synced = true;
+            store.put(req.result);
+        }
+    };
+  }
+
   // ==================== PURCHASE ORDERS ====================
 
   async savePurchaseOrder(order: LocalPurchaseOrder): Promise<void> {
     const db = await this.ensureDb();
     const tx = db.transaction('purchase_orders', 'readwrite');
     tx.objectStore('purchase_orders').put(order);
+  }
+
+  async savePurchaseItem(item: any): Promise<void> {
+    const db = await this.ensureDb();
+    const tx = db.transaction('purchase_items', 'readwrite');
+    tx.objectStore('purchase_items').put(item);
   }
 
   async deletePurchaseOrder(id: string): Promise<void> {
@@ -327,6 +447,46 @@ class LocalDatabaseService {
     db.transaction('users', 'readwrite').objectStore('users').put(user);
   }
 
+  async getStore(id: string): Promise<LocalStore | undefined> {
+    const db = await this.ensureDb();
+    return new Promise((resolve, reject) => {
+      const request = db.transaction('stores', 'readonly').objectStore('stores').get(id);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async saveStore(store: LocalStore): Promise<void> {
+    const db = await this.ensureDb();
+    return new Promise((resolve, reject) => {
+      const request = db.transaction('stores', 'readwrite').objectStore('stores').put(store);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async deleteStore(id: string): Promise<void> {
+    const db = await this.ensureDb();
+    return new Promise((resolve, reject) => {
+      const request = db.transaction('stores', 'readwrite').objectStore('stores').delete(id);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async markStoreSynced(id: string): Promise<void> {
+    const db = await this.ensureDb();
+    const tx = db.transaction('stores', 'readwrite');
+    const store = tx.objectStore('stores');
+    const req = store.get(id);
+    req.onsuccess = () => {
+        if (req.result) {
+            req.result.synced = true;
+            store.put(req.result);
+        }
+    };
+  }
+
   async getUser(id: string): Promise<LocalUser | null> {
     const db = await this.ensureDb();
     return new Promise(r => {
@@ -337,13 +497,17 @@ class LocalDatabaseService {
 
   async getUserByEmail(email: string): Promise<LocalUser | null> {
     const db = await this.ensureDb();
-    return new Promise(r => {
-      const tx = db.transaction('users', 'readonly');
-      const store = tx.objectStore('users');
-      const index = store.index('email');
-      const req = index.get(email);
-      req.onsuccess = () => r(req.result || null);
-      req.onerror = () => r(null);
+    return new Promise((resolve) => {
+      try {
+        const transaction = db.transaction('users', 'readonly');
+        const store = transaction.objectStore('users');
+        const index = store.index('email');
+        const req = index.get(email.toLowerCase());
+        req.onsuccess = () => resolve(req.result || null);
+        req.onerror = () => resolve(null);
+      } catch (err) {
+        resolve(null);
+      }
     });
   }
 
@@ -355,6 +519,19 @@ class LocalDatabaseService {
     });
   }
 
+  async markUserSynced(id: string): Promise<void> {
+    const db = await this.ensureDb();
+    const tx = db.transaction('users', 'readwrite');
+    const store = tx.objectStore('users');
+    const req = store.get(id);
+    req.onsuccess = () => {
+        if (req.result) {
+            req.result.synced = true;
+            store.put(req.result);
+        }
+    };
+  }
+
   // ==================== ROLES ====================
 
   async saveRole(role: LocalRole): Promise<void> {
@@ -362,18 +539,17 @@ class LocalDatabaseService {
     db.transaction('roles', 'readwrite').objectStore('roles').put(role);
   }
 
-  async deleteRolesByUserId(userId: string): Promise<void> {
+  async markRoleSynced(id: string): Promise<void> {
     const db = await this.ensureDb();
-    const roles = await this.getRolesByUserId(userId);
-    return new Promise((resolve) => {
-      const tx = db.transaction('roles', 'readwrite');
-      const store = tx.objectStore('roles');
-      for (const r of roles) {
-        store.delete(r.id);
-      }
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => resolve();
-    });
+    const tx = db.transaction('roles', 'readwrite');
+    const store = tx.objectStore('roles');
+    const req = store.get(id);
+    req.onsuccess = () => {
+        if (req.result) {
+            req.result.synced = true;
+            store.put(req.result);
+        }
+    };
   }
 
   async getAllRoles(): Promise<LocalRole[]> {
@@ -393,6 +569,42 @@ class LocalDatabaseService {
       const req = index.getAll(IDBKeyRange.only(userId));
       req.onsuccess = () => r(req.result || []);
       req.onerror = () => r([]);
+    });
+  }
+
+  async deleteRolesByUserId(userId: string): Promise<void> {
+    const db = await this.ensureDb();
+    const roles = await this.getRolesByUserId(userId);
+    return new Promise((resolve) => {
+      const tx = db.transaction('roles', 'readwrite');
+      const store = tx.objectStore('roles');
+      for (const r of roles) {
+        store.delete(r.id);
+      }
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => resolve();
+    });
+  }
+
+  async deleteRole(id: string): Promise<void> {
+    const db = await this.ensureDb();
+    return new Promise((resolve) => {
+      const tx = db.transaction('roles', 'readwrite');
+      const store = tx.objectStore('roles');
+      store.delete(id);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => resolve();
+    });
+  }
+
+  async deleteUser(id: string): Promise<void> {
+    const db = await this.ensureDb();
+    return new Promise((resolve) => {
+      const tx = db.transaction('users', 'readwrite');
+      const store = tx.objectStore('users');
+      store.delete(id);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => resolve();
     });
   }
 
@@ -452,6 +664,19 @@ class LocalDatabaseService {
   async deleteInventoryItem(id: string): Promise<void> {
     const db = await this.ensureDb();
     db.transaction('inventory', 'readwrite').objectStore('inventory').delete(id);
+  }
+
+  async markInventorySynced(id: string): Promise<void> {
+    const db = await this.ensureDb();
+    const tx = db.transaction('inventory', 'readwrite');
+    const store = tx.objectStore('inventory');
+    const req = store.get(id);
+    req.onsuccess = () => {
+        if (req.result) {
+            req.result.synced = true;
+            store.put(req.result);
+        }
+    };
   }
 
   // ==================== SYNC QUEUE ====================
@@ -520,34 +745,6 @@ class LocalDatabaseService {
     });
   }
 
-  // ==================== STORES ====================
-
-  async saveStore(store: LocalStore): Promise<void> {
-    const db = await this.ensureDb();
-    return new Promise((resolve, reject) => {
-      const request = db.transaction('stores', 'readwrite').objectStore('stores').put(store);
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
-    });
-  }
-
-  async deleteStore(id: string): Promise<void> {
-    const db = await this.ensureDb();
-    return new Promise((resolve, reject) => {
-      const request = db.transaction('stores', 'readwrite').objectStore('stores').delete(id);
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
-    });
-  }
-
-  async getStore(id: string): Promise<LocalStore | null> {
-    const db = await this.ensureDb();
-    return new Promise(r => {
-      const req = db.transaction('stores', 'readonly').objectStore('stores').get(id);
-      req.onsuccess = () => r(req.result || null);
-      req.onerror = () => r(null);
-    });
-  }
 
   async getAllStores(): Promise<LocalStore[]> {
     const db = await this.ensureDb();
@@ -571,6 +768,19 @@ class LocalDatabaseService {
       const req = storeId ? store.index('store_id').getAll(storeId) : store.getAll();
       req.onsuccess = () => r(req.result || []);
     });
+  }
+
+  async markProductFamilySynced(id: string): Promise<void> {
+    const db = await this.ensureDb();
+    const tx = db.transaction('product_families', 'readwrite');
+    const store = tx.objectStore('product_families');
+    const req = store.get(id);
+    req.onsuccess = () => {
+        if (req.result) {
+            req.result.synced = true;
+            store.put(req.result);
+        }
+    };
   }
 
   // ==================== UTILITIES ====================

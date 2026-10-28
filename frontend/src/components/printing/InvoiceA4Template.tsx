@@ -2,27 +2,13 @@ import React, { forwardRef } from 'react';
 import { format } from "date-fns";
 import { useTranslation } from 'react-i18next';
 import { InvoiceData } from './InvoiceTemplate';
-import { StoreReceiptConfig } from '@/types/receipt';
-import { resolveStoreReceiptConfig } from './ReceiptConfigLoader';
 import { numberToFrenchWords } from '@/utils/numberToFrenchWords';
+import { HOLDING_PRO_LOGO_BASE64 } from '@/assets/holdingProLogo';
 
-export interface InvoiceA4TemplateProps {
-    data: InvoiceData;
-    config?: StoreReceiptConfig;
-}
-
-export const InvoiceA4Template = forwardRef<HTMLDivElement, InvoiceA4TemplateProps>(({ data, config: propConfig }, ref) => {
+export const InvoiceA4Template = forwardRef<HTMLDivElement, { data: InvoiceData }>(({ data }, ref) => {
     const { t } = useTranslation();
     const isProforma = data.type === 'proforma';
     const isCredit = data.paymentMethod === 'credit';
-
-    const config = propConfig || resolveStoreReceiptConfig({
-        name: data.storeName,
-        address: data.storeAddress,
-        phone: data.storePhone
-    });
-
-    const accentColor = config.accentColor || '#0f172a';
 
     const formattedDate = (() => {
         try {
@@ -48,10 +34,6 @@ export const InvoiceA4Template = forwardRef<HTMLDivElement, InvoiceA4TemplatePro
 
     const frenchWords = numberToFrenchWords(netTotal);
     const sumInWords = `${frenchWords} (${netTotal.toLocaleString('fr-FR')}) FCFA`;
-
-    const displayPhones = config.phones && config.phones.length > 0
-        ? config.phones.join(' / ')
-        : (data.storePhone || '');
 
     return (
         <div
@@ -92,17 +74,15 @@ export const InvoiceA4Template = forwardRef<HTMLDivElement, InvoiceA4TemplatePro
             `}</style>
 
             {/* Subtle Watermark Logo */}
-            {config.logoUrl && (
-                <div className="absolute inset-0 z-0 pointer-events-none flex flex-col justify-center items-center opacity-[0.035]">
-                    <img src={config.logoUrl} alt="Watermark" className="w-[50%] h-auto object-contain" />
-                </div>
-            )}
+            <div className="absolute inset-0 z-0 pointer-events-none flex flex-col justify-center items-center opacity-[0.035]">
+                <img src={HOLDING_PRO_LOGO_BASE64} alt="Watermark Holding Pro" className="w-[50%] h-auto object-contain" />
+            </div>
 
-            {/* Top Bar with Accent Color */}
+            {/* Rainbow Top Bar */}
             <div
                 className="mb-4 z-10 relative"
                 style={{
-                    backgroundColor: accentColor,
+                    background: 'linear-gradient(90deg, #f97316 0%, #ec4899 20%, #a855f7 40%, #3b82f6 60%, #22c55e 80%, #eab308 100%)',
                     height: '5px',
                     width: '100%',
                     borderRadius: '3px'
@@ -112,64 +92,40 @@ export const InvoiceA4Template = forwardRef<HTMLDivElement, InvoiceA4TemplatePro
             {/* HEADER MODULE */}
             <div className="relative z-10 flex justify-between items-center mb-4 pb-3 border-b border-gray-200">
                 <div className="flex items-center gap-3.5">
-                    {config.logoUrl && (
-                        <img
-                            src={config.logoUrl}
-                            alt={config.businessName}
-                            className="rounded-full border border-gray-200 object-contain shadow-sm shrink-0"
-                            style={{ width: '68px', height: '68px' }}
-                        />
-                    )}
-                    {config.secondaryLogoUrl && (
-                        <img
-                            src={config.secondaryLogoUrl}
-                            alt="Logo Partenaire"
-                            className="rounded border border-gray-200 object-contain shadow-sm shrink-0"
-                            style={{ width: '64px', height: '64px' }}
-                        />
-                    )}
+                    <img
+                        src={HOLDING_PRO_LOGO_BASE64}
+                        alt="Logo Holding Pro"
+                        className="rounded-full border border-gray-200 object-contain shadow-sm shrink-0"
+                        style={{ width: '68px', height: '68px' }}
+                    />
                     <div>
-                        {config.subHeader && (
-                            <div className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-gray-500">
-                                {config.subHeader}
-                            </div>
-                        )}
-                        <h1 className="text-2xl font-black tracking-tight leading-none text-gray-900">
-                            {config.businessName || data.storeName}
+                        <div className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-gray-400">
+                            Commerce Général &amp; Services
+                        </div>
+                        <h1 className="text-3xl font-black tracking-tight leading-none">
+                            <span style={{ color: '#f97316' }}>HOLDING</span>{' '}
+                            <span style={{ color: '#7c3aed' }}>PRO</span>
                         </h1>
                         <div className="text-xs font-bold text-gray-800 tracking-wider uppercase mt-1">
-                            {data.storeAddress || config.address}
+                            Niamana Dubaï — Bamako, Mali
                         </div>
-                        {config.socialHandles && (
-                            <div className="text-[11px] text-blue-600 font-medium">
-                                {config.socialHandles}
-                            </div>
-                        )}
+                        <div className="text-[11px] text-blue-600 font-medium">
+                            https://holding-pro.vercel.app/
+                        </div>
                     </div>
                 </div>
 
                 <div className="text-right">
-                    {config.tagline && (
-                        <div
-                            className="inline-block text-white text-[10px] font-black px-3.5 py-1.5 rounded-full mb-1.5 tracking-wider uppercase shadow-sm"
-                            style={{ backgroundColor: accentColor }}
-                        >
-                            {config.tagline}
-                        </div>
-                    )}
+                    <div className="inline-block bg-[#0f172a] text-white text-[10px] font-black px-3.5 py-1.5 rounded-full mb-1.5 tracking-wider uppercase shadow-sm">
+                        TOUJOURS CLIENT SATISFAIT
+                    </div>
                     <div className="text-xs font-semibold text-gray-800 leading-snug">
-                        {displayPhones && (
-                            <p className="text-emerald-700 font-bold">
-                                📞 {displayPhones}
-                            </p>
-                        )}
-                        {(config.rccm || config.nif) && (
-                            <p className="text-gray-500 text-[10px] mt-0.5">
-                                {config.rccm ? `RCCM: ${config.rccm}` : ''}
-                                {config.rccm && config.nif ? ' — ' : ''}
-                                {config.nif ? `NIF: ${config.nif}` : ''}
-                            </p>
-                        )}
+                        <p className="text-emerald-700 font-bold">
+                            📞 +223 79 34 60 73 / 70 68 21 00 / 71 06 65 75
+                        </p>
+                        <p className="text-gray-500 text-[11px] mt-0.5">
+                            {data.storeAddress || 'Niamana Dubaï, en face station Shell'}
+                        </p>
                     </div>
                 </div>
             </div>
@@ -194,12 +150,8 @@ export const InvoiceA4Template = forwardRef<HTMLDivElement, InvoiceA4TemplatePro
                         <span className="font-bold text-gray-600">Date :</span>
                         <span className="font-medium text-gray-900">{formattedDate}</span>
 
-                        {config.showCashierName !== false && (
-                            <>
-                                <span className="font-bold text-gray-600">Vendeur :</span>
-                                <span className="font-medium text-gray-900">{data.workerName || 'Caisse'}</span>
-                            </>
-                        )}
+                        <span className="font-bold text-gray-600">Vendeur :</span>
+                        <span className="font-medium text-gray-900">{data.workerName || 'Caisse Niamana'}</span>
 
                         {!isProforma && (
                             <>
@@ -217,10 +169,10 @@ export const InvoiceA4Template = forwardRef<HTMLDivElement, InvoiceA4TemplatePro
                         {data.customerName || t('customer.counterClient', 'Client Comptoir')}
                     </h3>
                     <p className="text-xs text-gray-600">
-                        {data.customerAddress || 'Bamako, Mali'}
+                        {data.customerAddress || 'Niamana Dubaï, Bamako'}
                     </p>
                     <p className="text-xs text-gray-600 mt-0.5">
-                        Tél: {data.customerPhone || '—'}
+                        Tél: {data.customerPhone || '+223 70 00 00 00'}
                     </p>
                 </div>
             </div>
@@ -229,7 +181,7 @@ export const InvoiceA4Template = forwardRef<HTMLDivElement, InvoiceA4TemplatePro
             <div className="relative z-10 mb-4">
                 <table className="w-full text-xs border-collapse">
                     <thead>
-                        <tr style={{ backgroundColor: accentColor, color: '#ffffff' }}>
+                        <tr className="bg-[#0f172a] text-white">
                             <th className="py-2 px-3 text-left font-bold uppercase tracking-wider">Désignation</th>
                             <th className="py-2 px-2 text-center font-bold uppercase tracking-wider w-16">Qté</th>
                             <th className="py-2 px-3 text-right font-bold uppercase tracking-wider w-28">Prix U.</th>
@@ -250,10 +202,10 @@ export const InvoiceA4Template = forwardRef<HTMLDivElement, InvoiceA4TemplatePro
                                 <tr key={index} className={index % 2 === 0 ? 'bg-white border-b border-gray-200' : 'bg-slate-50/50 border-b border-gray-200'}>
                                     <td className="py-1.5 px-3 font-semibold text-gray-900">
                                         <div className="leading-tight">{name}</div>
-                                        {config.showBoxUnits && isBox && packSize > 1 && (
+                                        {isBox && packSize > 1 && (
                                             <div className="text-[9px] text-gray-500 font-normal">Boîte de {packSize} unités</div>
                                         )}
-                                        {config.showDiscounts && discount > 0 && (
+                                        {discount > 0 && (
                                             <div className="text-[9px] text-red-600 font-bold">Remise appliquée: -{discount}%</div>
                                         )}
                                     </td>
@@ -287,27 +239,14 @@ export const InvoiceA4Template = forwardRef<HTMLDivElement, InvoiceA4TemplatePro
                     </div>
 
                     <div className="w-[44%]">
-                        <div
-                            className="flex justify-between items-center py-2.5 px-4 font-black text-white rounded-xl shadow-md"
-                            style={{ backgroundColor: accentColor }}
-                        >
+                        <div className="flex justify-between items-center py-2.5 px-4 font-black text-white rounded-xl bg-[#0f172a] shadow-md">
                             <span className="text-xs tracking-wider uppercase">NET À PAYER :</span>
-                            <span className="text-xl font-black text-amber-400">
+                            <span className="text-xl font-black text-[#f97316]">
                                 {netTotal.toLocaleString('fr-FR')} FCFA
                             </span>
                         </div>
                     </div>
                 </div>
-
-                {/* Optional Bank Details */}
-                {config.bankDetails && (
-                    <div className="mb-4 p-2.5 bg-slate-50 border border-gray-200 rounded-lg text-xs">
-                        <span className="font-bold text-gray-700">Règlement bancaire :</span>{' '}
-                        <span>{config.bankDetails.bankName}</span> —{' '}
-                        <span className="font-mono">IBAN : {config.bankDetails.iban}</span>
-                        {config.bankDetails.swift && <span> (SWIFT: {config.bankDetails.swift})</span>}
-                    </div>
-                )}
 
                 {/* SIGNATURES */}
                 <div className="flex justify-between px-12 mb-6">
@@ -325,16 +264,15 @@ export const InvoiceA4Template = forwardRef<HTMLDivElement, InvoiceA4TemplatePro
                 <div className="pt-3 border-t border-gray-200 flex justify-between items-center">
                     <div className="text-center flex-1">
                         <p className="text-[11px] font-bold uppercase tracking-wider text-gray-700">
-                            {config.businessName || data.storeName}
-                            {config.tagline ? ` — ${config.tagline}` : ''}
+                            HOLDING PRO — TOUJOURS CLIENT SATISFAIT
                         </p>
                         <p className="text-[10px] text-gray-500 mt-0.5">
-                            {config.returnPolicy || 'Les marchandises vendues ne sont ni reprises ni échangées. Merci de votre confiance !'}
+                            Les marchandises vendues ne sont ni reprises ni échangées. Merci de votre confiance !
                         </p>
                     </div>
                     <div className="flex items-center gap-1.5 opacity-60 grayscale shrink-0 ml-4">
-                        <span className="text-[9px] font-semibold tracking-wider text-gray-500 uppercase">Propulsé par Djati POS</span>
-                        <img src="/jati-icon.png" alt="Djati POS" className="h-3.5 object-contain" />
+                        <span className="text-[9px] font-semibold tracking-wider text-gray-500 uppercase">Propulsé par JATE</span>
+                        <img src="/jati-icon.png" alt="JATE" className="h-3.5 object-contain" />
                     </div>
                 </div>
             </div>

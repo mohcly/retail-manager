@@ -1,8 +1,7 @@
 import React, { forwardRef } from 'react';
 import { format } from "date-fns";
 import { useTranslation } from 'react-i18next';
-import { StoreReceiptConfig } from '@/types/receipt';
-import { resolveStoreReceiptConfig } from './ReceiptConfigLoader';
+import { HOLDING_PRO_LOGO_BASE64 } from '@/assets/holdingProLogo';
 
 export interface InvoiceData {
     id: string;
@@ -25,25 +24,10 @@ export interface InvoiceData {
     paymentMethod?: string;
 }
 
-export interface InvoiceTemplateProps {
-    data: InvoiceData;
-    config?: StoreReceiptConfig;
-}
-
-export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(({ data, config: propConfig }, ref) => {
+export const InvoiceTemplate = forwardRef<HTMLDivElement, { data: InvoiceData }>(({ data }, ref) => {
     const isProforma = data.type === 'proforma';
     const isCredit = data.paymentMethod === 'credit';
     const { t } = useTranslation();
-
-    const config = propConfig || resolveStoreReceiptConfig({
-        name: data.storeName,
-        address: data.storeAddress,
-        phone: data.storePhone
-    });
-
-    const is58mm = config.defaultFormat === 'thermal-58mm';
-    const containerWidth = is58mm ? '54mm' : '74mm';
-    const pageSize = is58mm ? '58mm auto' : '80mm auto';
 
     const formattedDate = (() => {
         try {
@@ -79,21 +63,17 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
         return data.paymentMethod.toUpperCase();
     })();
 
-    const displayPhones = config.phones && config.phones.length > 0
-        ? config.phones.join(' / ')
-        : (data.storePhone || '');
-
     return (
         <div
             ref={ref}
             className="bg-white text-black font-sans hidden print:block mx-auto text-left"
             style={{
-                width: containerWidth,
-                maxWidth: containerWidth,
+                width: '74mm',
+                maxWidth: '74mm',
                 margin: '0 auto',
                 padding: '3mm 2mm 8mm 2mm',
                 boxSizing: 'border-box',
-                fontSize: is58mm ? '10px' : '11px',
+                fontSize: '11px',
                 lineHeight: 1.25,
                 color: '#000',
                 backgroundColor: '#fff',
@@ -102,7 +82,7 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
             <style>{`
                 @media print {
                     @page {
-                        size: ${pageSize};
+                        size: 80mm auto;
                         margin: 0;
                     }
                     body {
@@ -117,70 +97,31 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
 
             {/* Header / Branding */}
             <div className="text-center mb-1">
-                {/* Logo(s) */}
-                {(config.logoUrl || config.secondaryLogoUrl) && (
-                    <div className="flex justify-center items-center gap-2 mb-1">
-                        {config.logoUrl && (
-                            <img
-                                src={config.logoUrl}
-                                alt={config.businessName}
-                                className="h-12 w-auto max-w-[120px] object-contain mx-auto"
-                            />
-                        )}
-                        {config.secondaryLogoUrl && (
-                            <img
-                                src={config.secondaryLogoUrl}
-                                alt="Second Logo"
-                                className="h-10 w-auto max-w-[90px] object-contain mx-auto"
-                            />
-                        )}
-                    </div>
-                )}
-
-                {config.subHeader && (
-                    <h2 className="text-xs font-black tracking-wider uppercase text-black leading-tight">
-                        {config.subHeader}
-                    </h2>
-                )}
-
-                <h1 className="text-sm font-black tracking-wide uppercase text-black leading-tight">
-                    {config.businessName || data.storeName}
+                <div className="flex justify-center mb-1">
+                    <img
+                        src={HOLDING_PRO_LOGO_BASE64}
+                        alt="Holding Pro Logo"
+                        className="h-14 w-14 object-contain mx-auto rounded-full"
+                    />
+                </div>
+                <h1 className="text-base font-black tracking-wider uppercase text-black leading-tight">
+                    HOLDING PRO
                 </h1>
-
-                {config.tagline && (
-                    <p
-                        className="text-[9px] font-black uppercase tracking-wider my-0.5"
-                        style={{ color: config.accentColor || '#dc2626' }}
-                    >
-                        {config.tagline}
-                    </p>
-                )}
-
-                {displayPhones && (
-                    <p className="text-[10px] font-bold text-black mt-0.5">
-                        Tél: {displayPhones}
-                    </p>
-                )}
-
-                {(data.storeAddress || config.address) && (
-                    <p className="text-[9px] text-gray-700">
-                        {data.storeAddress || config.address}
-                    </p>
-                )}
-
-                {(config.rccm || config.nif) && (
-                    <p className="text-[8px] text-gray-600">
-                        {config.rccm ? `RCCM: ${config.rccm}` : ''}
-                        {config.rccm && config.nif ? ' — ' : ''}
-                        {config.nif ? `NIF: ${config.nif}` : ''}
-                    </p>
-                )}
-
-                {config.socialHandles && (
-                    <p className="text-[9px] text-blue-600 font-mono">
-                        {config.socialHandles}
-                    </p>
-                )}
+                <p className="text-[11px] font-bold uppercase text-black tracking-wide">
+                    SUCCURSALE NIAMANA DUBAÏ
+                </p>
+                <p className="text-[10px] font-black uppercase text-[#dc2626] tracking-wider my-0.5">
+                    TOUJOURS CLIENT SATISFAIT
+                </p>
+                <p className="text-[10px] font-bold text-black mt-0.5">
+                    Tél: 79 34 60 73 / 70 68 21 00 / 71 06 65 75
+                </p>
+                <p className="text-[9px] text-gray-700">
+                    {data.storeAddress || 'Niamana Dubaï, en face station Shell'}
+                </p>
+                <p className="text-[9px] text-blue-600 underline font-mono">
+                    https://holding-pro.vercel.app/
+                </p>
             </div>
 
             {/* Dashed Separator */}
@@ -209,12 +150,10 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
                     </div>
                 </div>
                 <div className="flex justify-between items-center">
-                    {config.showCashierName !== false && (
-                        <div>
-                            <span className="font-semibold">Caissier: </span>
-                            <span className="font-medium">{data.workerName || 'Caisse'}</span>
-                        </div>
-                    )}
+                    <div>
+                        <span className="font-semibold">Caissier: </span>
+                        <span className="font-medium">{data.workerName || 'Caisse Niamana'}</span>
+                    </div>
                     <div className="text-right">
                         <span className="font-semibold">Client: </span>
                         <span className="font-medium">{data.customerName || t('customer.counterClient', 'Comptoir')}</span>
@@ -255,10 +194,10 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
                             <tr key={idx} className="align-top">
                                 <td className="py-1 pr-1">
                                     <div className="font-bold leading-tight break-words">{name}</div>
-                                    {config.showBoxUnits && isBox && packSize > 1 && (
+                                    {isBox && packSize > 1 && (
                                         <div className="text-[8px] text-gray-600">Boîte de {packSize}</div>
                                     )}
-                                    {config.showDiscounts && discount > 0 && (
+                                    {discount > 0 && (
                                         <div className="text-[8px] text-gray-600">Remise: -{discount}%</div>
                                     )}
                                 </td>
@@ -314,26 +253,22 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
             <div className="text-center text-[9px] text-black space-y-0.5 pt-1">
                 {isProforma ? (
                     <p className="italic font-medium text-gray-700">
-                        {config.proformaValidity || t('invoice.proformaNote', 'Ce devis est valable 15 jours.')}
+                        {t('invoice.proformaNote', 'Ce devis est valable 15 jours.')}
                     </p>
                 ) : (
                     <>
-                        <p className="font-black uppercase tracking-wide">
-                            {config.footerNote || 'MERCI POUR VOTRE CONFIANCE !'}
+                        <p className="font-black uppercase tracking-wide">MERCI POUR VOTRE CONFIANCE !</p>
+                        <p className="text-[8px] text-gray-700 leading-tight">
+                            Les marchandises vendues ne sont ni reprises ni échangées.
                         </p>
-                        {config.returnPolicy && (
-                            <p className="text-[8px] text-gray-700 leading-tight">
-                                {config.returnPolicy}
-                            </p>
-                        )}
                         <p className="text-[9px] font-black uppercase text-black pt-1 tracking-wider">
-                            {config.businessName || data.storeName}
+                            NIAMANA DUBAÏ — BAMAKO
                         </p>
                     </>
                 )}
                 <div className="flex items-center justify-center gap-1 opacity-60 grayscale pt-1.5">
-                    <span className="text-[8px] font-semibold tracking-wide text-gray-500 uppercase">Propulsé par Djati POS</span>
-                    <img src="/jati-icon.png" alt="Djati POS" className="h-2.5 object-contain" />
+                    <span className="text-[8px] font-semibold tracking-wide text-gray-500 uppercase">Propulsé par JATE</span>
+                    <img src="/jati-icon.png" alt="JATE" className="h-2.5 object-contain" />
                 </div>
             </div>
         </div>

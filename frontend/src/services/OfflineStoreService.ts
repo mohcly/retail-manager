@@ -176,18 +176,85 @@ export class OfflineStoreService {
         };
       }
 
-      // Cloud sync disabled - queue for later sync
-      await LocalDatabase.addToSyncQueue({
-        id: crypto.randomUUID(),
-        type: 'store_create',
-        data: localStore,
-        timestamp: Date.now(),
-        retries: 0,
-      });
+      // Online Direct Supabase insert when running in Pure Cloud Mode
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        const ownerId = storeData.owner_id || user?.id;
+        if (!ownerId) {
+          throw new Error('No authenticated user found for store creation.');
+        }
+
+        const { error: supaErr } = await supabase
+          .from('stores')
+          .insert({
+            id: storeId,
+            name: storeData.name,
+            address: storeData.address ?? null,
+            phone: storeData.phone ?? null,
+            owner_id: ownerId,
+            default_price_tier: storeData.default_price_tier || 1,
+            is_active: true,
+            created_at: now,
+            updated_at: now
+          });
+        
+        if (supaErr) throw supaErr;
+
+        // First ensure the user has a global master role (store_id IS NULL)
+        // so that public.has_role(auth.uid(), 'master') evaluates to true for the RPC
+        try {
+          const { data: existingRoles } = await supabase
+            .from('user_roles')
+            .select('*')
+            .eq('user_id', ownerId)
+            .eq('role', 'master')
+            .is('store_id', null);
+
+          if (!existingRoles || existingRoles.length === 0) {
+            console.log('[OfflineStoreService] Assigning global master role for first-time store creator:', ownerId);
+            const { error: globalRoleErr } = await supabase
+              .from('user_roles')
+              .insert({
+                user_id: ownerId,
+                role: 'master',
+                store_id: null
+              });
+            if (globalRoleErr) throw globalRoleErr;
+          }
+        } catch (roleErr) {
+          console.warn('[OfflineStoreService] Failed to insert global master role:', roleErr);
+        }
+
+        // Associate user with the new store in user_roles via security definer RPC (bypasses RLS insertion block)
+        const { error: roleErr } = await supabase
+          .rpc('assign_role_manually', {
+            _user_id: ownerId,
+            _role: 'master',
+            _store_id: storeId
+          });
+
+        if (roleErr) {
+          console.warn('[OfflineStoreService] Failed to assign master role for store on Supabase:', roleErr);
+        }
+        
+        // Update local status as synced
+        localStore.synced = true;
+        await LocalDatabase.saveStore(localStore);
+      } catch (err) {
+        console.error('[OfflineStoreService] Supabase insert failed:', err);
+        // Queue for background retry
+        await LocalDatabase.addToSyncQueue({
+          id: crypto.randomUUID(),
+          type: 'store_create',
+          data: localStore,
+          timestamp: Date.now(),
+          retries: 0,
+        });
+      }
 
       toast({
-        title: i18n.t('sync.storeCreatedLocally'),
-        description: i18n.t('sync.willSyncWhenOnline'),
+        title: i18n.t('sync.storeCreated'),
+        description: 'Store created successfully.',
       });
 
       return {
@@ -233,6 +300,31 @@ export class OfflineStoreService {
         return { data: mapLocalStoreToStore(localStore) };
       }
 
+      // Online direct fetch if running in cloud and not found in local cache
+      if (navigator.onLine) {
+        const { data, error } = await supabase
+          .from('stores')
+          .select('*')
+          .eq('id', id)
+          .maybeSingle();
+        if (data && !error) {
+          await LocalDatabase.saveStore({
+            id: data.id,
+            name: data.name,
+            address: data.address || undefined,
+            city: data.city || undefined,
+            phone: data.phone || undefined,
+            email: data.email || undefined,
+            default_price_tier: data.default_price_tier || 1,
+            is_active: data.is_active !== false,
+            created_at: data.created_at,
+            updated_at: data.updated_at,
+            synced: true
+          });
+          return { data: data as Store };
+        }
+      }
+
       return { error: new Error('Store not found') };
     } catch (error) {
       console.error('getStore error:', error);
@@ -252,24 +344,10 @@ export class OfflineStoreService {
       // Pure Cloud mode online fetching directly from Supabase first (no blocking on IndexedDB)
       if (!dataClient.isLocalFirst && navigator.onLine) {
         try {
-          // Query stores table first (standard retail/stores table)
-          let { data, error } = await supabase
+          const { data, error } = await supabase
             .from('stores')
             .select('*')
             .order('name');
-          
-          // Fallback to restaurants table if stores table is absent or empty
-          if (error || !data || data.length === 0) {
-            const restoRes = await supabase
-              .from('restaurants')
-              .select('*')
-              .is('deleted_at', null)
-              .order('name');
-            if (!restoRes.error && restoRes.data && restoRes.data.length > 0) {
-              data = restoRes.data;
-              error = null;
-            }
-          }
           
           if (error) throw error;
           
@@ -279,7 +357,7 @@ export class OfflineStoreService {
               this.cacheRemoteStores(data, localStores);
             }).catch(e => console.warn('[OfflineStoreService] Background cache failed:', e));
 
-            return { data: data.map((s: any) => ({
+            return { data: data.map(s => ({
               id: s.id,
               name: s.name,
               address: s.address || undefined,
@@ -447,55 +525,39 @@ export class OfflineStoreService {
           title: i18n.t('sync.storeUpdatedOffline'),
           description: i18n.t('sync.willSyncWhenOnline'),
         });
-
-        return { 
-          data: {
-            id: localStore.id,
+      } else {
+        // Direct online update. Do NOT silently swallow failures here: if this
+        // throws, the caller (Stores.tsx) needs a real error so it can show it
+        // instead of a false success toast while the DB write never landed.
+        // .select() is required: an UPDATE that matches zero rows (e.g. blocked
+        // by RLS) is NOT reported as an error by Postgres/PostgREST - without
+        // selecting back the affected row, there is no way to tell "updated"
+        // apart from "silently matched nothing".
+        const { data: updatedRows, error: supabaseError } = await supabase
+          .from('stores')
+          .update({
             name: localStore.name,
-            address: localStore.address,
-            phone: localStore.phone,
-            owner_id: undefined,
+            address: localStore.address ?? null,
+            phone: localStore.phone ?? null,
             default_price_tier: localStore.default_price_tier,
-            created_at: localStore.created_at,
-            updated_at: localStore.updated_at,
-          } as Store 
-        };
+            updated_at: now
+          })
+          .eq('id', id)
+          .select();
+
+        if (supabaseError) {
+          console.error('[OfflineStoreService] Supabase update failed:', supabaseError);
+          return { error: supabaseError };
+        }
+
+        if (!updatedRows || updatedRows.length === 0) {
+          console.error('[OfflineStoreService] Update matched no rows (likely blocked by RLS):', id);
+          return { error: { message: 'Update rejected: you do not have permission to edit this store.' } };
+        }
+
+        localStore.synced = true;
+        await LocalDatabase.saveStore(localStore);
       }
-
-      // Direct online update. Previously this unconditionally queued the
-      // change for a later sync that never actually ran a Supabase write -
-      // renaming a store appeared to succeed (toast + local cache updated)
-      // but never landed in the database or reflected for other sessions.
-      // Mirror the corrected Djati-stores behavior: attempt the real write,
-      // and propagate a genuine error instead of masking failures.
-      // .select() is required: an UPDATE that matches zero rows (e.g. blocked
-      // by RLS) is NOT reported as an error by Postgres/PostgREST - without
-      // selecting back the affected row, there is no way to tell "updated"
-      // apart from "silently matched nothing".
-      const { data: updatedRows, error: supabaseError } = await supabase
-        .from('stores')
-        .update({
-          name: localStore.name,
-          address: localStore.address ?? null,
-          phone: localStore.phone ?? null,
-          default_price_tier: localStore.default_price_tier,
-          updated_at: now,
-        })
-        .eq('id', id)
-        .select();
-
-      if (supabaseError) {
-        console.error('[OfflineStoreService] Supabase update failed:', supabaseError);
-        return { error: supabaseError };
-      }
-
-      if (!updatedRows || updatedRows.length === 0) {
-        console.error('[OfflineStoreService] Update matched no rows (likely blocked by RLS):', id);
-        return { error: { message: 'Update rejected: you do not have permission to edit this store.' } };
-      }
-
-      localStore.synced = true;
-      await LocalDatabase.saveStore(localStore);
 
       return { 
         data: {
@@ -511,7 +573,7 @@ export class OfflineStoreService {
       };
     } catch (error) {
       console.error('Update store error:', error);
-      return { error };
+      return { error: { message: 'Failed to update store' } };
     }
   }
 
@@ -536,6 +598,28 @@ export class OfflineStoreService {
         }
         return {};
       }
+
+      // Pure Cloud mode: previously this only removed the local cache entry
+      // and never touched Supabase, so a "deleted" store would reappear the
+      // next time getStores()/getWorkers() re-fetched from Supabase. Attempt
+      // the real delete now, and queue it for retry if offline or if it fails.
+      if (navigator.onLine) {
+        try {
+          const { error: supaErr } = await supabase.from('stores').delete().eq('id', id);
+          if (supaErr) throw supaErr;
+          return {};
+        } catch (supaErr) {
+          console.error('[OfflineStoreService] Supabase delete failed, queued for retry:', supaErr);
+        }
+      }
+
+      await LocalDatabase.addToSyncQueue({
+        id: crypto.randomUUID(),
+        type: 'store_delete',
+        data: { id },
+        timestamp: Date.now(),
+        retries: 0,
+      });
 
       return {};
     } catch (error) {

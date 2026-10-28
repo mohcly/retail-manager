@@ -1,141 +1,202 @@
-import { LocalDatabase } from './LocalDatabase';
 import { getDataClient, smartFetch } from '@/lib/dataClient';
 import { OfflineAuthService } from './OfflineAuthService';
 
-interface SyncPushResult {
-  pushed: number;
-  failed: number;
-  pending: number;
-}
+export type NetworkHealthStatus = 'ONLINE' | 'OFFLINE' | 'CLOCK_SKEW' | 'FIREWALL_BLOCKED' | 'ISP_BLOCKED' | 'RATE_LIMITED';
 
-/**
- * LocalBridgeSyncService: The bridge between the local app and the Djati Cloud VPS.
- * It uses the Jati Sync Token (Private Key) to authenticate every request.
- */
 export class LocalBridgeSyncService {
-  
-  private static async getCloudConfig() {
-    try {
-      const { localBridgeBaseUrl } = getDataClient();
-      const headers = await OfflineAuthService.getAuthHeaders();
-      if (!headers) return null;
-      
-      const res = await fetch(`${localBridgeBaseUrl}/rest/v1/system/env`, { headers });
-      const data = await res.json();
-      
-      if (res.ok && data.config) {
-        return {
-          token: data.config.MASTER_TOKEN,
-          machineId: data.config.MACHINE_ID,
-          url: localStorage.getItem('jati_cloud_url') || 'https://djati-cloud-hub.moh-kuhh.workers.dev'
-        };
-      }
-      return null;
-    } catch (e) {
-      console.error('Failed to get cloud config', e);
-      return null;
-    }
-  }
+  private static running = false;
+  private static eventSource: EventSource | null = null;
+  private static currentStoreId: string | null = null;
 
-  static async pushPendingMutations(): Promise<SyncPushResult> {
-    const config = await this.getCloudConfig();
-    const dataClient = getDataClient();
-    
-    if (!dataClient.isLocalFirst || !config || !config.token) {
-      return { pushed: 0, failed: 0, pending: 0 };
-    }
+  // Diagnostics & Health State
+  private static currentHealth: NetworkHealthStatus = 'ONLINE';
+  private static currentHealthMessage: string = 'Connected to local sync bridge';
+  private static healthListeners: Array<(status: NetworkHealthStatus, message: string) => void> = [];
 
-    await LocalDatabase.init();
-    const queue = await LocalDatabase.getSyncQueue();
-    const pendingLocal = queue.filter((item) => item.type === 'pending_mutation');
-
-    let pushed = 0;
-    let failed = 0;
-
-    for (const item of pendingLocal) {
-      const data = item.data || {};
-      if (!data.entity || !data.payload) {
-        await LocalDatabase.removeFromSyncQueue(item.id);
-        continue;
-      }
-
-      try {
-        const response = await fetch(`${config.url}/api/v1/sync`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            store_id: data.store_id,
-            machine_id: config.machineId || 'UNKNOWN',
-            sync_token: config.token,
-            sales: data.entity === 'sales' ? [data.payload] : [],
-            inventory: data.entity === 'inventory' || data.entity === 'products' ? [data.payload] : []
-          }),
-        });
-
-        if (response.ok) {
-          await LocalDatabase.removeFromSyncQueue(item.id);
-          pushed += 1;
-        } else {
-          failed += 1;
-        }
-      } catch (e) {
-        failed += 1;
-      }
-    }
-
-    const remainingLocal = (await LocalDatabase.getSyncQueue()).filter((item) => item.type === 'pending_mutation').length;
-
-    return {
-      pushed,
-      failed,
-      pending: remainingLocal,
+  static onHealthChange(cb: (status: NetworkHealthStatus, message: string) => void) {
+    this.healthListeners.push(cb);
+    cb(this.currentHealth, this.currentHealthMessage);
+    return () => {
+      this.healthListeners = this.healthListeners.filter(l => l !== cb);
     };
   }
 
-  static async pullData(storeId?: string): Promise<{ pulled: number } | null> {
+  private static updateHealth(status: NetworkHealthStatus, message: string) {
+    if (this.currentHealth !== status || this.currentHealthMessage !== message) {
+      this.currentHealth = status;
+      this.currentHealthMessage = message;
+      this.healthListeners.forEach(cb => cb(status, message));
+    }
+  }
+
+  static async checkNetworkHealth(): Promise<void> {
+    const dataClient = getDataClient();
     try {
-      const dataClient = getDataClient();
+      const resp = await smartFetch(`${dataClient.localBridgeBaseUrl}/sync/health`);
+      if (resp.ok) {
+        const data = await resp.json();
+        this.updateHealth(data.status, data.message);
+      } else {
+        this.updateHealth('OFFLINE', 'Local bridge is unreachable.');
+      }
+    } catch (e) {
+      this.updateHealth('OFFLINE', 'Local bridge is unreachable.');
+    }
+  }
+
+  // ── Lifecycle ──────────────────────────────────────────────────────────────
+  static start(storeId: string): void {
+    if (this.running && this.currentStoreId === storeId) return;
+    this.stop();
+
+    this.currentStoreId = storeId;
+    this.running = true;
+
+    // Run initial health check and sync trigger
+    void this.checkNetworkHealth();
+    void this.pushPendingMutations(storeId);
+    void this.pullData(storeId);
+
+    // Setup Server-Sent Events (SSE) listener
+    const dataClient = getDataClient();
+    try {
+      this.eventSource = new EventSource(`${dataClient.localBridgeBaseUrl}/sync/events`);
+
+      this.eventSource.onopen = () => {
+        console.log('[LocalBridgeSyncService] SSE connection established.');
+        this.updateHealth('ONLINE', 'Connected to local sync bridge');
+      };
+
+      this.eventSource.onerror = (err) => {
+        console.error('[LocalBridgeSyncService] SSE connection error:', err);
+        this.updateHealth('OFFLINE', 'Sync bridge connection lost. Reconnecting...');
+      };
+
+      this.eventSource.addEventListener('data_merged', (e: MessageEvent) => {
+        try {
+          const payload = JSON.parse(e.data);
+          console.log('[LocalBridgeSyncService] SSE data_merged received:', payload);
+          if (payload.type === 'product') {
+            window.dispatchEvent(new CustomEvent('localDbDataUpdated', { detail: { type: 'product' } }));
+          } else if (payload.type === 'sale') {
+            window.dispatchEvent(new CustomEvent('localDbDataUpdated', { detail: { type: 'sale' } }));
+          } else if (payload.type === 'cashier_credit') {
+            window.dispatchEvent(new CustomEvent('localDbDataUpdated', { detail: { type: 'cashier_credit' } }));
+          } else if (payload.type === 'inventory') {
+            window.dispatchEvent(new CustomEvent('localDbDataUpdated', { detail: { type: 'inventory' } }));
+          }
+        } catch (err) {
+          console.error('[LocalBridgeSyncService] Error parsing SSE payload:', err);
+        }
+      });
+    } catch (e) {
+      console.error('[LocalBridgeSyncService] Failed to establish EventSource:', e);
+    }
+
+    console.log(`[LocalBridgeSyncService] Started for store ${storeId}.`);
+  }
+
+  static stop(): void {
+    if (!this.running) return;
+    this.running = false;
+
+    if (this.eventSource) {
+      this.eventSource.close();
+      this.eventSource = null;
+    }
+    this.currentStoreId = null;
+
+    console.log('[LocalBridgeSyncService] Stopped.');
+  }
+
+  // ── PUSH: outbox → Supabase (Triggered via Backend HTTP) ────────────────────
+  static async pushPendingMutations(storeId?: string): Promise<{ pushed: number; failed: number; pending: number }> {
+    const dataClient = getDataClient();
+    const targetStoreId = storeId || this.currentStoreId;
+
+    if (!targetStoreId) {
+      return { pushed: 0, failed: 0, pending: 0 };
+    }
+
+    try {
+      const headers = await OfflineAuthService.getAuthHeaders();
+      if (!headers) {
+        return { pushed: 0, failed: 0, pending: 0 };
+      }
+
+      const response = await smartFetch(
+        `${dataClient.localBridgeBaseUrl}/sync/push?store_id=${targetStoreId}`,
+        {
+          method: 'POST',
+          headers,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Outbox push failed: HTTP ${response.status}`);
+      }
+
+      const result = await response.json();
+      return {
+        pushed: result.pushed || 0,
+        failed: result.failed || 0,
+        pending: result.pending || 0,
+      };
+    } catch (err) {
+      console.error('[LocalBridgeSyncService] pushPendingMutations error:', err);
+      return { pushed: 0, failed: 0, pending: 0 };
+    }
+  }
+
+  // ── PULL: Supabase → local bridge (Triggered via Backend HTTP) ──────────────
+  static async pullData(storeId?: string): Promise<{ pulled: number } | null> {
+    const dataClient = getDataClient();
+    const targetStoreId = storeId || this.currentStoreId;
+
+    if (!targetStoreId) return null;
+
+    try {
       const headers = await OfflineAuthService.getAuthHeaders();
       if (!headers) return null;
 
-      // This branch pointed at `/rest/v1/sync/pull`, a path the local bridge
-      // has never served - registerSyncRoutes mounts `/sync/pull` with no
-      // prefix - so every pull 404'd here twice over: wrong path AND, on the
-      // other branches, wrong method. Both are corrected; the backend now
-      // answers GET and POST.
-      const query = storeId ? `?store_id=${encodeURIComponent(storeId)}` : '';
-      const response = await smartFetch(`${dataClient.localBridgeBaseUrl}/sync/pull${query}`, {
+      const response = await smartFetch(
+        `${dataClient.localBridgeBaseUrl}/sync/pull?store_id=${targetStoreId}`,
+        {
+          method: 'POST',
+          headers,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Data pull failed: HTTP ${response.status}`);
+      }
+
+      return { pulled: 0 }; // Backend handles actual pull and SSE notifications
+    } catch (err) {
+      console.error('[LocalBridgeSyncService] pullData error:', err);
+      return null;
+    }
+  }
+
+  // ── Manual retry ───────────────────────────────────────────────────────────
+  static async retryFailed(): Promise<void> {
+    const dataClient = getDataClient();
+    try {
+      const headers = await OfflineAuthService.getAuthHeaders();
+      if (!headers) return;
+
+      const resp = await smartFetch(`${dataClient.localBridgeBaseUrl}/sync/outbox/retry`, {
         method: 'POST',
         headers
       });
-
-      if (!response.ok) return null;
-
-      // The old code read `pulledSales`/`pulledInventory`, fields the route has
-      // never returned, so a successful pull always reported 0 - which reads
-      // exactly like a broken pull. Parse what the route actually sends.
-      const result = await response.json().catch(() => null);
-      const pulled = Number(result?.pulled) || 0;
-
-      if (result?.tables?.length) {
-        console.info('[LocalBridgeSyncService] pull:', result.tables);
+      if (!resp.ok) throw new Error(`Retry reset failed: HTTP ${resp.status}`);
+      const { reset_count } = await resp.json();
+      console.log(`[LocalBridgeSyncService] ${reset_count} failed entries reset — retrying…`);
+      if (this.currentStoreId) {
+        await this.pushPendingMutations(this.currentStoreId);
       }
-      if (result?.ok === false) {
-        console.warn('[LocalBridgeSyncService] pull completed with failures:', result.tables?.filter((t: any) => t.error));
-      }
-
-      if (pulled > 0) {
-        // Same event the modules already listen for after a local write, so a
-        // pull that hydrates the catalogue does not leave every screen stale.
-        window.dispatchEvent(new CustomEvent('localDbDataUpdated', { detail: { source: 'pull', pulled } }));
-      }
-
-      return { pulled };
-    } catch (e) {
-      console.error('Failed to pull data', e);
-      return null;
+    } catch (err) {
+      console.error('[LocalBridgeSyncService] retryFailed error:', err);
     }
   }
 }

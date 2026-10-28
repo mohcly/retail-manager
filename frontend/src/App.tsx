@@ -9,7 +9,6 @@ import { ShortcutsProvider } from "@/contexts/ShortcutsContext";
 import { PrinterProvider } from "@/contexts/PrinterContext";
 import { ScannerProvider } from "@/contexts/ScannerContext";
 import { ShortcutsHelpOverlay } from "@/components/shared/ShortcutsHelpOverlay";
-import { AppUpdater } from "@/components/shared/AppUpdater";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { MasterLayout } from "@/components/master/Layout/MasterLayout";
@@ -29,7 +28,6 @@ import TeamPage from "./pages/master/Team";
 import FilesPage from "./pages/master/Files";
 import AuditLogsPage from "./pages/master/AuditLogs";
 import CloudSyncPage from "./pages/master/CloudSync";
-import IngredientsPage from "./pages/master/IngredientsPage";
 import HelpPage from "./pages/shared/Help";
 import WorkerDashboard from "./pages/worker/Dashboard";
 import POSPage from "./pages/worker/POS";
@@ -39,35 +37,14 @@ import CustomerBrowse from "./pages/customer/Browse";
 import NotFound from "./pages/NotFound";
 
 import { TermsOfServiceGate } from "@/components/license/TermsOfServiceGate";
+import { DeviceProvider } from "@/contexts/DeviceContext";
 
-import { DeviceProvider } from '@/contexts/DeviceContext';
-
-// Bare `new QueryClient()` shipped React Query's defaults, which are tuned
-// for a cloud SaaS, not a till on weak hardware:
-//   - refetchOnWindowFocus: true  -> EVERY alt-tab back to the app refired
-//     every active query on screen (dashboard analytics, product lists,
-//     search results) over HTTP to the bridge. A cashier switches windows
-//     constantly, so the app was re-fetching the same data all day.
-//   - retry: 3 with exponential backoff -> any query against a dead endpoint
-//     hammered it 4x before failing, multiplying work exactly when the
-//     machine is already struggling.
-// Data freshness is not the frontend's job here anyway: the bridge pushes
-// SSE 'localDbDataUpdated' events on real changes and the components already
-// listen for them.
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false,
-      staleTime: 30_000,
-      retry: 1,
-    },
-  },
-});
+const queryClient = new QueryClient();
 
 const App = () => (
   <ErrorBoundary>
     <DeviceProvider>
-    <QueryClientProvider client={queryClient}>
+      <QueryClientProvider client={queryClient}>
       <LicenseProvider>
         <ShortcutsProvider>
           <PrinterProvider>
@@ -77,7 +54,6 @@ const App = () => (
                 <Toaster />
                 <Sonner />
                 <ShortcutsHelpOverlay />
-                <AppUpdater />
                 <TermsOfServiceGate>
                   <HashRouter>
                     <Routes>
@@ -104,7 +80,6 @@ const App = () => (
                       <Route path="team" element={<TeamPage />} />
                       <Route path="audit-logs" element={<AuditLogsPage />} />
                       <Route path="cloud-sync" element={<CloudSyncPage />} />
-                      <Route path="ingredients" element={<IngredientsPage />} />
                       <Route path="help" element={<HelpPage />} />
                     </Route>
                     <Route path="/worker" element={<Navigate to="/worker/dashboard" replace />} />

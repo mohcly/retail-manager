@@ -1,10 +1,8 @@
-export type AppRole = 'master' | 'worker' | 'deliverer' | 'customer' | 'cashier' | 'cook' | 'waiter' | 'waiters';
+export type AppRole = 'master' | 'worker' | 'deliverer' | 'customer';
 export type DeliveryStatus = 'pending' | 'assigned' | 'in_transit' | 'delivered' | 'cancelled';
 export type SalesStatus = 'good' | 'bad' | 'worse';
 export type SaleType = 'detail' | 'gros' | 'proforma';
 export type PaymentStatus = 'paid' | 'pending' | 'partial';
-
-export type StoreVertical = 'retail' | 'restaurant' | 'supermarket' | string;
 
 export interface Store {
   id: string;
@@ -13,8 +11,6 @@ export interface Store {
   phone?: string;
   owner_id?: string;
   default_price_tier: number;
-  store_type?: StoreVertical;
-  receipt_settings?: string | any;
   created_at: string;
   updated_at: string;
 }
@@ -34,7 +30,7 @@ export interface UserRole {
   user_id: string;
   role: AppRole;
   store_id?: string;
-  sub_role?: 'cook' | 'cashier' | 'waiter' | null;
+  sub_role?: string;
   created_at: string;
 }
 
@@ -74,12 +70,6 @@ export interface Product {
   unit_type?: string;
   packaging?: string;
   expiry_date?: string;
-  // Restaurant-specific fields
-  prep_time_minutes?: number;
-  is_available?: boolean;
-  allergens?: string[] | string;
-  course_type?: string;
-  modifiers?: any[] | string;
   created_at: string;
   updated_at: string;
 }
@@ -90,6 +80,7 @@ export interface InventoryItem {
   name: string;
   description?: string;
   sku?: string;
+  barcode?: string;
   price: number;
   wholesale_price?: number;
   wholesale_price_ht?: number;
@@ -99,6 +90,7 @@ export interface InventoryItem {
   selling_price_2?: number;
   selling_price_3?: number;
   selling_price_4?: number;
+
   cost?: number;
   quantity: number;
   low_stock_threshold?: number;
@@ -112,14 +104,6 @@ export interface InventoryItem {
   packaging?: string;
   expiry_date?: string;
   reorder_quantity?: number;
-  // Restaurant-specific fields
-  prep_time_minutes?: number;
-  is_available?: boolean;
-  allergens?: string[] | string;
-  course_type?: string;
-  modifiers?: any[] | string;
-  item_type?: 'product' | 'dish' | 'pack';
-  pack_items?: any[] | string;
   
   created_at: string;
   updated_at: string;
@@ -139,6 +123,9 @@ export interface Sale {
   payment_status?: PaymentStatus;
   notes?: string;
   invoice_number?: string;
+  customer_code?: string;
+  customer_address?: string;
+  order_ref?: string;
   created_at: string;
   updated_at: string;
 }
@@ -238,4 +225,15 @@ export interface Deliverer {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export interface StockMovement {
+  id: string;
+  created_at?: string;
+  date?: string;
+  product_name: string;
+  movement_type?: 'in' | 'out' | string;
+  type?: 'in' | 'out' | string;
+  quantity: number;
+  reason?: string;
 }

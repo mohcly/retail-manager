@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import logoUrl from '@/assets/logo.png';
 import { WorkerMenuBar, WorkerModule } from './WorkerMenuBar';
@@ -20,7 +19,6 @@ import { CommandeManuelleModule } from '../Modules/CommandeManuelleModule';
 import { ReglementsFournisseursModule } from '../Modules/ReglementsFournisseursModule';
 // Fichiers (Master Data) modules
 import { FichiersProduitsModule } from '../Modules/FichiersProduitsModule';
-import { FicheProduitsModule } from '../Modules/FicheProduitsModule';
 import { FichiersClientsModule } from '../Modules/FichiersClientsModule';
 import { FichiersFournisseursModule } from '../Modules/FichiersFournisseursModule';
 import { FichiersFamillesModule } from '../Modules/FichiersFamillesModule';
@@ -32,52 +30,23 @@ import { StockModule } from '../Modules/StockModule';
 import { SettingsModule } from '../Modules/SettingsModule';
 import { useGlobalKeyboard, useNavigationStore } from '@/navigation';
 import { ReglementsBonsModule } from '../Modules/ReglementsBonsModule';
-import { resetMasterPasswordGates } from '@/components/shared/MasterPasswordGate';
-import { KitchenDisplay } from '../Modules/KitchenDisplay';
-import { TableManagement } from '../Modules/TableManagement';
-import { CashierReadyOrdersBell } from './CashierReadyOrdersBell';
-import { NotificationCenter } from '@/components/shared/NotificationCenter';
-import { IngredientsModule } from '../Modules/IngredientsModule';
+import { MasterPasswordGate, resetMasterPasswordGates } from '@/components/shared/MasterPasswordGate';
+import { CashierCreditsModule } from '../Modules/CashierCreditsModule';
 import { useDevice } from '@/contexts/DeviceContext';
 import { MobileWorkerLayout } from '@/components/mobile/MobileWorkerLayout';
 import { MinWidthGate } from '@/components/shared/MinWidthGate';
-import { MobileSalesModule } from '../../mobile/Sales/MobileSalesModule';
-import { MobileFicheCaisse } from '../../mobile/Sales/MobileFicheCaisse';
-import { MobileReceptionAchats } from '../../mobile/Purchases/MobileReceptionAchats';
-import { MobileCommandeManuelle } from '../../mobile/Purchases/MobileCommandeManuelle';
-import { MobileReglementsFournisseurs } from '../../mobile/Purchases/MobileReglementsFournisseurs';
 
 interface WorkerLayoutProps {
   className?: string;
 }
 
 export function WorkerLayout({ className }: WorkerLayoutProps) {
+  const { isDesktop } = useDevice();
+
   useGlobalKeyboard();
   const { t } = useTranslation();
   const { user, signOut, roles } = useAuth();
-  
-  const workerRole = roles.find(r => r.role === 'worker');
-  const rawSubRole = roles.find(r => ['cook', 'cashier', 'waiter', 'waiters'].includes(r.role))?.role
-    || workerRole?.sub_role
-    || (user?.user_metadata?.sub_role as string | null | undefined);
-  const subRole = ((rawSubRole === 'waiters' ? 'waiter' : rawSubRole) || 'waiter') as 'cook' | 'cashier' | 'waiter';
-  const { isDesktop } = useDevice();
-  const [forceDesktopMode, setForceDesktopMode] = useState(false);
-
-
-
-  // Apply dark class to document.documentElement dynamically for Radix Portals
-  useEffect(() => {
-    if (subRole === 'cashier') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-    return () => {
-      document.documentElement.classList.remove('dark');
-    };
-  }, [subRole]);
-
+  const isMaster = roles?.some(r => r.role === 'master');
   // HIERARCHY FIX: When activeCell becomes null (Escape), focus the top menu.
   const activeCell = useNavigationStore(s => s.activeCell);
   useEffect(() => {
@@ -88,45 +57,11 @@ export function WorkerLayout({ className }: WorkerLayoutProps) {
       }, 50);
     }
   }, [activeCell]);
-
   const [activeModule, setActiveModule] = useState<WorkerModule>(() => {
     return (localStorage.getItem('worker_active_module') as WorkerModule) || 'facturation-detail';
   });
-
-  // Allowed modules checks
-  const isModuleAllowed = useCallback((module: WorkerModule, role?: 'cook' | 'cashier' | 'waiter' | null): boolean => {
-    if (role === 'cook') {
-      return ['kds', 'preferences', 'programmation-touches', 'mots-de-passe'].includes(module);
-    }
-    if (role === 'cashier') {
-      return [
-        'facturation-detail',
-        'fermeture-caisse', 'reglements-bons',
-        'preferences', 'programmation-touches', 'mots-de-passe'
-      ].includes(module);
-    }
-    if (role === 'waiter') {
-      return ['tables', 'vente-detail'].includes(module);
-    }
-    return true;
-  }, []);
-
-  // Enforce access control
-  useEffect(() => {
-    if (!isModuleAllowed(activeModule, subRole)) {
-      if (subRole === 'cook') {
-        setActiveModule('kds');
-      } else if (subRole === 'cashier') {
-        setActiveModule('facturation-detail');
-      } else if (subRole === 'waiter') {
-        setActiveModule('tables');
-      }
-    }
-  }, [activeModule, subRole, isModuleAllowed]);
-
   const [storeId, setStoreId] = useState<string>('');
   const [storeName, setStoreName] = useState<string>('');
-  const [storeType, setStoreType] = useState<string>('retail');
 
   useEffect(() => {
     localStorage.setItem('worker_active_module', activeModule);
@@ -137,50 +72,23 @@ export function WorkerLayout({ className }: WorkerLayoutProps) {
     });
   }, [activeModule, storeId]);
 
-  useEffect(() => {
-    const handleModuleChange = (e: any) => {
-      const module = e.detail?.module;
-      if (module && isModuleAllowed(module, subRole)) {
-        setActiveModule(module);
-      }
-    };
-    window.addEventListener('worker-active-module-change', handleModuleChange);
-    return () => window.removeEventListener('worker-active-module-change', handleModuleChange);
-  }, [subRole, isModuleAllowed]);
-
-  const [mountedModules, setMountedModules] = useState<Set<WorkerModule>>(() => {
-    return new Set([activeModule]);
-  });
-
-  useEffect(() => {
-    setMountedModules(prev => {
-      if (prev.has(activeModule)) return prev;
-      const newSet = new Set(prev);
-      newSet.add(activeModule);
-      return newSet;
-    });
-  }, [activeModule]);
-
   const moduleLabels: Record<WorkerModule, string> = {
-    'kds': t('menu.restaurant.kds'),
-    'tables': t('menu.restaurant.tables'),
     'vente-detail': t('menu.sales.retail'),
     'facturation-detail': t('menu.sales.billingRetail'),
     'facturation-gros': t('menu.sales.billingWholesale'),
     'proforma': t('menu.sales.proforma'),
     'fermeture-caisse': t('menu.sales.closeCash'),
     'reglements-bons': t('menu.sales.settlement'),
+    'credits-caisse': t('menu.sales.cashierCredits'),
     'reception-achats': t('menu.purchases.reception'),
     'commande-auto': t('menu.purchases.autoOrder'),
     'commande-manuelle': t('menu.purchases.manualOrder'),
     'reglement-fournisseurs': t('menu.purchases.supplierSettlement'),
     'produits': t('menu.files.products'),
-    'fiche-produits': t('menu.files.menuModule'),
     'clients': t('menu.files.clients'),
     'services-clients': t('menu.files.clientServices'),
     'fournisseurs': t('menu.files.suppliers'),
     'familles': t('menu.files.families'),
-    'ingredients': 'Ingrédients',
     'situation-client': t('menu.edition.clientStatus'),
     'suivi-ventes-jour': t('menu.edition.dailySales'),
     'suivi-ventes-produit': t('menu.edition.salesByProduct'),
@@ -211,7 +119,7 @@ export function WorkerLayout({ className }: WorkerLayoutProps) {
     const fetchStore = async () => {
       if (!user) return;
 
-      let foundStoreId = roles.find(r => r.store_id)?.store_id || user?.user_metadata?.store_id || '';
+      let foundStoreId = user?.user_metadata?.store_id || '';
       let foundStoreName = '';
 
       // Try to resolve store name from local bridge or cache
@@ -237,10 +145,7 @@ export function WorkerLayout({ className }: WorkerLayoutProps) {
         } else {
           try {
             const localStore = await LocalDatabase.getStore(foundStoreId);
-            if (localStore) {
-              foundStoreName = localStore.name;
-              if (localStore.store_type) setStoreType(localStore.store_type);
-            }
+            if (localStore) foundStoreName = localStore.name;
           } catch (e) {
             console.error('Failed to recover store name from local db', e);
           }
@@ -250,7 +155,7 @@ export function WorkerLayout({ className }: WorkerLayoutProps) {
       if (!foundStoreId && !localStorage.getItem('worker_store_id')) {
         try {
           const localRoles = await LocalDatabase.getRolesByUserId(user.id);
-          const workerRole = localRoles.find(r => r.store_id) || localRoles.find(r => r.role === 'worker' || r.role === 'master');
+          const workerRole = localRoles.find(r => r.role === 'worker' || r.role === 'master');
           if (workerRole?.store_id) {
             setStoreId(workerRole.store_id);
           }
@@ -268,8 +173,6 @@ export function WorkerLayout({ className }: WorkerLayoutProps) {
     fetchStore();
   }, [user]);
 
-
-
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'F12') {
@@ -282,50 +185,16 @@ export function WorkerLayout({ className }: WorkerLayoutProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const renderModule = useCallback((moduleToRender: WorkerModule) => {
-    // If we are on a mobile device, we intercept the complex desktop modules
-    // and render their dedicated mobile equivalents instead.
-    if (!isDesktop) {
-      switch (moduleToRender) {
-        case 'vente-detail':
-        case 'facturation-detail':
-        case 'facturation-gros':
-        case 'proforma':
-          return <MobileSalesModule mode={moduleToRender} />;
-        case 'fermeture-caisse':
-        case 'consultation-caisse':
-          return <MobileFicheCaisse />;
-        case 'reception-achats':
-          return <MobileReceptionAchats />;
-        case 'commande-manuelle':
-        case 'commande-auto':
-          return <MobileCommandeManuelle />;
-        case 'reglement-fournisseurs':
-          return <MobileReglementsFournisseurs />;
-      }
-    }
-
-    switch (moduleToRender) {
-      case 'kds':
-        return <KitchenDisplay storeId={storeId} />;
-
-      case 'tables':
-        return <TableManagement storeId={storeId} onModuleChange={setActiveModule} />;
-
+  const renderModule = useCallback(() => {
+    switch (activeModule) {
       case 'vente-detail':
       case 'facturation-detail':
       case 'facturation-gros':
       case 'proforma':
-        return <SalesModule storeId={storeId} mode={moduleToRender} />;
+        return <SalesModule storeId={storeId} mode={activeModule} />;
 
       case 'produits':
         return <FichiersProduitsModule storeId={storeId} />;
-
-      case 'fiche-produits':
-        return <FicheProduitsModule storeId={storeId} />;
-
-      case 'ingredients':
-        return <IngredientsModule storeId={storeId} />;
 
       case 'clients':
         return <FichiersClientsModule storeId={storeId} />;
@@ -351,7 +220,15 @@ export function WorkerLayout({ className }: WorkerLayoutProps) {
       case 'regularisation-stock':
       case 'valorisation-stock':
       case 'inventaire-stock':
-        return <StockModule storeId={storeId} mode={moduleToRender} />;
+        const stockContent = <StockModule storeId={storeId} mode={activeModule} />;
+        if (activeModule === 'inventaire-stock') {
+          return (
+            <MasterPasswordGate moduleName={t('menu.stock.inventory') || 'Inventaire Stock'}>
+              {stockContent}
+            </MasterPasswordGate>
+          );
+        }
+        return stockContent;
 
       case 'reception-achats':
         return <ReceptionAchatsModule storeId={storeId} />;
@@ -368,6 +245,9 @@ export function WorkerLayout({ className }: WorkerLayoutProps) {
       case 'reglements-bons':
         return <ReglementsBonsModule storeId={storeId} />;
 
+      case 'credits-caisse':
+        return <CashierCreditsModule storeId={storeId} />;
+
       case 'situation-client':
       case 'suivi-ventes-jour':
       case 'suivi-ventes-produit':
@@ -376,128 +256,61 @@ export function WorkerLayout({ className }: WorkerLayoutProps) {
       case 'suivi-achats-famille':
       case 'suivi-achats-jour':
       case 'suivi-achats-periode':
-        return <EditionModule storeId={storeId} mode={moduleToRender} />;
+        return <EditionModule storeId={storeId} mode={activeModule} />;
 
       case 'journal-caisse':
       case 'tableau-bord':
       case 'statistiques':
       case 'sorties-pertes':
-        return <GestionModule storeId={storeId} mode={moduleToRender} />;
+        return <GestionModule storeId={storeId} mode={activeModule} />;
 
       case 'preferences':
       case 'programmation-touches':
       case 'mots-de-passe':
       case 'synchronisation':
-        return <SettingsModule storeId={storeId} mode={moduleToRender} />;
+        return <SettingsModule storeId={storeId} mode={activeModule} />;
 
       default:
         return (
           <PlaceholderModule
-            title={moduleLabels[moduleToRender]}
+            title={moduleLabels[activeModule]}
             description={t('common.loading')}
           />
         );
     }
-  }, [storeId, t, moduleLabels, isDesktop]);
+  }, [activeModule, storeId, t]);
 
   const handleLogout = async () => {
     await signOut();
   };
 
-  if (!isDesktop && !forceDesktopMode) {
-    return <MobileWorkerLayout onOpenDesktopModule={(moduleId) => {
-      setActiveModule(moduleId as any);
-      setForceDesktopMode(true);
-    }} />;
-  }
-
   const layoutContent = (
-    <div className={cn('h-full flex flex-col bg-background', subRole === 'cashier' && 'dark', className)}>
-      <header className={cn(
-        'h-10 flex items-center shrink-0 px-2',
-        subRole === 'cashier'
-          ? 'bg-[#0D0D0D] border-b border-[#F5C518]/20'
-          : subRole === 'cook'
-            ? 'bg-black border-b border-white/10'
-            : 'bg-[hsl(160,70%,35%)]'
-      )}>
+    <div className={cn('h-full flex flex-col bg-background', className)}>
+      <header className="h-10 bg-[hsl(160,70%,35%)] flex items-center shrink-0 px-2">
         <div className="h-7 w-7 shrink-0 overflow-hidden rounded bg-white/10 p-0.5 mr-2">
           <img src={logoUrl} alt="Djati" className="h-full w-full object-contain" />
         </div>
-        <div className={cn(
-          'font-black text-xs uppercase tracking-tighter mr-4 border-r pr-4',
-          subRole === 'cashier'
-            ? 'text-[#F5C518] border-[#F5C518]/20'
-            : 'text-white border-white/20'
-        )}>
+        <div className="text-white font-black text-xs uppercase tracking-tighter mr-4 border-r border-white/20 pr-4">
           Djati
         </div>
         <WorkerMenuBar
           activeModule={activeModule}
           onModuleChange={setActiveModule}
-          subRole={subRole}
-          storeType={storeType}
+          isMaster={isMaster}
         />
-        {subRole === 'cashier' && (
-          <div className="flex items-center gap-2.5 ml-auto pr-1">
-            <NotificationCenter className="h-8 w-8" />
-            <CashierReadyOrdersBell storeId={storeId} />
-          </div>
-        )}
       </header>
 
-      <main className={cn(
-        'flex-1 overflow-hidden',
-        subRole === 'cashier'
-          ? 'bg-[#111111]'
-          : 'bg-[hsl(50,90%,55%)] dark:bg-background'
-      )}>
+      <main className="flex-1 overflow-hidden bg-[hsl(50,90%,55%)] dark:bg-background">
         <div className="h-full p-4">
-          <div className={cn(
-            'h-full overflow-hidden flex flex-col',
-            subRole === 'cashier'
-              ? 'rounded-xl border border-[#F5C518]/15 bg-[#0D0D0D] shadow-2xl shadow-black/60'
-              : 'glass-card'
-          )}>
-            <div className={cn(
-              'h-8 border-b flex items-center px-4 justify-between',
-              subRole === 'cashier'
-                ? 'bg-[#F5C518]/10 border-[#F5C518]/20'
-                : 'bg-primary/10 border-primary/30'
-            )}>
-              <div className="flex items-center gap-2">
-                {!isDesktop && forceDesktopMode && (
-                  <button
-                    onClick={() => setForceDesktopMode(false)}
-                    className={cn(
-                      "p-1 rounded-sm hover:bg-black/10",
-                      subRole === 'cashier' ? 'text-white' : 'text-primary'
-                    )}
-                  >
-                    <ArrowLeft className="h-4 w-4" />
-                  </button>
-                )}
-                <span className={cn(
-                  'text-sm font-medium',
-                  subRole === 'cashier' ? 'text-white' : 'text-primary'
-                )}>
-                  {moduleLabels[activeModule]}
-                </span>
-              </div>
+          <div className="h-full glass-card overflow-hidden flex flex-col">
+            <div className="h-8 bg-primary/10 border-b border-primary/30 flex items-center px-4">
+              <span className="text-sm font-medium text-primary">
+                {moduleLabels[activeModule]}
+              </span>
             </div>
 
-            <div className="flex-1 relative overflow-hidden">
-              {Array.from(mountedModules).map(module => (
-                <div 
-                  key={module}
-                  className={cn(
-                    "absolute inset-0 h-full w-full",
-                    activeModule === module ? "block" : "hidden"
-                  )}
-                >
-                  {renderModule(module)}
-                </div>
-              ))}
+            <div className="flex-1 overflow-hidden">
+              {renderModule()}
             </div>
           </div>
         </div>
@@ -509,16 +322,13 @@ export function WorkerLayout({ className }: WorkerLayoutProps) {
         activeModule={activeModule}
         onLogout={handleLogout}
         storeId={storeId}
-        subRole={subRole}
       />
     </div>
   );
 
-  if (subRole === 'waiter' || activeModule === 'tables') {
-    return layoutContent;
-  }
-
-  return (
+  return !isDesktop ? (
+    <MobileWorkerLayout />
+  ) : (
     <MinWidthGate minWidth={675}>
       {layoutContent}
     </MinWidthGate>

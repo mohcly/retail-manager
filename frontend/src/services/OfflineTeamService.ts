@@ -17,7 +17,7 @@ export interface TeamMember {
   full_name: string;
   phone?: string;
   role: AppRole;
-  sub_role?: 'cook' | 'cashier' | 'waiter' | null;
+  sub_role?: 'cashier' | null;
   store_id?: string;
   store_name?: string;
   vehicle_type?: string;
@@ -35,7 +35,7 @@ export interface CreateUserPayload {
   full_name: string;
   phone?: string;
   role: 'worker' | 'deliverer';
-  sub_role?: 'cook' | 'cashier' | 'waiter' | null;
+  sub_role?: 'cashier' | null;
   store_id?: string;
   store_name?: string;
   vehicle_type?: string;
@@ -283,7 +283,41 @@ export class OfflineTeamService {
             }
 
             if (teamError) {
-              console.error('[getWorkers] get-team edge function error:', teamError);
+              console.warn('[getWorkers] get-team edge function error, falling back to direct table select:', teamError);
+              const { data: dbRoles, error: dbRolesError } = await supabase
+                .from('user_roles')
+                .select('*')
+                .in('role', ['worker', 'master']);
+
+              if (!dbRolesError && dbRoles) {
+                if (dbRoles.length === 0) {
+                  return { data: [] };
+                }
+                const userIds = dbRoles.map((r: any) => r.user_id);
+                const { data: dbProfiles } = await supabase
+                  .from('profiles')
+                  .select('*')
+                  .in('id', userIds);
+
+                const mappedWorkers: TeamMember[] = dbRoles.map((r: any) => {
+                  const profile = (dbProfiles || []).find((p: any) => p.id === r.user_id);
+                  return {
+                    id: r.id,
+                    user_id: r.user_id,
+                    email: profile?.email || '',
+                    full_name: profile?.full_name || 'Unknown',
+                    phone: profile?.phone || undefined,
+                    role: r.role,
+                    sub_role: r.sub_role || undefined,
+                    store_id: r.store_id || undefined,
+                    is_active: true,
+                    created_at: r.created_at,
+                    sales_count: 0,
+                    total_revenue: 0,
+                  };
+                });
+                return { data: mappedWorkers };
+              }
             }
           }
         } catch (supabaseErr) {
@@ -299,7 +333,7 @@ export class OfflineTeamService {
       const localRoles = await LocalDatabase.getAllRoles();
       const localStores = await LocalDatabase.getAllStores();
 
-      const workerRoles = localRoles.filter(r => ['worker', 'cashier', 'cook', 'waiter', 'waiters'].includes(r.role));
+      const workerRoles = localRoles.filter(r => ['worker', 'master'].includes(r.role));
 
       const allWorkers: TeamMember[] = workerRoles.map(role => {
         const user = localUsers.find(u => u.id === role.user_id);
@@ -311,8 +345,8 @@ export class OfflineTeamService {
           email: user?.email || '',
           full_name: user?.full_name || 'Unknown',
           phone: user?.phone,
-          role: 'worker' as AppRole,
-          sub_role: role.sub_role || (['cook', 'cashier', 'waiter', 'waiters'].includes(role.role) ? role.role as any : undefined),
+          role: role.role as AppRole,
+          sub_role: role.sub_role as any,
           store_id: role.store_id,
           store_name: store?.name,
           is_active: user ? (user.is_active ?? true) : true,
@@ -414,7 +448,40 @@ export class OfflineTeamService {
             }
 
             if (teamError) {
-              console.error('[getDeliverers] get-team edge function error:', teamError);
+              console.warn('[getDeliverers] get-team edge function error, falling back to direct table select:', teamError);
+              const { data: dbRoles, error: dbRolesError } = await supabase
+                .from('user_roles')
+                .select('*')
+                .eq('role', 'deliverer');
+
+              if (!dbRolesError && dbRoles) {
+                if (dbRoles.length === 0) {
+                  return { data: [] };
+                }
+                const userIds = dbRoles.map((r: any) => r.user_id);
+                const { data: dbProfiles } = await supabase
+                  .from('profiles')
+                  .select('*')
+                  .in('id', userIds);
+
+                const mappedDeliverers: TeamMember[] = dbRoles.map((r: any) => {
+                  const profile = (dbProfiles || []).find((p: any) => p.id === r.user_id);
+                  return {
+                    id: r.id,
+                    user_id: r.user_id,
+                    email: profile?.email || '',
+                    full_name: profile?.full_name || 'Unknown',
+                    phone: profile?.phone || undefined,
+                    role: 'deliverer',
+                    store_id: r.store_id || undefined,
+                    is_active: true,
+                    created_at: r.created_at,
+                    deliveries_total: 0,
+                    deliveries_completed: 0,
+                  };
+                });
+                return { data: mappedDeliverers };
+              }
             }
           }
         } catch (supabaseErr) {
@@ -565,8 +632,8 @@ export class OfflineTeamService {
         smartFetch(`${baseUrl}/rest/v1/sales`, { headers }),
       ]);
 
-      const rawRoles = rolesRes.ok ? await rolesRes.json() as any[] : null;
-      const roles = rawRoles ? rawRoles.filter((r: any) => ['worker', 'cashier', 'cook', 'waiter', 'waiters'].includes(r.role)) : null;
+      const allRoles = rolesRes.ok ? await rolesRes.json() : null;
+      const roles = allRoles ? allRoles.filter((r: any) => ['worker', 'master'].includes(r.role)) : null;
       const users = usersRes.ok ? await usersRes.json() : null;
       const stores = storesRes.ok ? await storesRes.json() : null;
       const sales = salesRes.ok ? await salesRes.json() : [];
@@ -596,8 +663,8 @@ export class OfflineTeamService {
           email: user?.email || '',
           full_name: user?.full_name || 'Unknown',
           phone: user?.phone || undefined,
-          role: 'worker' as AppRole,
-          sub_role: role.sub_role || (['cook', 'cashier', 'waiter', 'waiters'].includes(role.role) ? role.role as any : undefined),
+          role: role.role as AppRole,
+          sub_role: role.sub_role || undefined,
           store_id: role.store_id || undefined,
           store_name: store?.name,
           is_active: true,
@@ -798,13 +865,9 @@ export class OfflineTeamService {
 
       const baseUrl = getDataClient().localBridgeBaseUrl;
 
-      // DELETE the role (backend also deletes the user if no other roles remain).
-      // Path-param :id, matching every other local-bridge delete route
-      // (products/:id, clients/:id, ...) - this used to be a PostgREST-style
-      // ?id=eq.X query string, which local-bridge never registered a route
-      // for, so this always 404'd.
+      // DELETE the role (backend also deletes the user if no other roles remain)
       const res = await smartFetch(
-        `${baseUrl}/rest/v1/user_roles/${encodeURIComponent(roleId)}`,
+        `${baseUrl}/rest/v1/user_roles?id=eq.${encodeURIComponent(roleId)}`,
         { method: 'DELETE', headers }
       );
 
@@ -841,18 +904,16 @@ export class OfflineTeamService {
     }
   }
 
-  /**
-   * Reassign a worker/deliverer to a different store. id is user_roles.id,
-   * same as updateWorkerRole. Store assignment was write-once (only set at
-   * creation time) before this - there was no way to move someone.
-   */
-  static async updateWorkerStore(id: string, storeId: string): Promise<{ success: boolean; error?: any }> {
+  static async updateWorkerRole(id: string, role: string): Promise<{ success: boolean; error?: any }> {
     try {
       const dataClient = getDataClient();
       if (!dataClient.isLocalFirst) {
+        // id is user_roles.id here (see getWorkers()'s direct-table-select fallback,
+        // which is the path actually in effect since the get-team edge function
+        // doesn't exist in this project and its invoke() always errors).
         const { error } = await supabase
           .from('user_roles')
-          .update({ store_id: storeId })
+          .update({ role })
           .eq('id', id);
 
         if (error) {
@@ -865,22 +926,22 @@ export class OfflineTeamService {
       if (!headers) throw new Error('Not authenticated');
 
       const response = await smartFetch(
-        `${dataClient.localBridgeBaseUrl}/auth/workers/${id}/store`,
+        `${dataClient.localBridgeBaseUrl}/auth/workers/${id}/role`,
         {
           method: 'PATCH',
           headers: { ...headers, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ store_id: storeId }),
+          body: JSON.stringify({ role }),
         }
       );
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to update store');
+        throw new Error(errorData.error || 'Failed to update role');
       }
 
       return { success: true };
     } catch (error) {
-      console.error('Update worker store error:', error);
+      console.error('Update worker role error:', error);
       return { success: false, error };
     }
   }

@@ -42,26 +42,6 @@ export function StoreMultiSelector() {
       const { data } = await OfflineStoreService.getStores();
       if (data && data.length > 0) {
         setAvailableStores(data);
-        
-        // Stale store ID validation & cleanup
-        const storeSettingsStr = localStorage.getItem('master-dashboard-settings');
-        if (storeSettingsStr) {
-          try {
-            const parsed = JSON.parse(storeSettingsStr);
-            const selectedIds = parsed?.state?.selectedStoreIds || [];
-            const validIds = selectedIds.filter((id: string) => data.some((s: any) => s.id === id));
-            
-            if (validIds.length !== selectedIds.length || (selectedIds.length === 0 && !parsed?.state?.isAllStoresSelected)) {
-              if (validIds.length === 0 || (selectedIds.length === 0 && !parsed?.state?.isAllStoresSelected)) {
-                useMasterDashboardStore.getState().clearSelection();
-              } else {
-                useMasterDashboardStore.getState().setSelectedStoreIds(validIds);
-              }
-            }
-          } catch (e) {
-            console.error('Failed to parse master-dashboard-settings', e);
-          }
-        }
       }
     } catch (e) {
       console.warn('[StoreMultiSelector] loadStores failed:', e);

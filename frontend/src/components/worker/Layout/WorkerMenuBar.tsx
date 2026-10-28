@@ -14,25 +14,22 @@ import {
 } from '@/components/ui/menubar';
 
 export type WorkerModule =
-  | 'kds'
-  | 'tables'
   | 'vente-detail'
   | 'facturation-detail'
   | 'facturation-gros'
   | 'proforma'
   | 'fermeture-caisse'
   | 'reglements-bons'
+  | 'credits-caisse'
   | 'reception-achats'
   | 'commande-auto'
   | 'commande-manuelle'
   | 'reglement-fournisseurs'
   | 'produits'
-  | 'fiche-produits'
   | 'clients'
   | 'services-clients'
   | 'fournisseurs'
   | 'familles'
-  | 'ingredients'
   | 'situation-client'
   | 'suivi-ventes-jour'
   | 'suivi-ventes-produit'
@@ -61,8 +58,7 @@ interface WorkerMenuBarProps {
   activeModule: WorkerModule;
   onModuleChange: (module: WorkerModule) => void;
   className?: string;
-  subRole?: 'cook' | 'cashier' | 'waiter' | null;
-  storeType?: string;
+  isMaster?: boolean;
 }
 
 interface MenuItem {
@@ -80,31 +76,22 @@ interface MenuSection {
   items: MenuItem[];
 }
 
-export function WorkerMenuBar({ activeModule, onModuleChange, className, subRole, storeType }: WorkerMenuBarProps) {
+export function WorkerMenuBar({ activeModule, onModuleChange, className, isMaster = false }: WorkerMenuBarProps) {
   const { t } = useTranslation();
-  const isCashier = subRole === 'cashier';
-  const isCook = subRole === 'cook';
 
   const menuStructure: MenuSection[] = [
     {
-      triggerKey: 'menu.restaurant.trigger',
-      highlight: true,
-      items: [
-        { labelKey: 'menu.restaurant.kds', module: 'kds' },
-        { labelKey: 'menu.restaurant.tables', module: 'tables' },
-      ],
-    },
-    {
       triggerKey: 'menu.sales.trigger',
       highlight: true,
-      items: [
-        { labelKey: 'menu.sales.retail', module: 'vente-detail' },
-        { labelKey: 'menu.sales.billingRetail', module: 'facturation-detail' },
-        { labelKey: 'menu.sales.billingWholesale', module: 'facturation-gros' },
-        { labelKey: 'menu.sales.proforma', module: 'proforma' },
-        { separator: true },
+              items: [
+                { labelKey: 'menu.sales.retail', module: 'vente-detail' },
+                { labelKey: 'menu.sales.billingRetail', module: 'facturation-detail' },
+                { labelKey: 'menu.sales.billingWholesale', module: 'facturation-gros' },
+                { labelKey: 'menu.sales.proforma', module: 'proforma' },        { separator: true },
         { labelKey: 'menu.sales.closeCash', module: 'fermeture-caisse', shortcut: 'F12' },
         { labelKey: 'menu.sales.settlement', module: 'reglements-bons' },
+        { labelKey: 'menu.sales.cashierCredits', module: 'credits-caisse' },
+        { labelKey: 'menu.edition.dailySales', module: 'suivi-ventes-jour' },
       ],
     },
     {
@@ -120,10 +107,7 @@ export function WorkerMenuBar({ activeModule, onModuleChange, className, subRole
     {
       triggerKey: 'menu.files.trigger',
       items: [
-        { label: '🍔 Menu', module: 'fiche-produits' },
-        { label: '📦 Inventaire', module: 'listing-stock' },
-        { label: '🧂 Ingrédients', module: 'ingredients' },
-        { separator: true },
+        { labelKey: 'menu.files.products', module: 'produits' },
         { labelKey: 'menu.files.clients', module: 'clients' },
         { labelKey: 'menu.files.clientServices', module: 'services-clients' },
         { labelKey: 'menu.files.suppliers', module: 'fournisseurs' },
@@ -133,6 +117,12 @@ export function WorkerMenuBar({ activeModule, onModuleChange, className, subRole
     {
       triggerKey: 'menu.edition.trigger',
       items: [
+        {
+          labelKey: 'menu.edition.clientStatus',
+          submenu: [
+            { labelKey: 'menu.edition.accountStatement', module: 'situation-client' },
+          ],
+        },
         {
           labelKey: 'menu.edition.salesTracking',
           submenu: [
@@ -160,13 +150,6 @@ export function WorkerMenuBar({ activeModule, onModuleChange, className, subRole
     {
       triggerKey: 'menu.management.trigger',
       items: [
-        {
-          labelKey: 'menu.edition.clientStatus',
-          submenu: [
-            { labelKey: 'menu.edition.accountStatement', module: 'situation-client' },
-          ],
-        },
-        { separator: true },
         { labelKey: 'menu.management.cashConsultation', module: 'consultation-caisse' },
         { labelKey: 'menu.management.cashJournal', module: 'journal-caisse' },
         { separator: true },
@@ -200,70 +183,11 @@ export function WorkerMenuBar({ activeModule, onModuleChange, className, subRole
     },
   ];
 
-  // Filter based on storeType and subRole
-  const filteredMenuStructure = menuStructure.filter(section => {
-    // If store vertical is retail (hardware/shops), omit restaurant triggers
-    if (section.triggerKey === 'menu.restaurant.trigger' && storeType && storeType !== 'restaurant') {
-      return false;
-    }
-    if (subRole === 'cook') {
-      return section.triggerKey === 'menu.restaurant.trigger' || section.triggerKey === 'menu.program.trigger';
-    }
-    if (subRole === 'cashier') {
-      return (
-        section.triggerKey === 'menu.sales.trigger' ||
-        section.triggerKey === 'menu.program.trigger'
-      );
-    }
-    if (subRole === 'waiter') {
-      return ['menu.restaurant.trigger'].includes(section.triggerKey);
-    }
-    return true;
-  }).map((section) => {
-    if (subRole === 'cook') {
-      if (section.triggerKey === 'menu.restaurant.trigger') {
-        return {
-          ...section,
-          items: section.items.filter((item) => item.module === 'kds'),
-        };
-      }
-      // Programme section: show all items (Préférences, Programmation touches, Mots de passe)
-      return section;
-    }
-
-    if (subRole === 'waiter') {
-      if (section.triggerKey === 'menu.restaurant.trigger') {
-        return {
-          ...section,
-          items: section.items.filter((item) => item.module === 'tables'),
-        };
-      }
-      return section;
-    }
-
-    if (subRole !== 'cashier') {
-      return section;
-    }
-
-    if (section.triggerKey === 'menu.sales.trigger') {
-      return {
-        ...section,
-        items: section.items.filter((item) =>
-          item.module === 'facturation-detail' ||
-          item.module === 'fermeture-caisse' ||
-          item.module === 'reglements-bons' ||
-          item.separator
-        ).filter((item, index, items) => {
-          if (!item.separator) return true;
-          const prev = items[index - 1];
-          const next = items[index + 1];
-          return Boolean(prev && next && !prev.separator && !next.separator);
-        }),
-      };
-    }
-
-    return section;
-  });
+  // WorkerMenuBar only ever renders on desktop (WorkerLayout branches to
+  // MobileWorkerLayout/MobileMenuScreen on mobile, which has its own,
+  // separate Ventes+Stock-only restriction for non-master workers). Desktop
+  // always shows the full worker menu regardless of role.
+  const filteredMenuStructure = menuStructure;
 
   const isModuleInSection = (section: MenuSection) => {
     return section.items.some((item) => {
@@ -285,11 +209,11 @@ export function WorkerMenuBar({ activeModule, onModuleChange, className, subRole
     if (item.submenu) {
       return (
         <MenubarSub key={key}>
-          <MenubarSubTrigger className={cn('flex items-center justify-between', (isCashier || isCook) && '!text-zinc-300 focus:!text-white focus:!bg-white/10')}>
+          <MenubarSubTrigger className="flex items-center justify-between">
             {label}
             <ChevronRight className="h-4 w-4 ml-2" />
           </MenubarSubTrigger>
-          <MenubarSubContent className={cn('bg-popover border-slate-200 shadow-md min-w-[180px] z-[100]', (isCashier || isCook) && '!bg-[#111111] !border-neutral-800 !text-zinc-300')}>
+          <MenubarSubContent className="bg-popover border-slate-200 shadow-md min-w-[180px] z-[100]">
             {item.submenu.map((subItem, subKey) => {
               const subLabel = subItem.labelKey ? t(subItem.labelKey) : subItem.label;
               return (
@@ -298,8 +222,7 @@ export function WorkerMenuBar({ activeModule, onModuleChange, className, subRole
                   onClick={() => subItem.module && onModuleChange(subItem.module)}
                   className={cn(
                     'cursor-pointer transition-colors',
-                    (isCashier || isCook) && '!text-zinc-300 focus:!bg-white/10 focus:!text-white',
-                    subItem.module === activeModule && (isCashier ? '!bg-[#F5C518]/20 !text-[#F5C518] font-bold' : isCook ? 'bg-white/15 text-white font-bold' : 'bg-primary/20 text-primary')
+                    subItem.module === activeModule && 'bg-primary/20 text-primary'
                   )}
                 >
                   {subLabel}
@@ -320,8 +243,7 @@ export function WorkerMenuBar({ activeModule, onModuleChange, className, subRole
         onClick={() => item.module && onModuleChange(item.module)}
         className={cn(
           'cursor-pointer transition-colors',
-          (isCashier || isCook) && '!text-zinc-300 focus:!bg-white/10 focus:!text-white',
-          item.module === activeModule && (isCashier ? '!bg-[#F5C518]/20 !text-[#F5C518] font-bold' : isCook ? 'bg-white/15 text-white font-bold' : 'bg-primary/20 text-primary')
+          item.module === activeModule && 'bg-primary/20 text-primary'
         )}
       >
         <span>{label}</span>
@@ -339,27 +261,19 @@ export function WorkerMenuBar({ activeModule, onModuleChange, className, subRole
 
         return (
           <MenubarMenu key={index}>
-            <MenubarTrigger id={`worker-menubar-trigger-${index}`}
+            <MenubarTrigger id="worker-menubar-trigger-0"
               className={cn(
                 'px-4 py-2 text-sm font-medium rounded-none transition-all cursor-pointer',
-                isCashier
-                  ? 'text-zinc-300 data-[state=open]:bg-[#F5C518]/20 data-[state=open]:text-[#F5C518] hover:bg-white/10 hover:text-white'
-                  : isCook
-                    ? 'text-white/80 data-[state=open]:bg-white/10 data-[state=open]:text-white hover:bg-white/10 hover:text-white'
-                    : 'data-[state=open]:bg-primary data-[state=open]:text-primary-foreground',
-                section.highlight && !isActive && (isCashier ? 'bg-[#F5C518]/10 text-[#F5C518]' : isCook ? 'text-white' : 'bg-danger text-danger-foreground'),
-                isActive && (isCashier ? 'bg-[#F5C518]/20 text-[#F5C518] font-bold' : isCook ? 'bg-white/15 text-white font-bold' : 'bg-primary text-primary-foreground'),
-                !section.highlight && !isActive && !isCashier && !isCook && 'hover:bg-muted'
+                'data-[state=open]:bg-primary data-[state=open]:text-primary-foreground',
+                section.highlight && !isActive && 'bg-danger text-danger-foreground',
+                isActive && 'bg-primary text-primary-foreground',
+                !section.highlight && !isActive && 'hover:bg-muted'
               )}
             >
               {t(section.triggerKey)}
             </MenubarTrigger>
             <MenubarContent
-              className={cn(
-                'glass-card border-primary/20 min-w-[220px] animate-spring-in',
-                isCashier && '!bg-[#111111] !border-[#F5C518]/20 !text-zinc-300',
-                isCook && '!bg-[#111111] !border-neutral-800 !text-zinc-300'
-              )}
+              className="glass-card border-primary/20 min-w-[220px] animate-spring-in"
               align="start"
               sideOffset={0}
             >

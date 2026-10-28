@@ -11,14 +11,15 @@ import {
 import { ImageUpload } from '@/components/shared/ImageUpload';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { RecipeBuilder } from '@/components/recipe/RecipeBuilder';
+import { supabase } from '@/lib/supabase';
+import { getDataClient } from '@/lib/dataClient';
+// RecipeBuilder import removed for retail app
 
 interface MobileFicheProduitsProps {
   onBack: () => void;
-  storeId?: string;
 }
 
-export function MobileFicheProduits({ onBack, storeId: propStoreId }: MobileFicheProduitsProps) {
+export function MobileFicheProduits({ onBack }: MobileFicheProduitsProps) {
   const { t } = useTranslation();
   const { toast } = useToast();
   const { formatCurrency } = useFormatters();
@@ -32,16 +33,18 @@ export function MobileFicheProduits({ onBack, storeId: propStoreId }: MobileFich
   const [isSaving, setIsSaving] = useState(false);
 
   // Gallery view filter
-  const [activeTypeFilter, setActiveTypeFilter] = useState<'all' | 'dish' | 'product' | 'pack'>('all');
-
-  // Form State
+  const [activeTypeFilter, setActiveTypeFilter] = useState<'all' | 'product' | 'pack'>('all');
+  const [editingProduct, setEditingProduct] = useState<any>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<any | null>(null);
-  const [formTab, setFormTab] = useState<'info' | 'prices' | 'stock' | 'composition'>('info');
+  const [formTab, setFormTab] = useState<'info' | 'prices' | 'stock'>('info');
+  const [isCreatingNewCategory, setIsCreatingNewCategory] = useState(false);
 
   const initialFormState = {
     name: '',
-    item_type: 'product' as 'product' | 'dish' | 'pack',
+    item_type: 'product' as 'product' | 'pack',
+    sku: '',
+    barcode: '',
+    description: '',
     family_id: '',
     unit_price: '' as string | number,
     selling_price_2: '' as string | number,
@@ -52,52 +55,23 @@ export function MobileFicheProduits({ onBack, storeId: propStoreId }: MobileFich
     min_quantity: '10' as string | number,
     unit_type: 'Pièce',
     packaging: '1',
-    prep_time_minutes: '0' as string | number,
     image_url: '',
     pack_items: [] as string[],
-    recipe_items: [] as { ingredient_id: string; quantity_needed: number; unit: string }[],
-    recipe_cost: 0,
     pending_id: '',
   };
 
   const [formData, setFormData] = useState(initialFormState);
 
   useEffect(() => {
-    if (propStoreId) {
-      setStoreId(propStoreId);
-      loadProducts(propStoreId);
-      loadFamilies(propStoreId);
-    } else {
-      OfflineAuthService.getOfflineSession().then(session => {
-        const resolvedStoreId = session?.roles?.find(r => r.store_id)?.store_id || session?.user?.user_metadata?.store_id;
-        if (resolvedStoreId) {
-          setStoreId(resolvedStoreId);
-          loadProducts(resolvedStoreId);
-          loadFamilies(resolvedStoreId);
-        }
-      });
-    }
-
-    // Listen for custom search event
-    const handleSearchUpdate = (e: Event) => {
-      const customEvent = e as CustomEvent<{ query: string }>;
-      if (customEvent.detail && typeof customEvent.detail.query === 'string') {
-        setSearchQuery(customEvent.detail.query);
+    OfflineAuthService.getOfflineSession().then(session => {
+      const sid = session?.roles?.find(r => r.store_id)?.store_id || session?.user?.user_metadata?.store_id;
+      if (sid) {
+        setStoreId(sid);
+        loadProducts(sid);
+        loadFamilies(sid);
       }
-    };
-    window.addEventListener('worker-product-search-update', handleSearchUpdate);
-
-    // Check initial local storage if any
-    const storedSearch = localStorage.getItem('worker_product_search_query');
-    if (storedSearch) {
-      setSearchQuery(storedSearch);
-      localStorage.removeItem('worker_product_search_query'); // consume it
-    }
-
-    return () => {
-      window.removeEventListener('worker-product-search-update', handleSearchUpdate);
-    };
-  }, [propStoreId]);
+    });
+  }, []);
 
   const loadProducts = async (sid: string) => {
     setLoading(true);
@@ -105,9 +79,9 @@ export function MobileFicheProduits({ onBack, storeId: propStoreId }: MobileFich
       const res = await OfflineInventoryService.getInventory(sid);
       const mapped = (res?.data || []).map(item => {
         let parsed = [];
-        if (item.pack_items) {
+        if ((item as any).pack_items) {
           try {
-            parsed = typeof item.pack_items === 'string' ? JSON.parse(item.pack_items) : item.pack_items;
+            parsed = typeof (item as any).pack_items === 'string' ? JSON.parse((item as any).pack_items) : (item as any).pack_items;
           } catch(e) {
             console.error('Failed to parse pack_items', e);
           }
@@ -117,7 +91,7 @@ export function MobileFicheProduits({ onBack, storeId: propStoreId }: MobileFich
       setProducts(mapped);
     } catch (err) {
       console.error(err);
-      toast({ title: t('common.error'), description: 'Erreur lors du chargement du menu', variant: 'destructive' });
+      toast({ title: t('common.error'), description: 'Erreur lors du chargement des produits', variant: 'destructive' });
     } finally {
       setLoading(false);
     }
@@ -150,25 +124,14 @@ export function MobileFicheProduits({ onBack, storeId: propStoreId }: MobileFich
     const isBox = isBoxUnit(p.unit_type || 'Pièce');
     const scale = (val: any) => isBox && packSize > 1 ? (Number(val) * packSize) : Number(val);
 
-    let recipeItems: any[] = [];
-    if (p.item_type === 'dish') {
-      try {
-        const items = await OfflineAuthService.localBridgeRequest<any[]>(`/rest/v1/recipes?dish_id=${p.id}`);
-        if (Array.isArray(items)) {
-          recipeItems = items.map(item => ({
-            ingredient_id: item.ingredient_id,
-            quantity_needed: Number(item.quantity_needed),
-            unit: item.unit,
-          }));
-        }
-      } catch (err) {
-        console.error('Failed to load recipe items:', err);
-      }
-    }
+    // Recipe loading removed for retail app
 
     setFormData({
       name: p.name || '',
       item_type: p.item_type || 'product',
+      sku: p.sku || '',
+      barcode: p.barcode || '',
+      description: p.description || '',
       family_id: p.category_id || p.category || '',
       unit_price: scale(p.price || p.unit_price || 0),
       selling_price_2: scale(p.selling_price_2 || 0),
@@ -179,13 +142,12 @@ export function MobileFicheProduits({ onBack, storeId: propStoreId }: MobileFich
       min_quantity: isBox ? ((p.low_stock_threshold || 0) / packSize) : (p.low_stock_threshold || p.min_quantity || 0),
       unit_type: p.unit_type || 'Pièce',
       packaging: p.packaging || '1',
-      prep_time_minutes: p.prep_time_minutes || 0,
       image_url: p.image_url || '',
       pack_items: p.pack_items || [],
-      recipe_items: recipeItems,
-      recipe_cost: 0, // calculated dynamically by RecipeBuilder on render
+      // Recipe fields removed
       pending_id: p.id,
     });
+    setIsCreatingNewCategory(false);
     setFormTab('info');
     setIsFormOpen(true);
   }, []);
@@ -219,13 +181,79 @@ export function MobileFicheProduits({ onBack, storeId: propStoreId }: MobileFich
       const isBox = isBoxUnit(formData.unit_type);
 
       let finalPrice = Number(formData.unit_price) || 0;
-      let finalCost = formData.item_type === 'dish' ? (formData.recipe_cost || 0) : (Number(formData.cost_price) || 0);
+      let finalCost = Number(formData.cost_price) || 0;
       let finalQty = Number(formData.quantity) || 0;
 
       if (formData.item_type !== 'pack' && isBox && packSize > 1) {
         finalPrice = finalPrice / packSize;
         finalCost = finalCost / packSize;
         finalQty = finalQty * packSize;
+      }
+
+      // Category creation on-the-fly
+      let finalFamilyId = formData.family_id;
+      if (formData.family_id) {
+        const existing = families.find(f => f.id === formData.family_id || f.name.toLowerCase() === formData.family_id.toLowerCase());
+        if (existing) {
+          finalFamilyId = existing.id;
+        } else {
+          console.log('[MobileFicheProduits] Creating new family on the fly:', formData.family_id);
+          try {
+            const dc = getDataClient();
+            if (dc.isLocalFirst) {
+              const headers = await OfflineAuthService.getAuthHeaders() || {};
+              const famRes = await fetch(`${dc.localBridgeBaseUrl}/rest/v1/product_families`, {
+                method: 'POST',
+                headers: { ...headers, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: formData.family_id, store_id: storeId })
+              });
+              if (famRes.ok) {
+                const newFam = await famRes.json();
+                if (newFam) {
+                  finalFamilyId = newFam.id;
+                  setFamilies(prev => [...prev, newFam]);
+                }
+              }
+            } else {
+              // Pure cloud mode: try the direct write when online; if that
+              // fails (or we're offline to begin with) fall back to
+              // IndexedDB rather than silently dropping the family and
+              // leaving the product without one - SyncService.
+              // syncUnsyncedProductFamilies() pushes it once back online.
+              let created: any = null;
+              if (navigator.onLine) {
+                try {
+                  const { data: newFam, error: supaErr } = await supabase
+                    .from('product_families')
+                    .insert({ name: formData.family_id, store_id: storeId })
+                    .select()
+                    .single();
+                  if (supaErr) throw supaErr;
+                  created = newFam;
+                } catch (supaErr) {
+                  console.warn('[MobileFicheProduits] product_families insert failed, saving locally for retry:', supaErr);
+                }
+              }
+              if (!created) {
+                const { LocalDatabase } = await import('@/services/LocalDatabase');
+                await LocalDatabase.init();
+                const now = new Date().toISOString();
+                created = {
+                  id: crypto.randomUUID(),
+                  store_id: storeId,
+                  name: formData.family_id,
+                  created_at: now,
+                  updated_at: now,
+                };
+                await LocalDatabase.saveProductFamily({ ...created, synced: false });
+              }
+              finalFamilyId = created.id;
+              setFamilies(prev => [...prev, created]);
+            }
+          } catch(e) {
+            console.error("Failed to create family on the fly", e);
+          }
+        }
       }
 
       const payload = {
@@ -241,9 +269,8 @@ export function MobileFicheProduits({ onBack, storeId: propStoreId }: MobileFich
         low_stock_threshold: formData.item_type === 'pack' ? 0 : (Number(formData.min_quantity) || 0),
         unit_type: formData.item_type === 'pack' ? 'Pièce' : formData.unit_type,
         packaging: formData.item_type === 'pack' ? '1' : formData.packaging,
-        category: formData.family_id || undefined,
+        category: finalFamilyId || undefined,
         image_url: formData.image_url || undefined,
-        prep_time_minutes: formData.item_type === 'dish' ? (Number(formData.prep_time_minutes) || 0) : 0,
         is_available: true,
         pack_items: formData.item_type === 'pack' ? formData.pack_items : [],
         store_id: storeId,
@@ -259,17 +286,7 @@ export function MobileFicheProduits({ onBack, storeId: propStoreId }: MobileFich
 
       if (result.error) throw result.error;
 
-      // Save recipe items if it is a dish
-      if (formData.item_type === 'dish') {
-        await OfflineAuthService.localBridgeRequest('/rest/v1/recipes', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            dish_id: itemId,
-            items: formData.recipe_items || [],
-          }),
-        });
-      }
+      // Recipe save removed
 
       toast({ title: t('common.success'), description: 'Enregistrement réussi' });
       window.dispatchEvent(new CustomEvent('localDbDataUpdated', { detail: { type: 'product' } }));
@@ -290,7 +307,6 @@ export function MobileFicheProduits({ onBack, storeId: propStoreId }: MobileFich
         (p.category_name || families.find(f => f.id === (p.category_id || p.category))?.name || '').toLowerCase().includes(searchQuery.toLowerCase());
       
       if (activeTypeFilter === 'all') return matchesSearch;
-      if (activeTypeFilter === 'dish') return matchesSearch && p.item_type === 'dish';
       if (activeTypeFilter === 'product') return matchesSearch && (p.item_type === 'product' || !p.item_type);
       if (activeTypeFilter === 'pack') return matchesSearch && p.item_type === 'pack';
       return matchesSearch;
@@ -318,7 +334,7 @@ export function MobileFicheProduits({ onBack, storeId: propStoreId }: MobileFich
               <ArrowLeft className="w-6 h-6" />
             </button>
             <h1 className="text-lg font-bold text-white uppercase tracking-wider">
-              {editingProduct ? 'Modifier' : 'Ajouter'} {formData.item_type === 'pack' ? 'Pack' : formData.item_type === 'dish' ? 'Plat' : 'Produit'}
+              {editingProduct ? 'Modifier' : 'Ajouter'} {formData.item_type === 'pack' ? 'Pack' : 'Produit'}
             </h1>
           </div>
           <button
@@ -366,15 +382,6 @@ export function MobileFicheProduits({ onBack, storeId: propStoreId }: MobileFich
               Stock & Logistique
             </button>
           )}
-          {formData.item_type === 'dish' && (
-            <button
-              type="button"
-              onClick={() => setFormTab('composition')}
-              className={`flex-grow-0 shrink-0 px-4 py-2 rounded-xl text-xs font-bold transition-all uppercase tracking-wide ${formTab === 'composition' ? 'bg-rs-secondary text-rs-on-secondary shadow-md' : 'bg-rs-surface-container border border-[#262626] text-rs-on-surface'}`}
-            >
-              Composition
-            </button>
-          )}
         </div>
 
         {/* Form Body */}
@@ -394,12 +401,11 @@ export function MobileFicheProduits({ onBack, storeId: propStoreId }: MobileFich
 
               <div className="space-y-2">
                 <Label htmlFor="item-type">Type</Label>
-                <div className="grid grid-cols-3 gap-2 bg-[#141414] p-1 border border-[#262626] rounded-xl">
+                <div className="grid grid-cols-2 gap-2 bg-[#141414] p-1 border border-[#262626] rounded-xl">
                   <button
                     type="button"
                     onClick={() => {
                       setFormData(prev => ({ ...prev, item_type: 'product' }));
-                      if (formTab === 'composition') setFormTab('info');
                     }}
                     className={`py-2 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all ${formData.item_type === 'product' ? 'bg-rs-surface-tint text-white shadow-md' : 'text-rs-on-surface-variant'}`}
                   >
@@ -408,17 +414,8 @@ export function MobileFicheProduits({ onBack, storeId: propStoreId }: MobileFich
                   <button
                     type="button"
                     onClick={() => {
-                      setFormData(prev => ({ ...prev, item_type: 'dish' }));
-                    }}
-                    className={`py-2 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all ${formData.item_type === 'dish' ? 'bg-rs-surface-tint text-white shadow-md' : 'text-rs-on-surface-variant'}`}
-                  >
-                    🍳 Plat
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
                       setFormData(prev => ({ ...prev, item_type: 'pack' }));
-                      if (formTab === 'stock' || formTab === 'composition') setFormTab('info');
+                      if ((formTab as string) === 'stock') setFormTab('info');
                     }}
                     className={`py-2 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all ${formData.item_type === 'pack' ? 'bg-rs-surface-tint text-white shadow-md' : 'text-rs-on-surface-variant'}`}
                   >
@@ -434,7 +431,7 @@ export function MobileFicheProduits({ onBack, storeId: propStoreId }: MobileFich
                   type="text"
                   value={formData.name}
                   onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder={formData.item_type === 'pack' ? "Ex: Pack Famille, Combo Midi..." : "Ex: Burger Maison, Coca Cola..."}
+                  placeholder={formData.item_type === 'pack' ? "Ex: Pack Famille, Lot de 3..." : "Ex: Clé à molette, Ampoule LED..."}
                   className="bg-rs-surface-container border-[#262626] text-white"
                   required
                 />
@@ -442,18 +439,45 @@ export function MobileFicheProduits({ onBack, storeId: propStoreId }: MobileFich
 
               {formData.item_type !== 'pack' && (
                 <div className="space-y-2">
-                  <Label htmlFor="family-select">Famille / Catégorie</Label>
-                  <select
-                    id="family-select"
-                    value={formData.family_id}
-                    onChange={e => setFormData(prev => ({ ...prev, family_id: e.target.value }))}
-                    className="w-full h-10 px-3 bg-rs-surface-container border border-[#262626] rounded-md text-sm text-white focus:outline-none focus:ring-1 focus:ring-rs-surface-tint"
-                  >
-                    <option value="">Sélectionner une catégorie</option>
-                    {families.map(fam => (
-                      <option key={fam.id} value={fam.id}>{fam.name}</option>
-                    ))}
-                  </select>
+                  <div className="flex justify-between items-center">
+                    <Label htmlFor="family-select">Famille / Catégorie</Label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsCreatingNewCategory(!isCreatingNewCategory);
+                        setFormData(prev => ({ ...prev, family_id: '' }));
+                      }}
+                      className="text-xs text-rs-surface-tint font-bold hover:underline"
+                    >
+                      {isCreatingNewCategory ? "Choisir existante" : "➕ Nouvelle"}
+                    </button>
+                  </div>
+                  {isCreatingNewCategory ? (
+                    <div className="space-y-1">
+                      <Input
+                        id="family-new"
+                        type="text"
+                        value={formData.family_id}
+                        onChange={e => setFormData(prev => ({ ...prev, family_id: e.target.value }))}
+                        placeholder="Saisir le nom de la nouvelle catégorie"
+                        className="bg-rs-surface-container border-[#262626] text-white"
+                        autoFocus
+                      />
+                      <p className="text-[10px] text-rs-on-surface-variant/70 italic">La catégorie sera créée à l'enregistrement.</p>
+                    </div>
+                  ) : (
+                    <select
+                      id="family-select"
+                      value={formData.family_id}
+                      onChange={e => setFormData(prev => ({ ...prev, family_id: e.target.value }))}
+                      className="w-full h-10 px-3 bg-rs-surface-container border border-[#262626] rounded-md text-sm text-white focus:outline-none focus:ring-1 focus:ring-rs-surface-tint"
+                    >
+                      <option value="">Sélectionner une catégorie...</option>
+                      {families.map(fam => (
+                        <option key={fam.id} value={fam.id}>{fam.name}</option>
+                      ))}
+                    </select>
+                  )}
                 </div>
               )}
 
@@ -473,7 +497,7 @@ export function MobileFicheProduits({ onBack, storeId: propStoreId }: MobileFich
                       type="text"
                       value={packSearchQuery}
                       onChange={e => setPackSearchQuery(e.target.value)}
-                      placeholder="Rechercher un plat ou article..."
+                      placeholder="Rechercher un article..."
                       className="w-full h-9 bg-rs-surface-container border border-[#262626] rounded-xl pl-9 pr-3 text-xs focus:outline-none focus:border-rs-surface-tint text-white placeholder-rs-on-surface-variant/50"
                     />
                     <Search className="w-4 h-4 absolute left-3 top-2.5 text-rs-on-surface-variant/60" />
@@ -507,7 +531,7 @@ export function MobileFicheProduits({ onBack, storeId: propStoreId }: MobileFich
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-bold text-white truncate">{item.name}</p>
                               <p className="text-[10px] text-rs-on-surface-variant uppercase font-mono">
-                                {item.item_type === 'dish' ? '🍳 Plat' : '📦 Article'}
+                                {item.item_type === 'pack' ? '🎒 Pack' : '📦 Article'}
                               </p>
                             </div>
                             <span className="text-xs text-rs-surface-tint font-mono font-bold">
@@ -556,14 +580,6 @@ export function MobileFicheProduits({ onBack, storeId: propStoreId }: MobileFich
                       />
                       <span className="absolute right-4 top-2 text-rs-on-surface-variant">F</span>
                     </div>
-                  </div>
-                )}
-
-                {formData.item_type === 'dish' && (
-                  <div className="bg-[#1e1e1e] border border-[#262626] rounded-xl p-4 mt-2">
-                    <div className="text-[10px] font-bold uppercase tracking-wider text-rs-surface-tint mb-1">Coût de revient estimé</div>
-                    <div className="text-xl font-black text-white font-mono">{Number(formData.recipe_cost || 0).toLocaleString()} F</div>
-                    <div className="text-[9px] text-rs-on-surface-variant mt-1">Calculé automatiquement depuis la composition</div>
                   </div>
                 )}
               </div>
@@ -675,45 +691,6 @@ export function MobileFicheProduits({ onBack, storeId: propStoreId }: MobileFich
                 </div>
               </div>
 
-              {formData.item_type === 'dish' && (
-                <div className="space-y-2">
-                  <Label htmlFor="prep-time">Temps de préparation (minutes)</Label>
-                  <div className="relative">
-                    <Input
-                      id="prep-time"
-                      type="number"
-                      value={formData.prep_time_minutes}
-                      onChange={e => setFormData(prev => ({ ...prev, prep_time_minutes: e.target.value }))}
-                      className="bg-rs-surface-container border-[#262626] text-white font-mono pr-20"
-                      placeholder="0"
-                    />
-                    <span className="absolute right-4 top-2 text-rs-on-surface-variant text-xs">min</span>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {formTab === 'composition' && formData.item_type === 'dish' && (
-            <div className="space-y-4">
-              <div className="bg-[#141414] border border-[#262626] p-4 rounded-xl space-y-4">
-                <Label className="text-sm font-bold text-rs-on-surface-variant flex items-center gap-1.5">
-                  <UtensilsCrossed className="w-4 h-4 text-rs-surface-tint" />
-                  <span>Composition du Plat (Recette)</span>
-                </Label>
-                <p className="text-xs text-rs-on-surface-variant leading-relaxed">
-                  Définissez les ingrédients nécessaires pour préparer ce plat. Les stocks seront automatiquement déduits à chaque vente.
-                </p>
-                <div className="bg-[#1a1a1a] rounded-xl border border-[#262626] overflow-x-auto text-black p-1">
-                  <RecipeBuilder
-                    dishId={editingProduct ? editingProduct.id : formData.pending_id}
-                    storeId={storeId}
-                    sellingPrice={Number(formData.unit_price) || 0}
-                    onChange={(items) => setFormData(prev => ({ ...prev, recipe_items: items }))}
-                    onCostChange={(cost) => setFormData(prev => ({ ...prev, recipe_cost: cost }))}
-                  />
-                </div>
-              </div>
             </div>
           )}
         </form>
@@ -730,9 +707,9 @@ export function MobileFicheProduits({ onBack, storeId: propStoreId }: MobileFich
               <ArrowLeft className="w-6 h-6" />
             </button>
             <div className="w-8 h-8 rounded bg-rs-surface-tint/20 flex items-center justify-center">
-              <UtensilsCrossed className="w-4 h-4 text-rs-surface-tint" />
+              <Package className="w-4 h-4 text-rs-surface-tint" />
             </div>
-            <h1 className="text-lg font-bold text-white uppercase tracking-wider">Menu & Plats</h1>
+            <h1 className="text-lg font-bold text-white uppercase tracking-wider">Produits</h1>
           </div>
           <button
             onClick={() => {
@@ -742,6 +719,7 @@ export function MobileFicheProduits({ onBack, storeId: propStoreId }: MobileFich
               });
               setEditingProduct(null);
               setPackSearchQuery('');
+              setIsCreatingNewCategory(false);
               setFormTab('info');
               setIsFormOpen(true);
             }}
@@ -758,7 +736,7 @@ export function MobileFicheProduits({ onBack, storeId: propStoreId }: MobileFich
             type="text"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            placeholder="Rechercher un plat, article ou pack..."
+            placeholder="Rechercher un article ou pack..."
             className="w-full h-11 bg-rs-surface-container border border-rs-surface-container-highest rounded-xl pl-10 pr-4 text-sm focus:outline-none focus:border-rs-surface-tint text-white placeholder-rs-on-surface-variant/50"
           />
           <Search className="w-5 h-5 absolute left-3.5 top-3 text-rs-on-surface-variant/60" />
@@ -768,25 +746,19 @@ export function MobileFicheProduits({ onBack, storeId: propStoreId }: MobileFich
         <div className="flex gap-1.5 mt-3 pt-1 overflow-x-auto scrollbar-hide">
           <button
             onClick={() => setActiveTypeFilter('all')}
-            className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all uppercase shrink-0 ${activeTypeFilter === 'all' ? 'bg-rs-surface-tint text-white shadow-sm' : 'bg-rs-surface-container border border-[#262626] text-rs-on-surface-variant'}`}
+            className={`px-3 py-1 rounded-lg text-[11px] font-bold transition-all uppercase shrink-0 ${activeTypeFilter === 'all' ? 'bg-rs-surface-tint text-white shadow-sm' : 'bg-rs-surface-container border border-[#262626] text-rs-on-surface-variant'}`}
           >
             Tout ({products.length})
           </button>
           <button
-            onClick={() => setActiveTypeFilter('dish')}
-            className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all uppercase shrink-0 flex items-center gap-1 ${activeTypeFilter === 'dish' ? 'bg-rs-surface-tint text-white shadow-sm' : 'bg-rs-surface-container border border-[#262626] text-rs-on-surface-variant'}`}
-          >
-            🍳 Plats ({products.filter(p => p.item_type === 'dish').length})
-          </button>
-          <button
             onClick={() => setActiveTypeFilter('product')}
-            className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all uppercase shrink-0 flex items-center gap-1 ${activeTypeFilter === 'product' ? 'bg-rs-surface-tint text-white shadow-sm' : 'bg-rs-surface-container border border-[#262626] text-rs-on-surface-variant'}`}
+            className={`px-3 py-1 rounded-lg text-[11px] font-bold transition-all uppercase shrink-0 flex items-center gap-1 ${activeTypeFilter === 'product' ? 'bg-rs-surface-tint text-white shadow-sm' : 'bg-rs-surface-container border border-[#262626] text-rs-on-surface-variant'}`}
           >
             📦 Articles ({products.filter(p => p.item_type === 'product' || !p.item_type).length})
           </button>
           <button
             onClick={() => setActiveTypeFilter('pack')}
-            className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all uppercase shrink-0 flex items-center gap-1 ${activeTypeFilter === 'pack' ? 'bg-rs-surface-tint text-white shadow-sm' : 'bg-rs-surface-container border border-[#262626] text-rs-on-surface-variant'}`}
+            className={`px-3 py-1 rounded-lg text-[11px] font-bold transition-all uppercase shrink-0 flex items-center gap-1 ${activeTypeFilter === 'pack' ? 'bg-rs-surface-tint text-white shadow-sm' : 'bg-rs-surface-container border border-[#262626] text-rs-on-surface-variant'}`}
           >
             🎒 Packs ({products.filter(p => p.item_type === 'pack').length})
           </button>
@@ -798,7 +770,7 @@ export function MobileFicheProduits({ onBack, storeId: propStoreId }: MobileFich
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 text-rs-on-surface-variant">
             <span className="material-symbols-outlined animate-spin text-[32px] text-rs-surface-tint mb-2">refresh</span>
-            <span>Chargement du menu...</span>
+            <span>Chargement des produits...</span>
           </div>
         ) : filteredProducts.length === 0 ? (
           <div className="text-center py-20 text-rs-on-surface-variant">
@@ -844,14 +816,11 @@ const ProductCard = React.memo(function ProductCard({
 }: ProductCardProps) {
   const isLowStock = product.item_type !== 'pack' && product.quantity <= (product.low_stock_threshold || 10);
   
-  let typeBadgeColor = 'bg-[#1e1a0acc] text-amber-400'; // Plat
-  let typeLabel = '🍳 Plat';
+  let typeBadgeColor = 'bg-[#0f1b22cc] text-sky-400';
+  let typeLabel = '📦 Article';
   if (product.item_type === 'pack') {
     typeBadgeColor = 'bg-[#1b132ccc] text-purple-400';
     typeLabel = '🎒 Pack';
-  } else if (product.item_type === 'product' || !product.item_type) {
-    typeBadgeColor = 'bg-[#0f1b22cc] text-sky-400';
-    typeLabel = '📦 Article';
   }
 
   return (
@@ -865,9 +834,7 @@ const ProductCard = React.memo(function ProductCard({
           />
         ) : (
           <div className="text-rs-on-surface-variant opacity-30 animate-pulse">
-            {product.item_type === 'dish' ? (
-              <UtensilsCrossed className="w-12 h-12 text-rs-surface-tint" />
-            ) : product.item_type === 'pack' ? (
+            {product.item_type === 'pack' ? (
               <Boxes className="w-12 h-12 text-rs-surface-tint" />
             ) : (
               <Package className="w-12 h-12 text-rs-surface-tint" />

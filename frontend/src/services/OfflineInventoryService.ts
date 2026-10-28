@@ -4,10 +4,9 @@
  */
 
 import { LocalDatabase, LocalInventory, LocalProductFamily } from './LocalDatabase';
-import { InventoryItem, Product } from '@/types';
+import { InventoryItem } from '@/types';
 import { getDataClient, smartFetch } from '@/lib/dataClient';
 import { OfflineAuthService } from './OfflineAuthService';
-import { SyncService } from './SyncService';
 import { supabase } from '../lib/supabase';
 
 // --- MAPPING HELPERS ---
@@ -15,7 +14,7 @@ import { supabase } from '../lib/supabase';
 function mapDbToInventoryItem(product: any): InventoryItem {
   return {
     id: product.id,
-    store_id: product.restaurant_id || product.store_id,
+    store_id: product.store_id,
     name: product.name,
     sku: product.sku,
     barcode: product.barcode,
@@ -37,13 +36,6 @@ function mapDbToInventoryItem(product: any): InventoryItem {
     reorder_quantity: Number(product.reorder_quantity) || 0,
     low_stock_threshold: Number(product.low_stock_threshold ?? product.min_quantity ?? 0),
     image_url: product.image_url,
-    prep_time_minutes: Number(product.prep_time_minutes) || 0,
-    is_available: product.is_available === 1 || product.is_available === true,
-    allergens: typeof product.allergens === 'string' ? JSON.parse(product.allergens || '[]') : (product.allergens || []),
-    course_type: product.course_type || '',
-    modifiers: typeof product.modifiers === 'string' ? JSON.parse(product.modifiers || '[]') : (product.modifiers || []),
-    item_type: product.item_type || 'product',
-    pack_items: typeof product.pack_items === 'string' ? JSON.parse(product.pack_items || '[]') : (product.pack_items || []),
     created_at: product.created_at,
     updated_at: product.updated_at,
   };
@@ -73,13 +65,6 @@ function mapLocalInventoryToItem(local: LocalInventory): InventoryItem {
     expiry_date: local.expiry_date,
     reorder_quantity: local.reorder_quantity || 0,
     low_stock_threshold: local.low_stock_threshold ?? 0,
-    prep_time_minutes: Number(local.prep_time_minutes) || 0,
-    is_available: local.is_available === 1 || local.is_available === true,
-    allergens: typeof local.allergens === 'string' ? JSON.parse(local.allergens || '[]') : (local.allergens || []),
-    course_type: local.course_type || '',
-    modifiers: typeof local.modifiers === 'string' ? JSON.parse(local.modifiers || '[]') : (local.modifiers || []),
-    item_type: (local as any).item_type || 'product',
-    pack_items: typeof (local as any).pack_items === 'string' ? JSON.parse((local as any).pack_items || '[]') : ((local as any).pack_items || []),
     updated_at: local.updated_at,
     created_at: (local as any).created_at || local.updated_at,
   };
@@ -88,7 +73,7 @@ function mapLocalInventoryToItem(local: LocalInventory): InventoryItem {
 function mapToLocalInventory(item: InventoryItem | any, synced: boolean = true): LocalInventory {
   return {
     id: item.id,
-    store_id: item.restaurant_id || item.store_id,
+    store_id: item.store_id || item.restaurant_id,
     product_name: item.name || item.product_name,
     sku: item.sku,
     barcode: item.barcode,
@@ -109,13 +94,6 @@ function mapToLocalInventory(item: InventoryItem | any, synced: boolean = true):
     expiry_date: item.expiry_date,
     reorder_quantity: Number(item.reorder_quantity) || 0,
     low_stock_threshold: Number(item.low_stock_threshold ?? item.min_quantity ?? 0),
-    prep_time_minutes: Number(item.prep_time_minutes) || 0,
-    is_available: item.is_available === false ? false : true,
-    allergens: typeof item.allergens === 'string' ? item.allergens : JSON.stringify(item.allergens || []),
-    course_type: item.course_type || '',
-    modifiers: typeof item.modifiers === 'string' ? item.modifiers : JSON.stringify(item.modifiers || []),
-    item_type: item.item_type || 'product',
-    pack_items: typeof item.pack_items === 'string' ? item.pack_items : JSON.stringify(item.pack_items || []),
     updated_at: item.updated_at || new Date().toISOString(),
     synced,
   };
@@ -129,17 +107,16 @@ export const OfflineInventoryService = {
       
       const targetStoreId = storeId === 'all' ? undefined : storeId;
 
-      // 1. If Pure Cloud mode (not local-first) and online, fetch directly from Supabase
+      // 1. Pure Cloud mode direct fetch
       if (!dc.isLocalFirst && navigator.onLine) {
         try {
           let query = supabase
-            .from('menu_items')
+            .from('products')
             .select('*')
-            .is('deleted_at', null)
             .order('name');
             
           if (targetStoreId) {
-            query = query.eq('restaurant_id', targetStoreId);
+            query = query.eq('store_id', targetStoreId);
           }
           
           const { data, error } = await query;
@@ -148,7 +125,7 @@ export const OfflineInventoryService = {
           if (data) {
             const mapped = data.map(mapDbToInventoryItem);
             
-            // Cache remote items to IndexedDB asynchronously without blocking UI
+            // Async cache to IndexedDB
             (async () => {
               try {
                 for (const p of data) {
@@ -166,10 +143,9 @@ export const OfflineInventoryService = {
         }
       }
 
-      // 2. If Local-First, try Bridge as the absolute source of truth
+      // 2. Local-First Bridge Fetch
       if (dc.isLocalFirst) {
         try {
-          const { OfflineAuthService } = await import('./OfflineAuthService');
           const headers = await OfflineAuthService.getAuthHeaders();
           if (headers) {
             const params = new URLSearchParams();
@@ -181,7 +157,7 @@ export const OfflineInventoryService = {
               const payload = await res.json();
               const remoteProducts = Array.isArray(payload) ? payload : (payload.data || []);
               const mappedItems = remoteProducts.map(mapDbToInventoryItem);
-              
+
               if (options?.notify !== false) {
                 window.dispatchEvent(new CustomEvent('localDbDataUpdated', { detail: { type: 'inventory' } }));
               }
@@ -194,9 +170,9 @@ export const OfflineInventoryService = {
         }
       }
 
-      // 3. Fallback: retrieve from IndexedDB
+      // 3. IndexedDB fallback
       const localInventory = await LocalDatabase.getInventory(targetStoreId);
-      if (localInventory.length > 0 && !dc.isLocalFirst) {
+      if (localInventory.length > 0) {
         return { data: localInventory.map(mapLocalInventoryToItem) };
       }
       
@@ -217,7 +193,7 @@ export const OfflineInventoryService = {
       if (!dc.isLocalFirst && navigator.onLine) {
         try {
           const { data, error } = await supabase
-            .from('menu_items')
+            .from('products')
             .select('*')
             .eq('id', id)
             .maybeSingle();
@@ -248,10 +224,8 @@ export const OfflineInventoryService = {
       await LocalDatabase.init();
 
       if (dc.isLocalFirst) {
-        const { OfflineAuthService } = await import('./OfflineAuthService');
         const headers = await OfflineAuthService.getAuthHeaders();
         if (headers) {
-          // 1. Write to Bridge FIRST
           const res = await smartFetch(`${dc.localBridgeBaseUrl}/rest/v1/products`, {
             method: 'POST',
             headers: { ...headers, 'Content-Type': 'application/json' },
@@ -260,61 +234,65 @@ export const OfflineInventoryService = {
           
           if (!res.ok) {
             const err = await res.json().catch(() => ({ message: 'Bridge write failed' }));
-            await LocalDatabase.deleteInventoryItem(id);
-            window.dispatchEvent(new CustomEvent('localDbDataUpdated', { detail: { type: 'inventory' } }));
             throw new Error(err.message || 'Failed to create product in local bridge');
           }
           
           await LocalDatabase.saveInventoryItem(mapToLocalInventory(newItem, true));
-          
-          window.dispatchEvent(new CustomEvent('localDbDataUpdated', { detail: { type: 'inventory' } }));
-          return { data: mapDbToInventoryItem(newItem) };
         }
       } else {
-        await LocalDatabase.saveInventoryItem(mapToLocalInventory(newItem, true));
+        // Web/Cloud fallback: save locally as unsynced first. Only flipped to
+        // synced:true below once the direct Supabase write actually succeeds -
+        // previously this always saved synced:true here, so an offline create
+        // (or one whose online write failed) was silently marked "done" and
+        // never retried.
+        await LocalDatabase.saveInventoryItem(mapToLocalInventory(newItem, false));
 
         if (navigator.onLine) {
           try {
             const mapped = {
               id: newItem.id,
-              restaurant_id: newItem.store_id || newItem.storeId,
+              store_id: newItem.store_id || newItem.storeId,
               name: newItem.name || newItem.product_name,
               sku: newItem.sku || null,
               barcode: newItem.barcode || null,
               description: newItem.description || null,
-              cost_price: Number(newItem.cost_price ?? newItem.cost ?? 0),
-              unit_price: Number(newItem.unit_price ?? newItem.price ?? 0),
+              cost_price: Number(newItem.cost ?? newItem.cost_price ?? 0),
+              unit_price: Number(newItem.price ?? newItem.unit_price ?? 0),
               selling_price_2: Number(newItem.selling_price_2 ?? 0),
               selling_price_3: Number(newItem.selling_price_3 ?? 0),
               selling_price_4: Number(newItem.selling_price_4 ?? 0),
+              wholesale_price: Number(newItem.wholesale_price ?? 0),
               wholesale_price_ht: Number(newItem.wholesale_price_ht ?? 0),
               wholesale_price_ttc: Number(newItem.wholesale_price_ttc ?? 0),
               quantity: Number(newItem.quantity ?? 0),
-              category: newItem.category || null,
+              category: (newItem.category && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(newItem.category)) ? newItem.category : (newItem.category_id && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(newItem.category_id)) ? newItem.category_id : null,
               image_url: newItem.image_url || null,
+              aisle: newItem.aisle || null,
+              brand: newItem.brand || null,
               unit_type: newItem.unit_type || null,
               packaging: newItem.packaging || null,
-              prep_time_minutes: Number(newItem.prep_time_minutes ?? 0),
-              is_available: newItem.is_available !== false && newItem.is_available !== 0,
-              allergens: Array.isArray(newItem.allergens) ? newItem.allergens : (newItem.allergens ? [newItem.allergens] : []),
-              course_type: newItem.course_type || null,
-              modifiers: Array.isArray(newItem.modifiers) ? newItem.modifiers : (newItem.modifiers ? [newItem.modifiers] : []),
+              expiry_date: newItem.expiry_date || null,
+              reorder_quantity: Number(newItem.reorder_quantity ?? 0),
+              min_quantity: Number(newItem.low_stock_threshold ?? newItem.min_quantity ?? 0),
               version: Number(newItem.version ?? 1),
               created_at: newItem.created_at || new Date().toISOString(),
               updated_at: new Date().toISOString(),
             };
 
             const { error: supaErr } = await supabase
-              .from('menu_items')
+              .from('products')
               .upsert(mapped);
 
-            if (supaErr) {
-              console.error('[OfflineInventory] Supabase product creation failed:', supaErr);
-            }
+            if (supaErr) throw supaErr;
+
+            await LocalDatabase.markInventorySynced(newItem.id);
           } catch (supaErr) {
-            console.error('[OfflineInventory] Supabase product creation exception:', supaErr);
+            console.error('[OfflineInventory] Supabase product creation failed, left unsynced for retry:', supaErr);
           }
         }
+        // If offline (or the write above failed), the item stays in
+        // IndexedDB with synced:false - SyncService.syncUnsyncedInventory()
+        // picks it up and pushes it once back online.
       }
       
       window.dispatchEvent(new CustomEvent('localDbDataUpdated', { detail: { type: 'inventory' } }));
@@ -353,67 +331,79 @@ export const OfflineInventoryService = {
             const err = await res.json();
             throw new Error(err.message || 'Failed to update product in local bridge');
           }
+          await LocalDatabase.saveInventoryItem(mapToLocalInventory(updated, true));
         }
       } else {
-        await LocalDatabase.saveInventoryItem(mapToLocalInventory(updated, true));
+        // Web/Cloud fallback: save locally as unsynced first, same rationale
+        // as createItem above - only mark synced once the Supabase update
+        // actually succeeds.
+        await LocalDatabase.saveInventoryItem(mapToLocalInventory(updated, false));
 
         if (navigator.onLine) {
           try {
-            const mapped = {
-              id: updated.id,
-              restaurant_id: updated.store_id || baseItem.store_id,
-              name: updated.name || baseItem.name,
-              sku: updated.sku !== undefined ? updated.sku : (baseItem.sku || null),
-              barcode: updated.barcode !== undefined ? updated.barcode : (baseItem.barcode || null),
-              description: updated.description !== undefined ? updated.description : (baseItem.description || null),
-              cost_price: Number(updated.cost_price ?? updated.cost ?? baseItem.cost_price ?? baseItem.cost ?? 0),
-              unit_price: Number(updated.unit_price ?? updated.price ?? baseItem.unit_price ?? baseItem.price ?? 0),
-              selling_price_2: Number(updated.selling_price_2 ?? baseItem.selling_price_2 ?? 0),
-              selling_price_3: Number(updated.selling_price_3 ?? baseItem.selling_price_3 ?? 0),
-              selling_price_4: Number(updated.selling_price_4 ?? baseItem.selling_price_4 ?? 0),
-              wholesale_price_ht: Number(updated.wholesale_price_ht ?? baseItem.wholesale_price_ht ?? 0),
-              wholesale_price_ttc: Number(updated.wholesale_price_ttc ?? baseItem.wholesale_price_ttc ?? 0),
-              quantity: Number(updated.quantity ?? baseItem.quantity ?? 0),
-              category: updated.category !== undefined ? updated.category : (baseItem.category || null),
-              image_url: updated.image_url !== undefined ? updated.image_url : (baseItem.image_url || null),
-              unit_type: updated.unit_type !== undefined ? updated.unit_type : (baseItem.unit_type || null),
-              packaging: updated.packaging !== undefined ? updated.packaging : (baseItem.packaging || null),
-              prep_time_minutes: Number(updated.prep_time_minutes ?? baseItem.prep_time_minutes ?? 0),
-              is_available: updated.is_available !== false && updated.is_available !== 0,
-              allergens: Array.isArray(updated.allergens) ? updated.allergens : (updated.allergens ? [updated.allergens] : (baseItem.allergens || [])),
-              course_type: updated.course_type !== undefined ? updated.course_type : (baseItem.course_type || null),
-              modifiers: Array.isArray(updated.modifiers) ? updated.modifiers : (updated.modifiers ? [updated.modifiers] : (baseItem.modifiers || [])),
-              version: Number(updated.version ?? baseItem.version ?? 1),
-              updated_at: new Date().toISOString(),
-            };
+            const mappedUpdates: any = {};
+            if (updates.name !== undefined) mappedUpdates.name = updates.name;
+            if (updates.sku !== undefined) mappedUpdates.sku = updates.sku;
+            if (updates.barcode !== undefined) mappedUpdates.barcode = updates.barcode;
+            if (updates.description !== undefined) mappedUpdates.description = updates.description;
+            if (updates.cost !== undefined) mappedUpdates.cost_price = Number(updates.cost);
+            if (updates.cost_price !== undefined) mappedUpdates.cost_price = Number(updates.cost_price);
+            if (updates.price !== undefined) mappedUpdates.unit_price = Number(updates.price);
+            if (updates.unit_price !== undefined) mappedUpdates.unit_price = Number(updates.unit_price);
+            if (updates.selling_price_2 !== undefined) mappedUpdates.selling_price_2 = Number(updates.selling_price_2);
+            if (updates.selling_price_3 !== undefined) mappedUpdates.selling_price_3 = Number(updates.selling_price_3);
+            if (updates.selling_price_4 !== undefined) mappedUpdates.selling_price_4 = Number(updates.selling_price_4);
+            if (updates.wholesale_price !== undefined) mappedUpdates.wholesale_price = Number(updates.wholesale_price);
+            if (updates.wholesale_price_ht !== undefined) mappedUpdates.wholesale_price_ht = Number(updates.wholesale_price_ht);
+            if (updates.wholesale_price_ttc !== undefined) mappedUpdates.wholesale_price_ttc = Number(updates.wholesale_price_ttc);
+            if (updates.quantity !== undefined) mappedUpdates.quantity = Number(updates.quantity);
+            if (updates.category !== undefined) {
+              mappedUpdates.category = (updates.category && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(updates.category)) ? updates.category : null;
+            }
+            if (updates.category_id !== undefined) {
+              mappedUpdates.category = (updates.category_id && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(updates.category_id)) ? updates.category_id : null;
+            }
+            if (updates.image_url !== undefined) mappedUpdates.image_url = updates.image_url;
+            if (updates.aisle !== undefined) mappedUpdates.aisle = updates.aisle;
+            if (updates.brand !== undefined) mappedUpdates.brand = updates.brand;
+            if (updates.unit_type !== undefined) mappedUpdates.unit_type = updates.unit_type;
+            if (updates.packaging !== undefined) mappedUpdates.packaging = updates.packaging;
+            if (updates.expiry_date !== undefined) mappedUpdates.expiry_date = updates.expiry_date;
+            if (updates.reorder_quantity !== undefined) mappedUpdates.reorder_quantity = Number(updates.reorder_quantity);
+            if (updates.low_stock_threshold !== undefined) mappedUpdates.min_quantity = Number(updates.low_stock_threshold);
+            if (updates.min_quantity !== undefined) mappedUpdates.min_quantity = Number(updates.min_quantity);
+            mappedUpdates.updated_at = new Date().toISOString();
 
             const { error: supaErr } = await supabase
-              .from('menu_items')
-              .upsert(mapped);
+              .from('products')
+              .update(mappedUpdates)
+              .eq('id', id);
 
-            if (supaErr) {
-              console.error('[OfflineInventory] Supabase product update failed:', supaErr);
-            }
+            if (supaErr) throw supaErr;
+
+            await LocalDatabase.markInventorySynced(id);
           } catch (supaErr) {
-            console.error('[OfflineInventory] Supabase product update exception:', supaErr);
+            console.error('[OfflineInventory] Supabase update failed, left unsynced for retry:', supaErr);
           }
         }
+        // If offline (or the write above failed), the item stays in
+        // IndexedDB with synced:false - SyncService.syncUnsyncedInventory()
+        // picks it up and pushes it once back online.
       }
-
+      
       window.dispatchEvent(new CustomEvent('localDbDataUpdated', { detail: { type: 'inventory' } }));
-      return { data: updated as InventoryItem };
+      return { data: mapDbToInventoryItem(updated) };
     } catch (error) {
-      console.error('Update item error:', error);
+      console.error('[OfflineInventory] Update item error:', error);
       return { error };
     }
   },
 
-  async deleteItem(id: string): Promise<{ error?: any }> {
+  async deleteItem(id: string): Promise<{ success: boolean; error?: any }> {
     try {
       await LocalDatabase.init();
-      await LocalDatabase.deleteInventoryItem(id);
-
       const dc = getDataClient();
+      
       if (dc.isLocalFirst) {
         const headers = await OfflineAuthService.getAuthHeaders();
         if (headers) {
@@ -426,27 +416,46 @@ export const OfflineInventoryService = {
             throw new Error(err.message || 'Failed to delete product in local bridge');
           }
         }
+        await LocalDatabase.deleteInventoryItem(id);
       } else {
+        // Remove from the local cache immediately (optimistic), but if the
+        // Supabase delete doesn't happen right now (offline, or it throws),
+        // queue it so SyncService retries it once back online - otherwise
+        // the product reappears locally on the next cloud fetch while never
+        // actually being removed from Supabase.
+        await LocalDatabase.deleteInventoryItem(id);
+
+        let deletedOnline = false;
         if (navigator.onLine) {
           try {
             const { error: supaErr } = await supabase
-              .from('menu_items')
+              .from('products')
               .delete()
               .eq('id', id);
 
-            if (supaErr) {
-              console.error('[OfflineInventory] Supabase product deletion failed:', supaErr);
-            }
+            if (supaErr) throw supaErr;
+            deletedOnline = true;
           } catch (supaErr) {
-            console.error('[OfflineInventory] Supabase product deletion exception:', supaErr);
+            console.error('[OfflineInventory] Supabase delete failed, queued for retry:', supaErr);
           }
+        }
+
+        if (!deletedOnline) {
+          await LocalDatabase.addToSyncQueue({
+            id: crypto.randomUUID(),
+            type: 'inventory_delete',
+            data: { id },
+            timestamp: Date.now(),
+            retries: 0,
+          });
         }
       }
 
       window.dispatchEvent(new CustomEvent('localDbDataUpdated', { detail: { type: 'inventory' } }));
-      return {};
+      return { success: true };
     } catch (error) {
-      return { error };
+      console.error('[OfflineInventory] Delete item error:', error);
+      return { success: false, error };
     }
   },
 
@@ -470,7 +479,7 @@ export const OfflineInventoryService = {
             const { data, error } = await supabase
               .from('product_families')
               .select('*')
-              .eq('restaurant_id', storeId);
+              .eq('store_id', storeId);
             if (!error && data) remote = data;
           }
           
@@ -478,7 +487,7 @@ export const OfflineInventoryService = {
             for (const f of remote) {
               await LocalDatabase.saveProductFamily({
                 id: f.id,
-                store_id: f.restaurant_id || f.store_id || storeId || '',
+                store_id: f.store_id || storeId || '',
                 name: f.name,
                 description: f.description || undefined,
                 parent_id: f.parent_id || undefined,
@@ -514,7 +523,7 @@ export const OfflineInventoryService = {
     }
   },
 
-  async getStockValuation(storeId: string): Promise<{ total_cost: number; total_retail: number; item_count: number; error?: any }> {
+  async getStockValuation(storeId: string): Promise<{ total_cost: number; total_retail: number; total_wholesale: number; total_resale: number; item_count: number; error?: any }> {
     try {
       const dc = getDataClient();
       if (dc.isLocalFirst) {
@@ -525,31 +534,77 @@ export const OfflineInventoryService = {
           if (res.ok) return await res.json();
         }
       }
+
+      // Pure Cloud mode online fetching from Supabase
+      if (!dc.isLocalFirst && navigator.onLine) {
+        try {
+          let query = supabase.from('products').select('*');
+          if (storeId && storeId !== 'all') {
+            query = query.eq('store_id', storeId);
+          }
+          const { data: cloudProducts, error } = await query;
+          if (!error && cloudProducts) {
+            let total_cost = 0;
+            let total_retail = 0;
+            let total_wholesale = 0;
+            let total_resale = 0;
+            for (const item of cloudProducts) {
+              const qty = Math.max(0, Number(item.quantity ?? (item as any).stock ?? 0));
+              const cost = Number(item.cost_price ?? item.cost ?? 0);
+              const retail = Number(item.unit_price ?? item.price ?? 0);
+              total_cost += cost * qty;
+              total_retail += retail * qty;
+              const wholesale = Number(item.selling_price_3 || item.wholesale_price_ttc || item.wholesale_price || retail);
+              total_wholesale += wholesale * qty;
+              const resale = Number(item.selling_price_4 || retail);
+              total_resale += resale * qty;
+            }
+            return {
+              total_cost,
+              total_retail,
+              total_wholesale,
+              total_resale,
+              item_count: cloudProducts.length,
+            };
+          }
+        } catch (e) {
+          console.warn('[OfflineInventory] Direct cloud valuation failed, falling back to local DB:', e);
+        }
+      }
       
-      // Calculate from LocalDatabase (IndexedDB) for pure cloud mode or fallback
+      // Calculate from LocalDatabase (IndexedDB) for offline fallback
       await LocalDatabase.init();
       const items = await LocalDatabase.getInventory(storeId === 'all' ? undefined : storeId);
       let total_cost = 0;
       let total_retail = 0;
+      let total_wholesale = 0;
+      let total_resale = 0;
       for (const item of items) {
-        total_cost += (item.cost || 0) * (item.quantity || 0);
-        total_retail += (item.unit_price || item.price || 0) * (item.quantity || 0);
+        const qty = item.quantity || 0;
+        const retail = item.unit_price || 0;
+        total_cost += (item.cost || 0) * qty;
+        total_retail += retail * qty;
+        const wholesale = item.wholesale_price || item.wholesale_price_ttc || retail;
+        total_wholesale += wholesale * qty;
+        const resale = item.selling_price_4 || retail;
+        total_resale += resale * qty;
       }
       return {
         total_cost,
         total_retail,
+        total_wholesale,
+        total_resale,
         item_count: items.length
       };
     } catch (error) {
       console.error('Error fetching stock valuation:', error);
-      return { total_cost: 0, total_retail: 0, item_count: 0, error };
+      return { total_cost: 0, total_retail: 0, total_wholesale: 0, total_resale: 0, item_count: 0, error };
     }
   },
 
   async getLowStockItems(limit: number = 10, storeId?: string): Promise<{ data?: InventoryItem[]; error?: any }> {
     try {
       const dc = getDataClient();
-      await LocalDatabase.init();
       const targetStoreId = storeId === 'all' ? undefined : storeId;
 
       // 1. If Local-First, try Bridge
@@ -577,12 +632,31 @@ export const OfflineInventoryService = {
         }
       }
 
-      // 2. Fallback: IndexedDB
+      // 2. Pure Cloud mode direct fetch from Supabase
+      if (!dc.isLocalFirst && navigator.onLine) {
+        try {
+          let query = supabase.from('products').select('*');
+          if (targetStoreId) {
+            query = query.eq('store_id', targetStoreId);
+          }
+          const { data: cloudProducts, error } = await query;
+          if (!error && cloudProducts) {
+            const mapped = cloudProducts.map(mapDbToInventoryItem);
+            const lowStock = mapped.filter(item => item.quantity <= (item.low_stock_threshold || 10));
+            return { data: lowStock.slice(0, limit) };
+          }
+        } catch (e) {
+          console.warn('[OfflineInventory] Direct cloud low stock fetch failed, falling back to local cache:', e);
+        }
+      }
+
+      // 3. Fallback: IndexedDB
+      await LocalDatabase.init();
       if (targetStoreId) {
         const localInventory = await LocalDatabase.getInventory(targetStoreId);
         const lowStock = localInventory
           .map(mapLocalInventoryToItem)
-          .filter(item => item.quantity > 0 && item.quantity <= (item.low_stock_threshold || 0));
+          .filter(item => item.quantity <= (item.low_stock_threshold || 0));
         return { data: lowStock.slice(0, limit) };
       } else {
         const { OfflineStoreService } = await import('./OfflineStoreService');
@@ -593,7 +667,7 @@ export const OfflineInventoryService = {
           const localInventory = await LocalDatabase.getInventory(sid);
           const lowStock = localInventory
             .map(mapLocalInventoryToItem)
-            .filter(item => item.quantity > 0 && item.quantity <= (item.low_stock_threshold || 0));
+            .filter(item => item.quantity <= (item.low_stock_threshold || 0));
           combinedLowStock.push(...lowStock);
         }
         return { data: combinedLowStock.slice(0, limit) };

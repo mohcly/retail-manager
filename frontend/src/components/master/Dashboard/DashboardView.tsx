@@ -36,7 +36,18 @@ export function DashboardView() {
 
   useEffect(() => {
     if (authLoading) return;
+
     loadDashboardData();
+
+    const handleDataUpdated = (e: Event) => {
+      console.log('[DashboardView] Local DB updated, reloading dashboard data...');
+      loadDashboardData();
+    };
+
+    window.addEventListener('localDbDataUpdated', handleDataUpdated);
+    return () => {
+      window.removeEventListener('localDbDataUpdated', handleDataUpdated);
+    };
   }, [version, selectedStoreIds, isAllStoresSelected, user, authLoading]);
 
   const loadDashboardData = async () => {
@@ -170,7 +181,7 @@ export function DashboardView() {
           icon={TrendingUp}
         />
         <MetricCard
-          title={t('dashboard.inventoryValue')}
+          title={t('dashboard.metrics.inventoryValue')}
           value={formatCurrency(metrics.stockValuation)}
           icon={Package}
         />

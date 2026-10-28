@@ -33,11 +33,11 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-interface MobileRestaurantsProps {
+interface MobileBoutiquesProps {
   onBack: () => void;
 }
 
-export function MobileRestaurants({ onBack }: MobileRestaurantsProps) {
+export function MobileBoutiques({ onBack }: MobileBoutiquesProps) {
   const { t } = useTranslation();
   const { toast } = useToast();
   const { user } = useAuth();
@@ -204,7 +204,7 @@ export function MobileRestaurants({ onBack }: MobileRestaurantsProps) {
   };
 
   const handleDelete = async (storeId: string) => {
-    if (!confirm("Voulez-vous supprimer ce restaurant ?")) return;
+    if (!confirm("Voulez-vous supprimer cette boutique ?")) return;
     const { error } = await OfflineStoreService.deleteStore(storeId);
     if (error) {
       toast({ title: t('common.error'), description: t('stores.errors.deleteStore'), variant: 'destructive' });
@@ -224,7 +224,7 @@ export function MobileRestaurants({ onBack }: MobileRestaurantsProps) {
           </button>
           <div className="min-w-0 flex-1">
             <h1 className="text-lg font-bold truncate uppercase tracking-wider">{selectedStore.name}</h1>
-            <p className="text-xs text-rs-on-surface-variant">Détails du Restaurant</p>
+            <p className="text-xs text-rs-on-surface-variant">Détails de la Boutique</p>
           </div>
           <div className="flex gap-1">
             <button onClick={() => handleOpenForm(selectedStore)} className="p-2 rounded-full hover:bg-rs-surface-container-highest text-rs-surface-tint">
@@ -426,11 +426,11 @@ export function MobileRestaurants({ onBack }: MobileRestaurantsProps) {
         <Sheet open={formOpen} onOpenChange={setFormOpen}>
           <SheetContent side="bottom" className="h-[90%] bg-[#141414] text-white border-t border-rs-surface-container-highest rounded-t-2xl p-6 dark">
             <SheetHeader className="text-left mb-6">
-              <SheetTitle className="text-xl font-bold text-rs-surface-tint">Modifier le Restaurant</SheetTitle>
+              <SheetTitle className="text-xl font-bold text-rs-surface-tint">Modifier la Boutique</SheetTitle>
             </SheetHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Nom du Restaurant</Label>
+                <Label htmlFor="name">Nom de la Boutique</Label>
                 <Input id="name" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} required className="bg-rs-surface-container border-rs-surface-container-highest text-white" />
               </div>
               <div className="space-y-2">
@@ -477,7 +477,7 @@ export function MobileRestaurants({ onBack }: MobileRestaurantsProps) {
           <div className="w-8 h-8 rounded bg-rs-surface-tint/20 flex items-center justify-center">
             <StoreIcon className="w-4 h-4 text-rs-surface-tint" />
           </div>
-          <h1 className="text-lg font-bold text-white uppercase tracking-wider">Restaurants</h1>
+          <h1 className="text-lg font-bold text-white uppercase tracking-wider">Boutiques</h1>
         </div>
         <button onClick={() => handleOpenForm()} className="w-10 h-10 rounded-full bg-rs-surface-tint hover:bg-rs-primary-fixed flex items-center justify-center text-white active:scale-95 transition-transform shadow-lg">
           <Plus className="w-6 h-6" />
@@ -489,12 +489,12 @@ export function MobileRestaurants({ onBack }: MobileRestaurantsProps) {
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 text-rs-on-surface-variant">
             <span className="material-symbols-outlined animate-spin text-[32px] text-rs-surface-tint mb-2">refresh</span>
-            <span>Chargement des restaurants...</span>
+            <span>Chargement des boutiques...</span>
           </div>
         ) : stores.length === 0 ? (
           <div className="text-center py-20 text-rs-on-surface-variant">
             <StoreIcon className="h-12 w-12 mx-auto text-rs-on-surface-variant opacity-40 mb-3" />
-            <p>Aucun restaurant disponible.</p>
+            <p>Aucune boutique disponible.</p>
           </div>
         ) : (
           <div className="flex flex-col gap-3">
@@ -536,11 +536,11 @@ export function MobileRestaurants({ onBack }: MobileRestaurantsProps) {
       <Sheet open={formOpen} onOpenChange={setFormOpen}>
         <SheetContent side="bottom" className="h-[90%] bg-[#141414] text-white border-t border-rs-surface-container-highest rounded-t-2xl p-6 dark">
           <SheetHeader className="text-left mb-6">
-            <SheetTitle className="text-xl font-bold text-rs-surface-tint">Ajouter un Restaurant</SheetTitle>
+            <SheetTitle className="text-xl font-bold text-rs-surface-tint">Ajouter une Boutique</SheetTitle>
           </SheetHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="new-name">Nom du Restaurant</Label>
+              <Label htmlFor="new-name">Nom de la Boutique</Label>
               <Input id="new-name" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} required className="bg-rs-surface-container border-rs-surface-container-highest text-white" />
             </div>
             <div className="space-y-2">

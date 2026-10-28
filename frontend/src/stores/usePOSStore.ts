@@ -23,15 +23,6 @@ export interface POSState {
   customerId?: string;
   customerName: string;
   customerPhone: string;
-  orderNotes: string;
-  serviceType: 'table' | 'emporter' | 'livraison';
-  globalDiscount: number; // For cart-level discount
-  // Stable across a retry of the same still-open transaction (e.g. after a
-  // timeout that fired even though the sale had already committed) - only
-  // cleared once the sale actually succeeds via confirmTransaction(). Lets
-  // the backend treat a repeat POST /rest/v1/sales as a no-op instead of
-  // creating a second, fully independent sale that double-deducts stock.
-  pendingSaleId: string | null;
 
   // Actions
   addItem: (product: Product, quantity?: number) => void;
@@ -54,22 +45,11 @@ export interface POSState {
   setSaleType: (type: 'detail' | 'gros') => void;
   setPaymentModalOpen: (open: boolean) => void;
   completeTransaction: (paymentMethod: string) => {
-    id: string;
     items: CartItem[];
     grandTotal: number;
     customerName: string;
     customerPhone: string;
-    orderNotes: string;
-    serviceType: string;
   } | null;
-  // Clears the cart/pendingSaleId - call ONLY after the sale is confirmed
-  // created, not synchronously inside completeTransaction() itself.
-  confirmTransaction: () => void;
-  // For checkout flows that don't go through completeTransaction() at all.
-  getOrCreatePendingSaleId: () => string;
-  setOrderNotes: (notes: string) => void;
-  setServiceType: (type: 'table' | 'emporter' | 'livraison') => void;
-  setGlobalDiscount: (discount: number) => void;
 
   // Computed
   getTotal: () => number;
@@ -99,10 +79,6 @@ export const usePOSStore = create<POSState>()(
       customerId: undefined,
       customerName: '',
       customerPhone: '',
-      orderNotes: '',
-      serviceType: 'table',
-      globalDiscount: 0,
-      pendingSaleId: null,
       subtotal: 0,
       totalDiscount: 0,
       grandTotal: 0,
@@ -116,13 +92,7 @@ export const usePOSStore = create<POSState>()(
         
         let price = product.unit_price || 0;
         if (saleType === 'gros') {
-          // wholesale_price is the LEGACY column - NULL on ~97% of real
-          // products (672 of 688 on a live database). Resolving from it alone
-          // meant "gros" mode silently fell through to retail, so wholesale
-          // customers were charged full price while the UI said Gros. The
-          // canonical tier is selling_price_3 ("3eme prix (Gros)"), same
-          // precedence OfflineDataService and ExportService already use.
-          price = product.selling_price_3 || product.wholesale_price_ttc || product.wholesale_price || price;
+          price = product.wholesale_price || price;
         }
 
         // Logic for ALWAYS adding a new line (as requested by user "go to next line")
@@ -163,13 +133,6 @@ export const usePOSStore = create<POSState>()(
           category: product.category || product.category_id,
           unit_price: product.unit_price ?? product.price ?? 0,
           wholesale_price: product.wholesale_price,
-          // The tier columns must survive normalization or the gros-price
-          // resolution in addItem/setSaleType has nothing to read - dropping
-          // them here was the second half of the retail-price bug.
-          wholesale_price_ttc: (product as any).wholesale_price_ttc,
-          selling_price_2: (product as any).selling_price_2,
-          selling_price_3: (product as any).selling_price_3,
-          selling_price_4: (product as any).selling_price_4,
           cost_price: product.cost_price ?? product.cost,
           quantity: product.quantity,
           min_quantity: product.min_quantity ?? product.low_stock_threshold,
@@ -187,8 +150,7 @@ export const usePOSStore = create<POSState>()(
         const newCart = cart.map(item => {
           let price = item.product.unit_price || 0;
           if (type === 'gros') {
-            // Same legacy-column trap as addItem above - see that comment.
-            price = item.product.selling_price_3 || item.product.wholesale_price_ttc || item.product.wholesale_price || price;
+            price = item.product.wholesale_price || price;
           }
           const newLineTotal = calculateItemTotal(price, item.quantity, item.discount);
           return {
@@ -308,10 +270,6 @@ export const usePOSStore = create<POSState>()(
         customerId: undefined,
         customerName: '',
         customerPhone: '',
-        orderNotes: '',
-        serviceType: 'table',
-        globalDiscount: 0,
-        pendingSaleId: null,
         subtotal: 0,
         totalDiscount: 0,
         grandTotal: 0,
@@ -364,47 +322,20 @@ export const usePOSStore = create<POSState>()(
         customerPhone: phone || '',
       }),
 
-      setOrderNotes: (notes) => set({ orderNotes: notes }),
-      setServiceType: (type) => set({ serviceType: type }),
-      setGlobalDiscount: (discount) => {
-        set({ globalDiscount: discount });
-        // Recalculate totals
-        const { subtotal, totalDiscount } = get();
-        // Assume global discount is an amount (not percentage) for simplicity
-        set({ grandTotal: Math.max(0, subtotal - totalDiscount - discount) });
-      },
-
       completeTransaction: (paymentMethod) => {
-        const { cart, grandTotal, customerName, customerPhone, orderNotes, serviceType, pendingSaleId } = get();
+        const { cart, grandTotal, customerName, customerPhone, clearCart } = get();
         if (cart.length === 0) return null;
 
-        // Reuse the existing pendingSaleId if this is a retry of a still-open
-        // transaction, don't clear the cart here - see confirmTransaction().
-        const id = pendingSaleId || crypto.randomUUID();
-        if (!pendingSaleId) set({ pendingSaleId: id });
-
-        return {
-          id,
+        const result = {
           items: [...cart],
           grandTotal,
           customerName,
           customerPhone,
-          orderNotes,
-          serviceType,
           paymentMethod,
         };
-      },
 
-      confirmTransaction: () => {
-        get().clearCart();
-      },
-
-      getOrCreatePendingSaleId: () => {
-        const { pendingSaleId } = get();
-        if (pendingSaleId) return pendingSaleId;
-        const id = crypto.randomUUID();
-        set({ pendingSaleId: id });
-        return id;
+        clearCart();
+        return result;
       },
 
       getTotal: () => {
@@ -419,9 +350,17 @@ export const usePOSStore = create<POSState>()(
         customerId: state.customerId,
         customerName: state.customerName,
         customerPhone: state.customerPhone,
-        serviceType: state.serviceType,
-        pendingSaleId: state.pendingSaleId,
       }),
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          const cart = state.cart || [];
+          const subtotal = cart.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0);
+          const totalDiscount = cart.reduce((sum, i) => sum + (i.unitPrice * i.quantity * i.discount / 100), 0);
+          state.subtotal = subtotal;
+          state.totalDiscount = totalDiscount;
+          state.grandTotal = subtotal - totalDiscount;
+        }
+      },
     }
   )
 );

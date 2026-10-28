@@ -2,22 +2,24 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ChevronRight, ShoppingCart, ShoppingBag, FolderOpen, FileText, BarChart3, Package,
-  LogOut, RefreshCw, Layout, Receipt, Lock, CalendarDays, UtensilsCrossed, Users,
-  Truck, Store, ClipboardList, Beaker, PackageCheck, PenLine, CreditCard,
-  AlertTriangle, History, UserCog, ScrollText, Mail, LayoutDashboard, Settings2,
-  Keyboard, KeyRound, LayoutGrid,
+  LogOut, RefreshCw, Layout, Receipt, Lock, CalendarDays, Boxes, Users, Truck, Store,
+  ClipboardList, PackageCheck, PenLine, CreditCard, AlertTriangle, History, UserCog,
+  ScrollText, Mail, LayoutDashboard, KeyRound,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { LocalDatabase } from '@/services/LocalDatabase';
+import { MobileScreenShell } from '@/components/mobile/MobileScreenShell';
 
 interface MobileMenuScreenProps {
   onSelect: (moduleId: string) => void;
+  /** Fused directly into this screen's shell, same convention as MobilePOS — see MobileScreenShell. */
+  tabBar?: React.ReactNode;
 }
 
 // One accent per section — used for the section header chip, the card's
 // top accent bar, and each item's icon tint within that section. Stored as
 // bare "H S% L%" triplets (CSS Color 4 syntax) so both a solid `hsl(${a})`
-// and a translucent `hsl(${a} / 14%)` can be built from the same value —
+// and a translucent `hsl(${a} / 16%)` can be built from the same value —
 // appending a hex alpha suffix directly onto a full `hsl(...)` string isn't
 // valid CSS and silently produces an opaque background, which is why icons
 // were invisible (icon and its own background rendered as the same solid color).
@@ -29,8 +31,7 @@ const SECTION_ACCENTS: Record<string, string> = {
   'Achats': '210 90% 58%',
   'Settings': '350 80% 62%',
   'Gestion': '190 80% 50%',
-  'Programme': '220 10% 62%',
-  'Restaurant': '15 80% 58%',
+  'Paramètres': '220 10% 62%',
 };
 const DEFAULT_ACCENT = '220 10% 62%';
 
@@ -38,12 +39,11 @@ const ITEM_ICONS: Record<string, React.ReactNode> = {
   'vente-detail': <Receipt className="w-[18px] h-[18px]" />,
   'fermeture-caisse': <Lock className="w-[18px] h-[18px]" />,
   'suivi-ventes-jour': <CalendarDays className="w-[18px] h-[18px]" />,
-  'fiche-produits': <UtensilsCrossed className="w-[18px] h-[18px]" />,
+  'fiche-produits': <Boxes className="w-[18px] h-[18px]" />,
   'clients': <Users className="w-[18px] h-[18px]" />,
   'fournisseurs': <Truck className="w-[18px] h-[18px]" />,
-  'restaurants': <Store className="w-[18px] h-[18px]" />,
+  'boutiques': <Store className="w-[18px] h-[18px]" />,
   'inventaire-stock': <ClipboardList className="w-[18px] h-[18px]" />,
-  'ingredients': <Beaker className="w-[18px] h-[18px]" />,
   'reception-achats': <PackageCheck className="w-[18px] h-[18px]" />,
   'commande-manuelle': <PenLine className="w-[18px] h-[18px]" />,
   'reglement-fournisseurs': <CreditCard className="w-[18px] h-[18px]" />,
@@ -53,13 +53,10 @@ const ITEM_ICONS: Record<string, React.ReactNode> = {
   'audit-logs': <ScrollText className="w-[18px] h-[18px]" />,
   'invitations': <Mail className="w-[18px] h-[18px]" />,
   'tableau-bord': <LayoutDashboard className="w-[18px] h-[18px]" />,
-  'preferences': <Settings2 className="w-[18px] h-[18px]" />,
-  'programmation-touches': <Keyboard className="w-[18px] h-[18px]" />,
   'mots-de-passe': <KeyRound className="w-[18px] h-[18px]" />,
-  'tables': <LayoutGrid className="w-[18px] h-[18px]" />,
 };
 
-export function MobileMenuScreen({ onSelect }: MobileMenuScreenProps) {
+export function MobileMenuScreen({ onSelect, tabBar }: MobileMenuScreenProps) {
   const { t } = useTranslation();
   const { signOut } = useAuth();
 
@@ -80,10 +77,10 @@ export function MobileMenuScreen({ onSelect }: MobileMenuScreenProps) {
       title: 'Fichiers',
       icon: <FolderOpen className="w-5 h-5" />,
       items: [
-        { id: 'fiche-produits', label: 'Menu / Produits' },
+        { id: 'fiche-produits', label: 'Produits' },
         { id: 'clients', label: t('menu.files.clients') || 'Clients' },
         { id: 'fournisseurs', label: t('menu.files.suppliers') || 'Fournisseurs' },
-        { id: 'restaurants', label: 'Restaurants' },
+        { id: 'boutiques', label: 'Boutiques' },
       ],
     },
     {
@@ -91,7 +88,6 @@ export function MobileMenuScreen({ onSelect }: MobileMenuScreenProps) {
       icon: <Package className="w-5 h-5" />,
       items: [
         { id: 'inventaire-stock', label: 'Inventaire' },
-        { id: 'ingredients', label: 'Ingrédients' },
       ],
     },
     {
@@ -124,47 +120,54 @@ export function MobileMenuScreen({ onSelect }: MobileMenuScreenProps) {
       ],
     },
     {
-      title: 'Programme',
-      icon: <FileText className="w-5 h-5" />,
+      title: 'Paramètres',
+      icon: <Layout className="w-5 h-5" />,
       items: [
-        { id: 'preferences', label: t('menu.program.preferences') || 'Préférences' },
-        { id: 'programmation-touches', label: t('menu.program.keyProgramming') || 'Programmation touches' },
         { id: 'mots-de-passe', label: t('menu.program.passwords') || 'Mots de passe' },
       ],
     },
   ];
 
-  // Resolve subRole: direct role rows (cashier/cook/waiter) take precedence over
-  // the legacy worker+sub_role pattern and user_metadata fallback.
+  // Resolve subRole: direct role rows (cashier) take precedence over the
+  // legacy worker+sub_role pattern and user_metadata fallback.
   const workerRole = roles.find(r => r.role === 'worker');
-  const rawSubRole =
-    roles.find(r => ['cook', 'cashier', 'waiter', 'waiters'].includes(r.role))?.role ??
+  const subRole = (
+    roles.find(r => r.role === 'cashier')?.role ??
     workerRole?.sub_role ??
-    (user?.user_metadata?.sub_role as string | null | undefined);
-  const subRole = ((rawSubRole === 'waiters' ? 'waiter' : rawSubRole) || 'waiter') as 'cook' | 'cashier' | 'waiter';
+    (user?.user_metadata?.sub_role as string | null | undefined)
+  ) as 'cashier' | null | undefined;
 
   let finalSections = menuSections.filter(section => {
-    if (subRole === 'cook') {
-      // Cook: only Programme section
-      return section.title === 'Programme';
+    // Workers (non-master) should only access Ventes (sales) and Stock (inventory)
+    if (!isMaster) {
+      if (section.title !== 'Ventes' && section.title !== 'Stock') {
+        return false;
+      }
     }
     if (subRole === 'cashier') {
-      // Cashier: Ventes (renamed to Commandes) + Programme
-      return section.title === 'Ventes' || section.title === 'Programme';
-    }
-    if (subRole === 'waiter') {
-      // Waiter: restaurant only (appended dynamically below)
-      return false;
+      // Cashier: Ventes (renamed to Commandes) + Paramètres
+      return section.title === 'Ventes' || section.title === 'Paramètres';
     }
     return true;
   }).map(section => {
+    if (!isMaster && section.title === 'Ventes') {
+      return {
+        ...section,
+        items: section.items.filter(item =>
+          item.id === 'vente-detail' ||
+          item.id === 'fermeture-caisse' ||
+          item.id === 'suivi-ventes-jour'
+        )
+      };
+    }
     if (subRole === 'cashier' && section.title === 'Ventes') {
       return {
         ...section,
         title: 'Commandes',
         items: section.items.filter(item =>
           item.id === 'vente-detail' ||
-          item.id === 'fermeture-caisse'
+          item.id === 'fermeture-caisse' ||
+          item.id === 'suivi-ventes-jour'
         ).map(item => {
           if (item.id === 'vente-detail') {
             return { ...item, label: 'Ticket commande' };
@@ -173,60 +176,33 @@ export function MobileMenuScreen({ onSelect }: MobileMenuScreenProps) {
         })
       };
     }
-    if (subRole === 'waiter') {
-      if (section.title === 'Ventes') {
-        return {
-          ...section,
-          items: section.items.filter(item => item.id === 'vente-detail')
-        };
-      }
-      if (section.title === 'Fichiers') {
-        return {
-          ...section,
-          items: section.items.filter(item => item.id === 'fiche-produits')
-        };
-      }
-      if (section.title === 'Programme') {
-        return {
-          ...section,
-          items: section.items.filter(item => item.id === 'preferences')
-        };
-      }
-    }
     return section;
   });
-
-  if (subRole === 'waiter') {
-    finalSections.push({
-      title: 'Restaurant',
-      icon: <Layout className="w-5 h-5" />,
-      items: [
-        { id: 'tables', label: 'Plan de salle / Tables' }
-      ]
-    });
-  }
 
   const roleLabel = isMaster
     ? (t('roles.master') || 'Master')
     : subRole === 'cashier' ? (t('roles.cashier') || 'Caissier')
-    : subRole === 'cook' ? (t('roles.cook') || 'Cuisine')
-    : (t('roles.waiter') || 'Serveur');
+    : (t('roles.worker') || 'Vendeur');
 
   return (
-    <div className="flex flex-col h-full bg-[#0a0a0a] pb-[80px]">
-      <header className="flex-shrink-0 bg-[#141414] border-b border-rs-surface-container px-4 pt-safe sticky top-0 z-10">
-        <div className="h-[64px] flex items-center justify-between">
-          <div className="flex flex-col">
-            <h1 className="text-xl font-bold tracking-tight text-white leading-tight">Modules DJATI</h1>
-            <span className="text-xs text-rs-on-surface-variant font-medium">{roleLabel}</span>
+    <MobileScreenShell
+      className="bg-[#0a0a0a]"
+      contentClassName="px-4 py-4 space-y-6"
+      tabBar={tabBar}
+      header={
+        <header className="shrink-0 bg-[#141414] border-b border-rs-surface-container px-4 pt-safe z-10">
+          <div className="h-[64px] flex items-center justify-between">
+            <div className="flex flex-col">
+              <h1 className="text-xl font-bold tracking-tight text-white leading-tight">Modules DJATI</h1>
+              <span className="text-xs text-rs-on-surface-variant font-medium">{roleLabel}</span>
+            </div>
+            <div className="w-9 h-9 rounded-full bg-rs-surface-tint/15 border border-rs-surface-tint/30 flex items-center justify-center text-rs-surface-tint font-bold text-sm">
+              {(user?.email?.[0] || roleLabel[0] || '?').toUpperCase()}
+            </div>
           </div>
-          <div className="w-9 h-9 rounded-full bg-rs-surface-tint/15 border border-rs-surface-tint/30 flex items-center justify-center text-rs-surface-tint font-bold text-sm">
-            {(user?.email?.[0] || roleLabel[0] || '?').toUpperCase()}
-          </div>
-        </div>
-      </header>
-
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6">
+        </header>
+      }
+    >
         {finalSections.filter(s => s.items.length > 0).map((section, idx) => {
           const accent = SECTION_ACCENTS[section.title] ?? DEFAULT_ACCENT;
           return (
@@ -295,7 +271,6 @@ export function MobileMenuScreen({ onSelect }: MobileMenuScreenProps) {
             <span>{t('auth.signOut') || 'Déconnexion'}</span>
           </button>
         </div>
-      </div>
-    </div>
+    </MobileScreenShell>
   );
 }
