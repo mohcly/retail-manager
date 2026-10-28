@@ -433,3 +433,24 @@
   - Production deployment deployed and aliased to `https://djati-stihl.vercel.app` (HTTP 200 OK).
 - Status: FIXED
 - Tags: multi-tenant, stores-schema, restaurant-poisoning, holdingpro-niamana, vercel-deploy
+
+### [2026-10-28] Fix ReferenceError 'cn is not defined' and simplify auth tenant routing
+- Symptom:
+  - Crash on `https://djati-stihl.vercel.app/#/auth` displaying: "Une erreur est survenue: Can't find variable: cn".
+  - Interactive organization selector revealed multi-tenant names and tenant accounts.
+- Files involved:
+  - `frontend/src/components/auth/AuthPage.tsx`
+  - `frontend/src/components/mobile/Auth/MobileAuthPage.tsx`
+- Root cause:
+  - Helper `cn` was called in `AuthPage.tsx` without being imported.
+  - Organization selector pills were exposed visually in UI, revealing organization names.
+- Fix applied:
+  1. Removed the entire interactive organization selector UI from both `AuthPage.tsx` and `MobileAuthPage.tsx`.
+  2. Maintained transparent background email detection via `predictTenantByEmail` and `cascadeSignInWithPassword`.
+  3. Cleaned up unused imports and imported `cn` in `AuthPage.tsx`.
+- Verification:
+  - `npx tsc --noEmit` passed with 0 errors.
+  - `npm run build` bundled successfully in 8.21s.
+  - Deployed to Vercel production: `https://djati-stihl.vercel.app`.
+- Status: FIXED
+- Tags: auth, cn-reference-error, silent-tenant-detection, vercel

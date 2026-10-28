@@ -3,8 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { Loader2 } from 'lucide-react';
 import logoUrl from '@/assets/logo.png';
 import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher';
-import { predictTenantByEmail, REGISTERED_TENANTS, getAllTenants } from '@/lib/tenants';
-import { getActiveTenantId, setActiveTenant, getActiveTenant } from '@/lib/supabase';
+import { predictTenantByEmail } from '@/lib/tenants';
+import { setActiveTenant } from '@/lib/supabase';
 
 export interface MobileAuthPageProps {
     loginData: any;
@@ -32,24 +32,16 @@ export function MobileAuthPage({
 }: MobileAuthPageProps) {
     const { t } = useTranslation();
     const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login');
-    const [activeTenantId, setActiveTenantIdState] = useState<string>(() => getActiveTenantId());
 
     useEffect(() => {
         if (loginData.email) {
             const predicted = predictTenantByEmail(loginData.email);
-            if (predicted && predicted !== activeTenantId) {
-                setActiveTenantIdState(predicted);
+            if (predicted) {
                 setActiveTenant(predicted);
             }
         }
     }, [loginData.email]);
 
-    const handleSelectTenant = (id: string) => {
-        setActiveTenantIdState(id);
-        setActiveTenant(id);
-    };
-
-    const currentTenant = REGISTERED_TENANTS[activeTenantId] || getActiveTenant();
     const showSignup = canSignUp && activeTab === 'signup';
 
     return (
@@ -119,32 +111,6 @@ export function MobileAuthPage({
                                     onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
                                     disabled={loading}
                                 />
-                            </div>
-                            <div className="flex flex-col gap-1.5 mt-1.5">
-                                <div className="flex items-center justify-between text-[11px] text-rs-on-surface-variant px-1 font-bold">
-                                    <span>ORGANISATION :</span>
-                                    <span className="text-rs-on-surface">{currentTenant.shortName}</span>
-                                </div>
-                                <div className="flex flex-wrap items-center gap-1.5">
-                                    {getAllTenants().map(tenant => {
-                                        const isSelected = tenant.id === activeTenantId;
-                                        return (
-                                            <button
-                                                key={tenant.id}
-                                                type="button"
-                                                onClick={() => handleSelectTenant(tenant.id)}
-                                                className={`text-[10px] font-bold px-2 py-1 rounded-full border transition-all flex items-center gap-1 ${
-                                                    isSelected
-                                                        ? 'border-rs-primary bg-rs-primary/20 text-rs-primary shadow-xs'
-                                                        : 'border-rs-outline/40 text-rs-on-surface-variant/80'
-                                                }`}
-                                            >
-                                                <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: tenant.accentColor }} />
-                                                {tenant.shortName}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
                             </div>
                             {errors.email && <p className="text-xs text-rs-error pl-1">{errors.email}</p>}
                         </div>
