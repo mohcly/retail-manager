@@ -34,6 +34,10 @@ for (const config of Object.values(REGISTERED_TENANTS)) {
 
 let activeTenantId = detectInitialTenantId();
 
+export function getActiveTenantId(): string {
+  return activeTenantId;
+}
+
 export function getActiveTenant(): TenantConfig {
   return REGISTERED_TENANTS[activeTenantId] || REGISTERED_TENANTS['stihl'];
 }

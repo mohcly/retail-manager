@@ -59,17 +59,26 @@ td:first-child{color:var(--ink);font-weight:600}
 .tile b{display:block;color:var(--navy);font-size:9.6pt;margin-bottom:1.2mm}
 .cond{font-size:8.1pt;color:var(--mute);display:flex;flex-direction:column;gap:1mm}
 .cond b{color:var(--navy)}
-.page{gap:3.4mm}.one{white-space:nowrap;font-size:7.4pt}.sign{display:grid;grid-template-columns:1.4fr 1fr;gap:5mm;font-size:8pt;margin-top:auto}
-.sign div{border:1px solid var(--line);border-radius:4px;padding:3mm;min-height:20mm}
+.cond2{font-size:6.9pt;line-height:1.2;color:var(--mute);columns:2;column-gap:6mm}
+.cond2 div{break-inside:avoid;-webkit-column-break-inside:avoid;margin-bottom:1.1mm}
+.cond2 b{color:var(--navy)}
+.page{gap:2.2mm}.one{white-space:nowrap;font-size:7.4pt}.sign{display:grid;grid-template-columns:1.4fr 1fr;gap:5mm;font-size:7.3pt;margin-top:auto}
+.sign div{border:1px solid var(--line);border-radius:4px;padding:1.8mm;min-height:13mm}
 .sign b{color:var(--navy)}
-.box{display:flex;flex-direction:column;gap:1.5mm;margin:1.5mm 0}
+.box{display:flex;flex-direction:column;gap:0.6mm;margin:0.6mm 0}
+.tight{gap:1.8mm}
+.tight table{font-size:7.3pt}
+.tight th{padding:1.1mm 2.2mm}
+.tight td{padding:0.5mm 2.2mm}
+.tight h3{margin-bottom:1.1mm;padding-bottom:0.8mm;font-size:11pt}
+.tight .key{padding:1.4mm 2.6mm;font-size:7.2pt;line-height:1.28}
 </style></head>
 <body>
 
 <section class="page">
   <header>
     <div class="brand"><div class="logo">JATI</div><div><b>Jati Technologies SARL</b><span>Groupe GIE Mouna · Systèmes d'encaissement et gestion commerciale souveraine</span></div></div>
-    <div class="ref"><b>Réf. JT-PLANS-2026-051</b><br>26 octobre 2026 · Validité 30 jours</div>
+    <div class="ref"><b>Réf. JT-PLANS-2026-051</b><br>19 octobre 2026 · Validité 30 jours</div>
   </header>
 
   <div class="parties">
@@ -141,13 +150,13 @@ td:first-child{color:var(--ink);font-weight:600}
 
   <div class="key"><b>Promesse claire :</b> votre licence Retail Manager reste acquise à vie. Le plan finance le portail web et le service : assistance, suivi, visites et mises à jour. Si vous arrêtez le plan, votre caisse continue de fonctionner ; seuls le portail et les services s'arrêtent.</div>
 
-  <footer><span>Jati Technologies SARL · Groupe GIE Mouna · RCCM : MA.BKO.2017.C.8036 · NIF : En cours d'attribution DGI</span><span>Page 1 / 3</span></footer>
+  <footer><span>Jati Technologies SARL · Groupe GIE Mouna · RCCM : MA.BKO.2017.C.8036 · NIF : En cours d'attribution DGI</span><span>Page 1 / 2</span></footer>
 </section>
 
-<section class="page">
+<section class="page tight">
   <header>
     <div class="brand"><div class="logo">JATI</div><div><b>Jati Technologies SARL</b><span>Offre de services · Retail Manager</span></div></div>
-    <div class="ref"><b>Réf. JT-PLANS-2026-051</b><br>26 octobre 2026 · Validité 30 jours</div>
+    <div class="ref"><b>Réf. JT-PLANS-2026-051</b><br>19 octobre 2026 · Validité 30 jours</div>
   </header>
 
   <div>
@@ -167,43 +176,29 @@ td:first-child{color:var(--ink);font-weight:600}
     </table>
   </div>
 
-  <div>
-    <h3 class="serif">Portail web Retail Manager : votre commerce dans la poche</h3>
-    <div class="key">Suivez vos ventes, votre caisse et votre stock depuis votre téléphone ou un ordinateur, où que vous soyez. <b>La caisse fonctionne toujours sans internet</b> : le portail se met à jour dès qu'une connexion est disponible, et la caisse ne dépend jamais de lui. Le portail est inclus dans les plans (lecture seule en Essentiel, compte propriétaire en Sérénité, multi-utilisateurs et multi-boutiques en Premium) et s'arrête si le plan n'est plus payé.</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:4mm">
+    <div>
+      <h3 class="serif" style="font-size:10pt">Portail web : votre commerce dans la poche</h3>
+      <div class="key">Suivez vos ventes, votre caisse et votre stock depuis votre téléphone ou un ordinateur, où que vous soyez. <b>La caisse fonctionne toujours sans internet</b> : le portail se met à jour dès qu'une connexion est disponible, et la caisse ne dépend jamais de lui. Inclus dans les plans (lecture seule en Essentiel, compte propriétaire en Sérénité, multi-utilisateurs en Premium) et s'arrête si le plan n'est plus payé.</div>
+    </div>
+    <div>
+      <h3 class="serif" style="font-size:10pt">Offre de lancement</h3>
+      <div class="key"><b>3 mois du Plan Sérénité offerts</b> pour tout achat d'un pack Tier 2 ou Tier 3 signé avant la fin de validité de cette offre. Au bout de 3 mois, vous décidez de continuer ou non. Les 3 mois offerts ne comptent pas dans la durée minimale d'engagement.</div>
+    </div>
   </div>
 
   <div>
-    <h3 class="serif">Offre de lancement</h3>
-    <div class="key"><b>3 mois du Plan Sérénité offerts</b> pour tout achat d'un pack Tier 2 ou Tier 3 signé avant la fin de validité de cette offre. Au bout de 3 mois, vous décidez de continuer ou non. Les 3 mois offerts ne comptent pas dans la durée minimale d'engagement.</div>
-  </div>
-
-  <div>
-    <h3 class="serif">Engagement et paiement</h3>
-    <div class="cond">
+    <h3 class="serif" style="font-size:10pt">Engagement, licence et litiges</h3>
+    <div class="cond2">
       <div><b>1. Durée minimale :</b> 6 mois payés, puis reconduction mensuelle. Résiliation avec 30 jours de préavis écrit après la durée minimale. En cas de départ avant 6 mois, les mois restants de la durée minimale restent dus.</div>
       <div><b>2. Paiement :</b> mensuel d'avance (le 5 de chaque mois) ou annuel d'avance avec 1 mois offert, par Orange Money, Moov Money ou espèces. Reçu remis à chaque règlement. Les sommes payées d'avance ne sont pas remboursables.</div>
       <div><b>3. Retard de paiement :</b> au-delà de 15 jours de retard, le portail et les services sont suspendus (la caisse continue de fonctionner) et une pénalité de retard de 5 % du montant dû est appliquée. La remise en service se fait après règlement des sommes dues.</div>
       <div><b>4. Délai de carence :</b> le prêt de matériel et les interventions de remplacement ne s'appliquent qu'après 30 jours d'abonnement. Les pannes ou problèmes existant avant la souscription ne sont pas couverts.</div>
-    </div>
-  </div>
-
-  <footer><span>Jati Technologies SARL · Groupe GIE Mouna · RCCM : MA.BKO.2017.C.8036 · NIF : En cours d'attribution DGI</span><span>Page 2 / 3</span></footer>
-</section>
-
-<section class="page">
-  <header>
-    <div class="brand"><div class="logo">JATI</div><div><b>Jati Technologies SARL</b><span>Offre de services · Retail Manager</span></div></div>
-    <div class="ref"><b>Réf. JT-PLANS-2026-051</b><br>26 octobre 2026 · Validité 30 jours</div>
-  </header>
-
-  <div>
-    <h3 class="serif">Licence, responsabilité et litiges</h3>
-    <div class="cond">
-      <div><b>5. Licence non cessible :</b> la licence Retail Manager est personnelle, non exclusive et non transférable. Elle est limitée à un seul commerce et aux postes déclarés, et liée à chaque poste installé. La copie, le prêt, la revente, la location et l'ingénierie inverse du logiciel sont interdits. Tout poste ou boutique supplémentaire nécessite une licence supplémentaire.</div>
-      <div><b>6. Usage raisonnable :</b> l'assistance couvre Retail Manager et le matériel fourni par Jati, du lundi au samedi aux heures ouvrées. La formation du personnel au-delà de celle incluse, les articles et visites au-delà du quota mensuel, et les demandes sans rapport avec le système sont facturés. Les quotas ne sont pas reportables. Un seul prêt de matériel par an.</div>
+      <div><b>5. Licence non cessible :</b> la licence Retail Manager est personnelle, non exclusive et non transférable. Limitée à un seul commerce et aux postes déclarés, liée à chaque poste installé. Copie, prêt, revente, location et ingénierie inverse interdits. Tout poste ou boutique supplémentaire nécessite une licence supplémentaire.</div>
+      <div><b>6. Usage raisonnable :</b> l'assistance couvre Retail Manager et le matériel fourni par Jati, du lundi au samedi aux heures ouvrées. Formation au-delà de celle incluse, articles et visites au-delà du quota mensuel, et demandes sans rapport avec le système sont facturés. Quotas non reportables. Un seul prêt de matériel par an.</div>
       <div><b>7. Poste dédié :</b> le poste de caisse est réservé à Retail Manager. L'installation de logiciels non autorisés ou piratés, de jeux ou de programmes tiers peut entraîner la suspension du support gratuit et la facturation de l'intervention.</div>
       <div><b>8. Exclusions du matériel :</b> dégâts d'eau, chocs, mauvaise utilisation, ouverture du matériel par un tiers et surtensions sur un poste non protégé par onduleur ne sont pas couverts par les échanges gratuits.</div>
-      <div><b>9. Sauvegardes et responsabilité :</b> le client suit la procédure de sauvegarde et conserve ses clés miroir en lieu sûr. La réinstallation en 4 heures s'entend lorsqu'une sauvegarde valide est disponible. La responsabilité de Jati se limite au rétablissement à partir de la dernière sauvegarde valide et ne peut dépasser les sommes versées par le client sur les 12 derniers mois. Jati n'est pas responsable des pertes indirectes (manque à gagner), des coupures d'électricité ou d'internet, ni des cas de force majeure.</div>
+      <div><b>9. Sauvegardes et responsabilité :</b> le client suit la procédure de sauvegarde et conserve ses clés miroir en lieu sûr. La réinstallation en 4 heures s'entend lorsqu'une sauvegarde valide est disponible. La responsabilité de Jati se limite au rétablissement à partir de la dernière sauvegarde valide et ne peut dépasser les sommes versées par le client sur les 12 derniers mois. Jati n'est pas responsable des pertes indirectes, des coupures d'électricité ou d'internet, ni des cas de force majeure.</div>
       <div><b>10. Accès à distance et données :</b> Jati n'accède au poste à distance qu'avec l'accord du client et s'engage à la confidentialité. Les données du commerce restent la propriété du client et ne sont utilisées que pour fournir le service. Le code source et le logiciel restent la propriété de Jati.</div>
       <div><b>11. Signataire :</b> la personne qui signe déclare avoir qualité pour engager l'établissement client.</div>
       <div><b>12. Litiges :</b> les parties cherchent d'abord une solution amiable. À défaut, le droit malien s'applique et le tribunal de commerce de Bamako est compétent. Le français fait foi.</div>
@@ -214,7 +209,9 @@ td:first-child{color:var(--ink);font-weight:600}
   <div class="sign">
     <div>
       <b>Pour le prestataire</b>
-      <p>M. Mohamed N’gouro Coulibaly<br><span class="one">Gérant et directeur technique · Jati Technologies / Groupe GIE Mouna</span><br>Fait à Bamako, le 26 octobre 2026 · Signature et cachet</p>
+      <p>M. Mohamed N’gouro Coulibaly<br><span class="one">Gérant et directeur technique · Jati Technologies / Groupe GIE Mouna</span></p>
+      <div style="display:flex; align-items:center; justify-content:center; padding:0.5mm 0;"><img src="file:///Users/mohamedcoulibaly/MVP/Pro/retail-manager/docs/assets/signature-mohamed.png" style="max-height:11mm; width:auto; display:block; margin:0 auto;" alt="Signature Mohamed Coulibaly"></div>
+      <p>Fait à Bamako, le 19 octobre 2026 · Signature et cachet</p>
     </div>
     <div>
       <b>Pour le client : bon pour accord</b>
@@ -228,6 +225,6 @@ td:first-child{color:var(--ink);font-weight:600}
     </div>
   </div>
 
-  <footer><span>Jati Technologies SARL · Groupe GIE Mouna · RCCM : MA.BKO.2017.C.8036 · NIF : En cours d'attribution DGI</span><span>Page 3 / 3</span></footer>
+  <footer><span>Jati Technologies SARL · Groupe GIE Mouna · RCCM : MA.BKO.2017.C.8036 · NIF : En cours d'attribution DGI</span><span>Page 2 / 2</span></footer>
 </section>
 </body></html>

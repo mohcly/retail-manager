@@ -54,7 +54,7 @@ export function getDataClient(): DataClient {
   const localFirst = (tauri || forceLocal || (isLocalHost && !android)) && !android && !forceCloud;
   const baseUrl = localFirst
     ? localBridgeBaseUrl
-    : (import.meta.env.VITE_SUPABASE_URL || getActiveTenantSupabaseUrl()).replace(/\/$/, '');
+    : (getActiveTenantSupabaseUrl() || import.meta.env.VITE_SUPABASE_URL || '').replace(/\/$/, '');
 
   console.log(
     `🔑 [DataClient] mode: offline, isLocalFirst: ${localFirst}, android: ${android}, isHttps: ${isHttps}, tauri: ${tauri}, localhost: ${isLocalHost}, baseUrl: ${baseUrl}`

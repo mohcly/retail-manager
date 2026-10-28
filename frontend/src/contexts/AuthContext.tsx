@@ -593,25 +593,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.warn('[AuthContext] Exception fetching roles from supabase', e);
       }
 
-      // Only check restaurant ownership if we have NO role yet from user_roles.
-      // A confirmed 'worker' from user_roles must NOT be overridden by restaurant ownership.
+      // Only check store/restaurant ownership if we have NO role yet from user_roles.
+      // A confirmed 'worker' from user_roles must NOT be overridden by store ownership.
       if (!role) {
         try {
+          // Check stores table first (primary retail/hardware table)
           const { data: ownedStores, error: storesError } = await supabase
-            .from('restaurants')
+            .from('stores')
             .select('*')
             .eq('owner_id', data.user.id)
             .limit(1);
           
-          if (storesError) {
-            console.error('[AuthContext] restaurants query failed:', storesError);
-          } else if (ownedStores && ownedStores.length > 0) {
+          if (!storesError && ownedStores && ownedStores.length > 0) {
             role = 'master';
             storeId = ownedStores[0].id;
             storeName = ownedStores[0].name || storeName;
+          } else {
+            // Fallback check on restaurants table for food/restaurant accounts
+            const { data: ownedRestos } = await supabase
+              .from('restaurants')
+              .select('*')
+              .eq('owner_id', data.user.id)
+              .limit(1);
+            if (ownedRestos && ownedRestos.length > 0) {
+              role = 'master';
+              storeId = ownedRestos[0].id;
+              storeName = ownedRestos[0].name || storeName;
+            }
           }
         } catch (e) {
-          console.warn('[AuthContext] Exception checking owned restaurants', e);
+          console.warn('[AuthContext] Exception checking owned stores/restaurants', e);
         }
       }
 
@@ -622,23 +633,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!role) {
         const metaRole = asAppRole(metadata.role);
         if (metaRole) {
-          console.log('[AuthContext] No role in user_roles/restaurants — using auth metadata role:', metaRole);
+          console.log('[AuthContext] No role in user_roles/stores — using auth metadata role:', metaRole);
           role = metaRole;
         }
       }
 
-      // If STILL no role, nothing could establish one — either a query above
-      // failed or the account genuinely has none. Fail CLOSED, not open: this
-      // used to default to 'master', which handed full owner rights to any
-      // authenticated user whenever the user_roles read was denied or dropped.
-      // See LEAST_PRIVILEGED_ROLE — do not restore 'master' here.
-      // A login is still granted rather than refused so a transient outage
-      // cannot lock the owner out; the store_id guard below already rejects the
-      // session when no restaurant can be resolved, and a least-privileged
-      // session grants nothing.
+      // If STILL no role, default to least privilege
       if (!role) {
         console.warn(
-          '[AuthContext][roles] No role in user_roles, restaurants, or metadata — defaulting to least privilege:',
+          '[AuthContext][roles] No role in user_roles, stores, or metadata — defaulting to least privilege:',
           LEAST_PRIVILEGED_ROLE
         );
         role = LEAST_PRIVILEGED_ROLE;
@@ -647,20 +650,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Ensure master users have a storeId
       if (!storeId) {
         try {
-          const { data: stores } = await supabase
-            .from('restaurants')
+          // Query stores first
+          const { data: stores, error: storesErr } = await supabase
+            .from('stores')
             .select('*')
             .order('name');
           
-          if (stores && stores.length > 0) {
-            const mpmStore = stores.find((s: any) => /mpm|food/i.test(s.name));
-            const target = mpmStore || stores[0];
+          if (!storesErr && stores && stores.length > 0) {
+            const target = stores[0];
             storeId = target.id;
-            storeName = target.name || 'Restaurant MPM Food';
-            console.log('[AuthContext] Resolved restaurant from cloud for MPM Food attribution:', storeName, storeId);
+            storeName = target.name || 'Djati Store';
+            console.log('[AuthContext] Resolved store from cloud:', storeName, storeId);
+          } else {
+            // Fallback to restaurants for restaurant accounts
+            const { data: restos } = await supabase
+              .from('restaurants')
+              .select('*')
+              .order('name');
+            if (restos && restos.length > 0) {
+              const target = restos[0];
+              storeId = target.id;
+              storeName = target.name || 'Djati Restaurant';
+              console.log('[AuthContext] Resolved restaurant from cloud:', storeName, storeId);
+            }
           }
         } catch (e) {
-          console.warn('[AuthContext] Exception checking restaurants for MPM Food attribution', e);
+          console.warn('[AuthContext] Exception checking stores/restaurants', e);
         }
       }
 
@@ -669,12 +684,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         storeId = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function' 
           ? crypto.randomUUID() 
           : 'store-' + Math.random().toString(36).substring(2, 15);
-        storeName = 'Restaurant MPM Food';
+        storeName = 'Djati Store';
         console.log('[AuthContext] Dynamically generated storeId for master:', storeId);
       }
 
       if (!storeId) {
-        return { error: 'Cloud account is missing required restaurant association (store_id metadata).' };
+        return { error: 'Cloud account is missing required store association (store_id metadata).' };
       }
 
       // Always sync user metadata to keep it up-to-date with user_roles table

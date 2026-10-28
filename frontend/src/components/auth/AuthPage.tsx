@@ -16,7 +16,8 @@ import { useToast } from '@/hooks/use-toast';
 import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher';
 import { useDevice } from '@/contexts/DeviceContext';
 import { MobileAuthPage } from '@/components/mobile/Auth/MobileAuthPage';
-import { predictTenantByEmail, REGISTERED_TENANTS } from '@/lib/tenants';
+import { predictTenantByEmail, REGISTERED_TENANTS, getAllTenants } from '@/lib/tenants';
+import { getActiveTenantId, setActiveTenant, getActiveTenant } from '@/lib/supabase';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -61,8 +62,24 @@ export default function AuthPage() {
     fullName: ''
   });
 
-  const detectedTenantId = loginData.email ? predictTenantByEmail(loginData.email) : null;
-  const detectedTenant = detectedTenantId ? REGISTERED_TENANTS[detectedTenantId] : null;
+  const [activeTenantId, setActiveTenantIdState] = useState<string>(() => getActiveTenantId());
+
+  useEffect(() => {
+    if (loginData.email) {
+      const predicted = predictTenantByEmail(loginData.email);
+      if (predicted && predicted !== activeTenantId) {
+        setActiveTenantIdState(predicted);
+        setActiveTenant(predicted);
+      }
+    }
+  }, [loginData.email]);
+
+  const handleSelectTenant = (id: string) => {
+    setActiveTenantIdState(id);
+    setActiveTenant(id);
+  };
+
+  const currentTenant = REGISTERED_TENANTS[activeTenantId] || getActiveTenant();
 
   // "Signup" on local-first installs IS the first-run master+store bootstrap
   // (AuthContext.signUp -> OfflineAuthService.bootstrapMaster), not a public
@@ -257,12 +274,33 @@ export default function AuthPage() {
                     disabled={loading}
                     className={errors.email ? 'border-destructive' : ''}
                   />
-                  {detectedTenant && (
-                    <div className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-md bg-muted/60 border border-muted-foreground/20 text-foreground animate-in fade-in duration-200">
-                      <span className="w-2 h-2 rounded-full inline-block shrink-0" style={{ backgroundColor: detectedTenant.accentColor }} />
-                      <span>{detectedTenant.name}</span>
+                  <div className="space-y-1.5 pt-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] text-muted-foreground uppercase font-bold tracking-wider">Organisation active</span>
+                      <span className="text-[11px] font-semibold text-foreground/80">{currentTenant.shortName}</span>
                     </div>
-                  )}
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {getAllTenants().map(tenant => {
+                        const isSelected = tenant.id === activeTenantId;
+                        return (
+                          <button
+                            key={tenant.id}
+                            type="button"
+                            onClick={() => handleSelectTenant(tenant.id)}
+                            className={cn(
+                              "text-[10.5px] font-bold px-2.5 py-1 rounded-full border transition-all flex items-center gap-1.5 cursor-pointer",
+                              isSelected
+                                ? "border-primary bg-primary/10 text-primary shadow-xs ring-1 ring-primary/20"
+                                : "border-border/60 text-muted-foreground hover:bg-muted/50"
+                            )}
+                          >
+                            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: tenant.accentColor }} />
+                            {tenant.shortName}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                   {errors.email && (
                     <p className="text-sm text-destructive">{errors.email}</p>
                   )}

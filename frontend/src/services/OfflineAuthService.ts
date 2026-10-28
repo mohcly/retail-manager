@@ -798,21 +798,33 @@ export class OfflineAuthService {
       
       if (!userRole || userRole === 'worker') {
           try {
-             const { data: ownedStores, error: storesError } = await supabase
-               .from('restaurants')
+             // Query stores table first (standard retail/stores table)
+             let { data: ownedStores, error: storesError } = await supabase
+               .from('stores')
                .select('*')
                .eq('owner_id', data.user.id)
                .limit(1);
              
-             if (storesError) {
-               console.error('[OfflineAuth] restaurants query failed:', storesError);
-             } else if (ownedStores && ownedStores.length > 0) {
+             if (storesError || !ownedStores || ownedStores.length === 0) {
+               // Fallback to restaurants for restaurant accounts
+               const restoRes = await supabase
+                 .from('restaurants')
+                 .select('*')
+                 .eq('owner_id', data.user.id)
+                 .limit(1);
+               if (!restoRes.error && restoRes.data && restoRes.data.length > 0) {
+                 ownedStores = restoRes.data;
+                 storesError = null;
+               }
+             }
+             
+             if (!storesError && ownedStores && ownedStores.length > 0) {
                 userRole = 'master';
                 store_id = ownedStores[0].id;
                 store_object = ownedStores[0];
              }
           } catch (e) {
-             console.warn('[OfflineAuth] Exception checking owned restaurants', e);
+             console.warn('[OfflineAuth] Exception checking owned stores', e);
           }
       }
         
@@ -820,19 +832,28 @@ export class OfflineAuthService {
       
       if (!store_object && !store_id) {
           try {
-            const { data: stores } = await supabase
-              .from('restaurants')
+            let { data: stores, error: sErr } = await supabase
+              .from('stores')
               .select('*')
               .order('name');
             
+            if (sErr || !stores || stores.length === 0) {
+              const restoRes = await supabase
+                .from('restaurants')
+                .select('*')
+                .order('name');
+              if (!restoRes.error && restoRes.data && restoRes.data.length > 0) {
+                stores = restoRes.data;
+              }
+            }
+            
             if (stores && stores.length > 0) {
-               const mpmStore = stores.find((s: any) => /mpm|food/i.test(s.name));
-               const target = mpmStore || stores[0];
+               const target = stores[0];
                store_id = target.id;
                store_object = target;
             }
           } catch (e) {
-            console.warn('[OfflineAuth] Failed to resolve MPM Food restaurant from Supabase:', e);
+            console.warn('[OfflineAuth] Failed to resolve store from Supabase:', e);
           }
       }
 
@@ -1299,21 +1320,23 @@ export class OfflineAuthService {
 
           let storeId = user.user_metadata?.store_id || localRoles.find(r => r.store_id)?.store_id;
           if (!storeId) {
-            // Fall back to whatever restaurant RLS makes visible to them instead of leaving them storeless.
             try {
-              const { data: visibleStores } = await supabase
-                .from('restaurants')
+              // Check stores first
+              let { data: visibleStores } = await supabase
+                .from('stores')
                 .select('*')
                 .order('name');
-              const mpmStore = visibleStores?.find((s: any) => /mpm|food/i.test(s.name));
-              storeId = (mpmStore || visibleStores?.[0])?.id;
-              if (!storeId) {
-                const { data: v2 } = await supabase.from('stores').select('*').order('name');
-                const mpmStore2 = v2?.find((s: any) => /mpm|food/i.test(s.name));
-                storeId = (mpmStore2 || v2?.[0])?.id;
+              
+              if (!visibleStores || visibleStores.length === 0) {
+                const restoRes = await supabase
+                  .from('restaurants')
+                  .select('*')
+                  .order('name');
+                visibleStores = restoRes.data || [];
               }
+              storeId = visibleStores?.[0]?.id;
             } catch (e) {
-              console.warn('[OfflineAuth] Failed to resolve visible restaurants for MPM fallback:', e);
+              console.warn('[OfflineAuth] Failed to resolve visible stores from Supabase:', e);
             }
           }
           if (storeId) {
@@ -1365,23 +1388,23 @@ export class OfflineAuthService {
       if (!storeId) {
         const localStores = await LocalDatabase.getAllStores();
         if (localStores.length > 0) {
-          const mpmStore = localStores.find((s: any) => /mpm|food/i.test(s.name));
-          storeId = (mpmStore || localStores[0])?.id;
+          storeId = localStores[0]?.id;
         } else {
           try {
-            const { data: visibleStores } = await supabase
-              .from('restaurants')
+            let { data: visibleStores } = await supabase
+              .from('stores')
               .select('*')
               .order('name');
-            const mpmStore = visibleStores?.find((s: any) => /mpm|food/i.test(s.name));
-            storeId = (mpmStore || visibleStores?.[0])?.id;
-            if (!storeId) {
-              const { data: v2 } = await supabase.from('stores').select('*').order('name');
-              const mpmStore2 = v2?.find((s: any) => /mpm|food/i.test(s.name));
-              storeId = (mpmStore2 || v2?.[0])?.id;
+            if (!visibleStores || visibleStores.length === 0) {
+              const restoRes = await supabase
+                .from('restaurants')
+                .select('*')
+                .order('name');
+              visibleStores = restoRes.data || [];
             }
+            storeId = visibleStores?.[0]?.id;
           } catch (e) {
-            console.warn('[OfflineAuth] Failed to resolve visible restaurants for MPM fallback:', e);
+            console.warn('[OfflineAuth] Failed to resolve visible stores from Supabase:', e);
           }
         }
       }

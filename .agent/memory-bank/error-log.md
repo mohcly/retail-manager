@@ -400,3 +400,36 @@
   - Backend local-bridge build (`npm run build`) succeeded with 0 errors.
 - Status: FIXED
 - Tags: multi-tenant, saas, unification, supabase, transparent-auth, dynamic-receipts, store-type
+
+### [2026-10-28] Multi-tenant restaurant schema poisoning and Niamana Dubaï store resolution
+- Symptom:
+  - Deployed portal on unify-core attempted to connect all stores (STIHL, Niamana Dubaï) to MPM Food restaurant schema.
+  - STIHL accounts showed organization but Niamana accounts failed to display organization badge and could not fetch store data or sales.
+- Files involved:
+  - `frontend/src/contexts/AuthContext.tsx`
+  - `frontend/src/services/OfflineStoreService.ts`
+  - `frontend/src/services/OfflineAuthService.ts`
+  - `frontend/src/services/SupabaseSyncService.ts`
+  - `frontend/src/lib/tenants.ts`
+  - `frontend/src/lib/supabase.ts`
+  - `frontend/src/lib/dataClient.ts`
+  - `frontend/src/components/auth/AuthPage.tsx`
+  - `frontend/src/components/mobile/Auth/MobileAuthPage.tsx`
+  - `frontend/src/components/master/Dashboard/DashboardView.tsx`
+  - `frontend/src/components/master/Layout/StoreMultiSelector.tsx`
+- Root cause:
+  - Codebase inherited legacy queries pointing directly to `.from('restaurants')` and fallback values hardcoded to `'Restaurant MPM Food'`.
+  - Niamana Dubaï database schema uses `stores` table instead of `restaurants`, resulting in 404/relation not found errors when attempting to authenticate and load store data.
+  - `predictTenantByEmail` only recognized two static email addresses for `holdingpro`, defaulting unrecognized Niamana staff to STIHL tenant.
+- Fix applied:
+  1. Refactored all tenant store queries across `AuthContext`, `OfflineStoreService`, `OfflineAuthService`, and `SupabaseSyncService` to query `.from('stores')` first, with graceful fallback to `.from('restaurants')` for restaurant tenants.
+  2. Broadened email pattern recognition for Holding Pro / Niamana Dubaï in `tenants.ts` and added MPM Food as 3rd tenant configuration.
+  3. Added manual tenant selection pill buttons on login pages (`AuthPage.tsx` and `MobileAuthPage.tsx`) so users can switch organizations instantly.
+  4. Updated `dataClient.ts` to dynamically resolve `baseUrl` via `getActiveTenantSupabaseUrl()`.
+  5. Prevented dashboard skeleton hangs on reload by gating with `authLoading`.
+- Verification:
+  - Clean local build: `npm run build` completed in 10.36s with 0 errors.
+  - Vercel local build completed in 11s (`CI=1 npx vercel build --prod --yes`).
+  - Production deployment deployed and aliased to `https://djati-stihl.vercel.app` (HTTP 200 OK).
+- Status: FIXED
+- Tags: multi-tenant, stores-schema, restaurant-poisoning, holdingpro-niamana, vercel-deploy

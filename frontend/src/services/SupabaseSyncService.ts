@@ -200,7 +200,7 @@ export class SupabaseSyncService {
             break;
 
           case 'store':
-            supabaseTable = 'restaurants';
+            supabaseTable = 'stores';
             mappedPayload = {
               id: payload.id,
               name: payload.name,
@@ -400,7 +400,7 @@ export class SupabaseSyncService {
         .gt('created_at', lastCursor);
 
       const { data: remoteStores } = await supabase
-        .from('restaurants')
+        .from('stores')
         .select('*')
         .eq('id', storeId)
         .gt('updated_at', lastCursor);
@@ -805,7 +805,7 @@ export class SupabaseSyncService {
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
-        table: 'restaurants',
+        table: 'stores',
         filter: `id=eq.${storeId}`
       }, () => {
         console.log('⚡ [SupabaseSync] Realtime restaurant details change detected, pulling...');
