@@ -494,6 +494,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.warn('Failed to restore offline session:', err);
       }
 
+      // If no offline session and pure cloud mode, check Supabase directly
+      if (!dataClient.isLocalFirst && navigator.onLine) {
+        try {
+          const { data: { session: supaSession }, error: supaErr } = await supabase.auth.getSession();
+          if (supaSession?.user && !supaErr) {
+            console.log('Restored Supabase cloud session');
+            setUser(supaSession.user);
+            setSession(supaSession);
+            setLoading(false);
+            fetchUserRoles(supaSession.user.id).catch(e =>
+              console.warn('[AuthContext] Background role sync failed:', e)
+            );
+            return () => {
+              clearInterval(safetyInterval);
+              rolesLoadingStartTimeRef.current = null;
+            };
+          }
+        } catch (supaErr) {
+          console.warn('Failed to restore Supabase session:', supaErr);
+        }
+      }
+
       // No session found
       console.log('No cached session found');
       setLoading(false);
@@ -518,6 +540,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, 5000);
 
     return () => clearTimeout(fallbackTimeout);
+  }, []);
+
+  // Sync Supabase Auth State changes (token refresh) to IndexedDB in cloud mode
+  useEffect(() => {
+    const dataClient = getDataClient();
+    if (dataClient.isLocalFirst) return;
+
+    console.log('[AuthContext] Subscribing to Supabase auth state change listener');
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
+      console.log('[AuthContext] onAuthStateChange event:', event);
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        if (currentSession?.user) {
+          setUser(currentSession.user);
+          setSession(currentSession);
+        }
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
+        setSession(null);
+        setRoles([]);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const runCloudBootstrapFlow = async (email: string, password: string) => {
@@ -753,9 +800,79 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     console.log('🔑 AuthContext.signIn called for:', email, 'isBootstrapped:', isBootstrapped);
+    const dc = getDataClient();
     
     let result;
-    if (!isBootstrapped) {
+    if (!dc.isLocalFirst) {
+      console.log('🌐 Direct cloud sign in...');
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (error) {
+          result = { error: error.message };
+        } else if (!data.user || !data.session) {
+          result = { error: 'Retrieval of user session failed.' };
+        } else {
+          // Fetch cloud user roles
+          const { data: rolesData } = await supabase
+            .from('user_roles')
+            .select('*')
+            .eq('user_id', data.user.id);
+
+          let userRoles: UserRole[] = [];
+
+          if (rolesData && rolesData.length > 0) {
+            userRoles = rolesData.map((r: any) => ({
+              id: r.id,
+              user_id: r.user_id,
+              role: r.role as AppRole,
+              store_id: r.store_id || undefined,
+              sub_role: r.sub_role || undefined,
+              created_at: r.created_at,
+            }));
+          } else {
+            // Fallback to user_metadata or default master role
+            const metaRole = asAppRole(data.user.user_metadata?.role) || 'master';
+            userRoles = [{
+              id: 'meta-role',
+              user_id: data.user.id,
+              role: metaRole,
+              store_id: data.user.user_metadata?.store_id || undefined,
+              sub_role: data.user.user_metadata?.sub_role || undefined,
+              created_at: data.user.created_at,
+            }];
+          }
+
+          // If store_id is not set, resolve the first store
+          if (!userRoles[0].store_id) {
+            try {
+              const { data: storesList } = await supabase
+                .from('stores')
+                .select('id, name')
+                .order('name')
+                .limit(1);
+              if (storesList && storesList.length > 0) {
+                userRoles[0].store_id = storesList[0].id;
+              }
+            } catch (e) {
+              console.warn('[AuthContext] Exception finding default store:', e);
+            }
+          }
+
+          result = {
+            user: data.user,
+            session: data.session,
+            roles: userRoles,
+            isOffline: false,
+          };
+        }
+      } catch (err: any) {
+        result = { error: err.message || 'Supabase authentication failed.' };
+      }
+    } else if (!isBootstrapped) {
       console.log('🔌 Running cloud designed account bootstrap flow...');
       result = await runCloudBootstrapFlow(email, password);
     } else {

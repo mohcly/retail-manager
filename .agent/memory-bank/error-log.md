@@ -454,3 +454,25 @@
   - Deployed to Vercel production: `https://djati-stihl.vercel.app`.
 - Status: FIXED
 - Tags: auth, cn-reference-error, silent-tenant-detection, vercel
+
+### [2026-10-28] Restore direct cloud sign-in and cloud session restoration on web deployment
+- Symptom:
+  - All logins failed on `https://djati-stihl.vercel.app/#/auth`.
+- Files involved:
+  - `frontend/src/contexts/AuthContext.tsx`
+  - `frontend/src/lib/supabase.ts`
+- Root cause:
+  - `unify-core` lacked the direct cloud sign-in code path (`if (!dc.isLocalFirst)`) from `main-stores-stihl`.
+  - When users signed in on web/Vercel, `AuthContext.signIn` erroneously routed through `OfflineAuthService.signIn` (which expects a local SQLite bridge or existing browser IndexedDB user). Failing that, it ran `runCloudBootstrapFlow`, which blocked sign-in if `store_id` was not embedded in auth user metadata or tried to verify password locally.
+  - In addition, `supabase.auth.getSession()` and `onAuthStateChange` listeners were missing during initial session hydration in pure cloud mode.
+- Fix applied:
+  1. Restored the direct cloud sign-in flow (`if (!dc.isLocalFirst)`) in `AuthContext.signIn` with automatic cloud role extraction, fallback to user metadata, and default store resolution.
+  2. Restored pure cloud session hydration from `supabase.auth.getSession()` in `initializeAuth`.
+  3. Restored `supabase.auth.onAuthStateChange` subscription for token refresh synchronization in cloud mode.
+  4. Removed custom `storageKey` in `getOrCreateClient` so standard isolated Supabase session storage keys are preserved.
+- Verification:
+  - `npx tsc --noEmit` passed with 0 errors.
+  - `npm run build` compiled in 8.70s with 0 errors.
+  - Deployed to Vercel production: `https://djati-stihl.vercel.app` (HTTP 200 OK).
+- Status: FIXED
+- Tags: auth, direct-cloud-signin, session-hydration, vercel

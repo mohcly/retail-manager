@@ -18,8 +18,11 @@ function getOrCreateClient(config: TenantConfig): SupabaseClient {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
-        detectSessionInUrl: false,
-        storageKey: `sb-${config.id}-auth-token`,
+      },
+      realtime: {
+        params: {
+          eventsPerSecond: 10,
+        },
       },
     });
     clientMap.set(config.id, client);
