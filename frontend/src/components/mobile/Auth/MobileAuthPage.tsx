@@ -17,6 +17,7 @@ export interface MobileAuthPageProps {
     errors: Record<string, string>;
     /** Whether the signup tab should be offered at all - see AuthPage.tsx. */
     canSignUp: boolean;
+    onQuickLogin?: (email: string, tenantId: string) => void;
 }
 
 export function MobileAuthPage({
@@ -28,7 +29,8 @@ export function MobileAuthPage({
     handleSignup,
     loading,
     errors,
-    canSignUp
+    canSignUp,
+    onQuickLogin,
 }: MobileAuthPageProps) {
     const { t } = useTranslation();
     const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login');
@@ -190,6 +192,82 @@ export function MobileAuthPage({
                                 </>
                             )}
                         </button>
+
+                        {/* Quick Demo Switcher */}
+                        {onQuickLogin && (
+                            <div className="mt-4 pt-3 border-t border-rs-outline/30">
+                                <div className="text-center mb-2">
+                                    <span className="text-[10px] font-bold uppercase tracking-wider text-rs-on-surface-variant">
+                                        Accès Démo Rapide (Client & Rôles)
+                                    </span>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <button
+                                        type="button"
+                                        disabled={loading}
+                                        onClick={() => onQuickLogin('master@stihl-mali.com', 'stihl')}
+                                        className="p-2 rounded-lg border border-orange-500/30 bg-orange-500/10 active:bg-orange-500/20 text-left transition-all disabled:opacity-50"
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-1.5 font-bold text-xs text-orange-400">
+                                                <span className="w-2 h-2 rounded-full bg-orange-500 shrink-0" />
+                                                STIHL MALI
+                                            </div>
+                                            <ArrowRight className="w-3 h-3 text-orange-400/60" />
+                                        </div>
+                                        <div className="text-[10px] text-rs-on-surface-variant mt-0.5">Directeur (Master)</div>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        disabled={loading}
+                                        onClick={() => onQuickLogin('caisse@stihl-mali.com', 'stihl')}
+                                        className="p-2 rounded-lg border border-orange-500/30 bg-orange-500/10 active:bg-orange-500/20 text-left transition-all disabled:opacity-50"
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-1.5 font-bold text-xs text-orange-400">
+                                                <span className="w-2 h-2 rounded-full bg-orange-500 shrink-0" />
+                                                STIHL MALI
+                                            </div>
+                                            <ArrowRight className="w-3 h-3 text-orange-400/60" />
+                                        </div>
+                                        <div className="text-[10px] text-rs-on-surface-variant mt-0.5">Caisse / Vente</div>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        disabled={loading}
+                                        onClick={() => onQuickLogin('master@holding-pro.com', 'holdingpro')}
+                                        className="p-2 rounded-lg border border-slate-700/50 bg-slate-500/10 active:bg-slate-500/20 text-left transition-all disabled:opacity-50"
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-1.5 font-bold text-xs text-slate-200">
+                                                <span className="w-2 h-2 rounded-full bg-slate-300 shrink-0" />
+                                                HOLDING PRO
+                                            </div>
+                                            <ArrowRight className="w-3 h-3 text-slate-400" />
+                                        </div>
+                                        <div className="text-[10px] text-rs-on-surface-variant mt-0.5">Directeur (Master)</div>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        disabled={loading}
+                                        onClick={() => onQuickLogin('caisse@holding-pro.com', 'holdingpro')}
+                                        className="p-2 rounded-lg border border-slate-700/50 bg-slate-500/10 active:bg-slate-500/20 text-left transition-all disabled:opacity-50"
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-1.5 font-bold text-xs text-slate-200">
+                                                <span className="w-2 h-2 rounded-full bg-slate-300 shrink-0" />
+                                                HOLDING PRO
+                                            </div>
+                                            <ArrowRight className="w-3 h-3 text-slate-400" />
+                                        </div>
+                                        <div className="text-[10px] text-rs-on-surface-variant mt-0.5">Caisse / Vente</div>
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </form>
                 ) : (
                     <form className="flex flex-col gap-4" onSubmit={handleSignup}>

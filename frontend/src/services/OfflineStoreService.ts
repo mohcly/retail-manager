@@ -184,19 +184,36 @@ export class OfflineStoreService {
           throw new Error('No authenticated user found for store creation.');
         }
 
-        const { error: supaErr } = await supabase
+        const insertPayload: Record<string, any> = {
+          id: storeId,
+          name: storeData.name,
+          address: storeData.address ?? null,
+          phone: storeData.phone ?? null,
+          owner_id: ownerId,
+          default_price_tier: storeData.default_price_tier || 1,
+          is_active: true,
+          created_at: now,
+          updated_at: now
+        };
+
+        let { error: supaErr } = await supabase
           .from('stores')
-          .insert({
+          .insert(insertPayload);
+
+        if (supaErr && (supaErr as any).code === 'PGRST204') {
+          console.warn('[OfflineStoreService] Extra columns missing on insert, retrying with core columns...');
+          const corePayload = {
             id: storeId,
             name: storeData.name,
             address: storeData.address ?? null,
             phone: storeData.phone ?? null,
             owner_id: ownerId,
-            default_price_tier: storeData.default_price_tier || 1,
-            is_active: true,
             created_at: now,
             updated_at: now
-          });
+          };
+          const retry = await supabase.from('stores').insert(corePayload);
+          supaErr = retry.error;
+        }
         
         if (supaErr) throw supaErr;
 
@@ -457,15 +474,16 @@ export class OfflineStoreService {
           return { error: { message: 'LocalBridge session required.' } };
         }
 
+        const bridgeBody: Record<string, any> = {};
+        if (updates.name !== undefined) bridgeBody.name = updates.name;
+        if (updates.address !== undefined) bridgeBody.address = updates.address;
+        if (updates.phone !== undefined) bridgeBody.phone = updates.phone;
+        if (updates.default_price_tier !== undefined) bridgeBody.default_price_tier = updates.default_price_tier;
+
         const response = await smartFetch(`${dataClient.localBridgeBaseUrl}/rest/v1/stores/${id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json', ...headers },
-          body: JSON.stringify({
-            name: updates.name,
-            address: updates.address ?? null,
-            phone: updates.phone ?? null,
-            default_price_tier: updates.default_price_tier,
-          }),
+          body: JSON.stringify(bridgeBody),
         });
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) {
@@ -542,17 +560,44 @@ export class OfflineStoreService {
         // by RLS) is NOT reported as an error by Postgres/PostgREST - without
         // selecting back the affected row, there is no way to tell "updated"
         // apart from "silently matched nothing".
-        const { data: updatedRows, error: supabaseError } = await supabase
+        const updatePayload: Record<string, any> = {
+          name: updates.name ?? localStore.name,
+          updated_at: now
+        };
+        if (updates.address !== undefined) {
+          updatePayload.address = updates.address ?? null;
+        } else if (localStore.address !== undefined) {
+          updatePayload.address = localStore.address;
+        }
+        if (updates.phone !== undefined) {
+          updatePayload.phone = updates.phone ?? null;
+        } else if (localStore.phone !== undefined) {
+          updatePayload.phone = localStore.phone;
+        }
+        if (updates.default_price_tier !== undefined) {
+          updatePayload.default_price_tier = updates.default_price_tier;
+        } else if (localStore.default_price_tier !== undefined) {
+          updatePayload.default_price_tier = localStore.default_price_tier;
+        }
+
+        let { data: updatedRows, error: supabaseError } = await supabase
           .from('stores')
-          .update({
-            name: localStore.name,
-            address: localStore.address ?? null,
-            phone: localStore.phone ?? null,
-            default_price_tier: localStore.default_price_tier,
-            updated_at: now
-          })
+          .update(updatePayload)
           .eq('id', id)
           .select();
+
+        // If schema cache or table is missing default_price_tier (PGRST204), retry gracefully without it
+        if (supabaseError && (supabaseError as any).code === 'PGRST204' && updatePayload.default_price_tier !== undefined) {
+          console.warn('[OfflineStoreService] default_price_tier column missing in remote schema, retrying update without it...');
+          delete updatePayload.default_price_tier;
+          const retry = await supabase
+            .from('stores')
+            .update(updatePayload)
+            .eq('id', id)
+            .select();
+          updatedRows = retry.data;
+          supabaseError = retry.error;
+        }
 
         if (supabaseError) {
           console.error('[OfflineStoreService] Supabase update failed:', supabaseError);

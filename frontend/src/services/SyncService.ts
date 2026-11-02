@@ -205,7 +205,7 @@ export class SyncService {
 
       for (const store of unsynced) {
         try {
-          const { error } = await supabase.from('stores').upsert({
+          const payload: Record<string, any> = {
             id: store.id,
             name: store.name,
             address: store.address || null,
@@ -216,7 +216,22 @@ export class SyncService {
             is_active: store.is_active,
             created_at: store.created_at,
             updated_at: new Date().toISOString(),
-          });
+          };
+
+          let { error } = await supabase.from('stores').upsert(payload);
+          if (error && (error as any).code === 'PGRST204') {
+            console.warn('[SyncService] Retrying store upsert with essential columns only...');
+            const fallbackPayload = {
+              id: store.id,
+              name: store.name,
+              address: store.address || null,
+              phone: store.phone || null,
+              created_at: store.created_at,
+              updated_at: payload.updated_at,
+            };
+            const retry = await supabase.from('stores').upsert(fallbackPayload);
+            error = retry.error;
+          }
           if (error) throw error;
 
           await LocalDatabase.markStoreSynced(store.id);

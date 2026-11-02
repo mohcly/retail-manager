@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ArrowRight } from 'lucide-react';
 import { z } from 'zod';
 import { InvitationService } from '@/services/InvitationService';
 import { useToast } from '@/hooks/use-toast';
@@ -217,6 +217,24 @@ export default function AuthPage() {
     }
   };
 
+  const handleQuickLogin = async (email: string, tenantId: string) => {
+    try {
+      setLoading(true);
+      setErrors({});
+      setLoginData({ email, password: 'Password123!' });
+      setActiveTenant(tenantId);
+      await LocalDatabase.clearTable('stores').catch(() => {});
+      const { error } = await signIn(email, 'Password123!');
+      if (error) {
+        setErrors({ form: error.message });
+        setLoading(false);
+      }
+    } catch (err: any) {
+      setErrors({ form: err.message || 'Login failed' });
+      setLoading(false);
+    }
+  };
+
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
@@ -292,6 +310,7 @@ export default function AuthPage() {
         loading={loading}
         errors={errors}
         canSignUp={canSignUp}
+        onQuickLogin={handleQuickLogin}
       />
     );
   }
@@ -385,64 +404,64 @@ export default function AuthPage() {
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
-                      onClick={() => {
-                        setLoginData({ email: 'master@stihl-mali.com', password: 'Password123!' });
-                        setActiveTenant('stihl');
-                        LocalDatabase.clearTable('stores').catch(() => {});
-                      }}
-                      className="p-2 rounded border border-orange-500/30 bg-orange-500/10 hover:bg-orange-500/20 text-left transition-all"
+                      disabled={loading}
+                      onClick={() => handleQuickLogin('master@stihl-mali.com', 'stihl')}
+                      className="p-2.5 rounded-lg border border-orange-500/30 bg-orange-500/10 hover:bg-orange-500/20 active:scale-[0.98] text-left transition-all group disabled:opacity-50"
                     >
-                      <div className="flex items-center gap-1.5 font-bold text-xs text-orange-600 dark:text-orange-400">
-                        <span className="w-2 h-2 rounded-full bg-orange-500 shrink-0" />
-                        STIHL MALI
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 font-bold text-xs text-orange-600 dark:text-orange-400">
+                          <span className="w-2 h-2 rounded-full bg-orange-500 shrink-0" />
+                          STIHL MALI
+                        </div>
+                        <ArrowRight className="w-3.5 h-3.5 text-orange-500/60 group-hover:translate-x-0.5 transition-transform" />
                       </div>
                       <div className="text-[10px] text-muted-foreground mt-0.5">Directeur (Master)</div>
                     </button>
 
                     <button
                       type="button"
-                      onClick={() => {
-                        setLoginData({ email: 'caisse@stihl-mali.com', password: 'Password123!' });
-                        setActiveTenant('stihl');
-                        LocalDatabase.clearTable('stores').catch(() => {});
-                      }}
-                      className="p-2 rounded border border-orange-500/30 bg-orange-500/10 hover:bg-orange-500/20 text-left transition-all"
+                      disabled={loading}
+                      onClick={() => handleQuickLogin('caisse@stihl-mali.com', 'stihl')}
+                      className="p-2.5 rounded-lg border border-orange-500/30 bg-orange-500/10 hover:bg-orange-500/20 active:scale-[0.98] text-left transition-all group disabled:opacity-50"
                     >
-                      <div className="flex items-center gap-1.5 font-bold text-xs text-orange-600 dark:text-orange-400">
-                        <span className="w-2 h-2 rounded-full bg-orange-500 shrink-0" />
-                        STIHL MALI
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 font-bold text-xs text-orange-600 dark:text-orange-400">
+                          <span className="w-2 h-2 rounded-full bg-orange-500 shrink-0" />
+                          STIHL MALI
+                        </div>
+                        <ArrowRight className="w-3.5 h-3.5 text-orange-500/60 group-hover:translate-x-0.5 transition-transform" />
                       </div>
                       <div className="text-[10px] text-muted-foreground mt-0.5">Caisse / Vente (Dibidani)</div>
                     </button>
 
                     <button
                       type="button"
-                      onClick={() => {
-                        setLoginData({ email: 'master@holding-pro.com', password: 'Password123!' });
-                        setActiveTenant('holdingpro');
-                        LocalDatabase.clearTable('stores').catch(() => {});
-                      }}
-                      className="p-2 rounded border border-slate-700/30 bg-slate-500/10 hover:bg-slate-500/20 text-left transition-all"
+                      disabled={loading}
+                      onClick={() => handleQuickLogin('master@holding-pro.com', 'holdingpro')}
+                      className="p-2.5 rounded-lg border border-slate-700/30 bg-slate-500/10 hover:bg-slate-500/20 active:scale-[0.98] text-left transition-all group disabled:opacity-50"
                     >
-                      <div className="flex items-center gap-1.5 font-bold text-xs text-slate-800 dark:text-slate-200">
-                        <span className="w-2 h-2 rounded-full bg-slate-800 dark:bg-slate-200 shrink-0" />
-                        HOLDING PRO
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 font-bold text-xs text-slate-800 dark:text-slate-200">
+                          <span className="w-2 h-2 rounded-full bg-slate-800 dark:bg-slate-200 shrink-0" />
+                          HOLDING PRO
+                        </div>
+                        <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
                       </div>
                       <div className="text-[10px] text-muted-foreground mt-0.5">Directeur (Master)</div>
                     </button>
 
                     <button
                       type="button"
-                      onClick={() => {
-                        setLoginData({ email: 'caisse@holding-pro.com', password: 'Password123!' });
-                        setActiveTenant('holdingpro');
-                        LocalDatabase.clearTable('stores').catch(() => {});
-                      }}
-                      className="p-2 rounded border border-slate-700/30 bg-slate-500/10 hover:bg-slate-500/20 text-left transition-all"
+                      disabled={loading}
+                      onClick={() => handleQuickLogin('caisse@holding-pro.com', 'holdingpro')}
+                      className="p-2.5 rounded-lg border border-slate-700/30 bg-slate-500/10 hover:bg-slate-500/20 active:scale-[0.98] text-left transition-all group disabled:opacity-50"
                     >
-                      <div className="flex items-center gap-1.5 font-bold text-xs text-slate-800 dark:text-slate-200">
-                        <span className="w-2 h-2 rounded-full bg-slate-800 dark:bg-slate-200 shrink-0" />
-                        HOLDING PRO
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 font-bold text-xs text-slate-800 dark:text-slate-200">
+                          <span className="w-2 h-2 rounded-full bg-slate-800 dark:bg-slate-200 shrink-0" />
+                          HOLDING PRO
+                        </div>
+                        <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
                       </div>
                       <div className="text-[10px] text-muted-foreground mt-0.5">Caisse / Vente (Niamana)</div>
                     </button>

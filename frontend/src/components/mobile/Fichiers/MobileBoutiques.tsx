@@ -175,7 +175,7 @@ export function MobileBoutiques({ onBack }: MobileBoutiquesProps) {
       };
       const { error } = await OfflineStoreService.updateStore(editingStore.id, updates);
       if (error) {
-        toast({ title: t('common.error'), description: t('stores.errors.updateStore'), variant: 'destructive' });
+        toast({ title: t('common.error'), description: error.message || t('stores.errors.updateStore'), variant: 'destructive' });
       } else {
         toast({ title: t('common.success'), description: t('stores.success.updateStore') });
         loadStores();

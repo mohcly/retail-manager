@@ -149,7 +149,7 @@ export default function StoresPage() {
       if (error) {
         toast({
           title: t('common.error'),
-          description: t('stores.errors.updateStore'),
+          description: error.message || t('stores.errors.updateStore'),
           variant: 'destructive',
         });
       } else {

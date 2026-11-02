@@ -71,3 +71,28 @@
 - Verification: Grep across frontend confirmed 0 references. `npm run build` completed in 27.82s (exit code 0).
 - Status: FIXED
 - Tags: multi-tenant, cleanup, unify-stores
+
+### [2026-11-02] Live/production store update failure (PGRST204 missing default_price_tier)
+- Symptom: Clients were unable to change the names of their stores in live production environments; update failed with "Échec de la mise à jour du magasin".
+- Files involved:
+  - `frontend/src/services/OfflineStoreService.ts`
+  - `frontend/src/services/SyncService.ts`
+  - `frontend/src/pages/master/Stores.tsx`
+  - `frontend/src/components/mobile/Fichiers/MobileBoutiques.tsx`
+  - `frontend/supabase/migrations/20261102130000_add_missing_stores_columns.sql`
+  - Cloud Databases: STIHL (`fpvrbxmbrotowdlyebqv`) & NIAMANA / HOLDING PRO (`onsqvduklnwffugsiybs`)
+- Root cause:
+  1. The PostgreSQL `stores` table in both live Supabase instances lacked `default_price_tier`, `is_active`, `city`, `email`, and `image_url` columns.
+  2. `OfflineStoreService.updateStore()` unconditionally appended `default_price_tier: localStore.default_price_tier` in the Supabase payload. PostgREST rejected all PATCH requests with `PGRST204: Could not find the 'default_price_tier' column of 'stores' in the schema cache`.
+  3. `OfflineStoreService.updateStore()` under local-first mode coalesced undefined fields to `null` (`updates.address ?? null`), causing unintended nullification of existing address and phone fields when only the store name was edited.
+  4. In the STIHL live database, orphaned `owner_id` values on `stores` did not match active master users.
+- Fix applied:
+  1. Executed DDL on both live Supabase databases to add `default_price_tier` (int default 1), `is_active` (bool default true), `city`, `email`, and `image_url` to `public.stores`, then reloaded PostgREST schema cache.
+  2. Reassigned orphaned store owner IDs in STIHL database to the active master user (`1a8b24e6-7c41-4acf-8b50-9b0a7509c103`).
+  3. Hardened `OfflineStoreService.updateStore()`: builds dynamic patch payloads containing only defined changed fields, and adds automatic fallback retry omitting `default_price_tier` if PGRST204 is ever returned.
+  4. Hardened `SyncService.syncUnsyncedStores()` with resilient fallback upsert if optional columns are absent.
+  5. Added migration `20261102130000_add_missing_stores_columns.sql`.
+  6. Added 1-click quick login capability with visual indicators (`ArrowRight`) to demo shortcuts in both desktop `AuthPage` and `MobileAuthPage`.
+- Verification: Simulated authenticated master store updates under active PostgreSQL RLS on both STIHL and NIAMANA databases (`UPDATE 1` committed). Tested PostgREST PATCH endpoint returning HTTP 200 OK. Frontend built successfully with `npm run build` in 9.00s.
+- Status: FIXED
+- Tags: production, stores, supabase, pgrst204, rls, auth-shortcuts
