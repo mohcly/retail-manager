@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { db } from '../db/index.js';
-import { authenticateRequest } from './utils/auth.js';
+import { authenticateRequest, getAccessibleStoreIds } from './utils/auth.js';
 
 const rolesQuerySchema = z.object({
   role: z.enum(['master', 'worker', 'deliverer']).optional(),
@@ -17,7 +17,20 @@ export async function registerTeamRoutes(app: FastifyInstance) {
     const claims = authenticateRequest(request, reply, ['master', 'worker']);
     if (!claims) return;
 
-    const users = db.listUsers();
+    const accessibleStoreIds = getAccessibleStoreIds(claims);
+    const allRoles = db.listUserRoles();
+    const allowedUserIds = new Set(
+      allRoles
+        .filter(
+          (r) =>
+            (r.store_id && accessibleStoreIds.includes(r.store_id)) ||
+            r.user_id === claims.sub
+        )
+        .map((r) => r.user_id)
+    );
+    allowedUserIds.add(claims.sub);
+
+    const users = db.listUsers().filter((u) => allowedUserIds.has(u.id));
     return reply.send(
       users.map((user) => ({
         id: user.id,
@@ -39,8 +52,14 @@ export async function registerTeamRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: 'ValidationFailed', details: parsed.error.flatten() });
     }
 
-    const roles = db.listUserRoles(parsed.data.role);
-    return reply.send(roles);
+    const accessibleStoreIds = getAccessibleStoreIds(claims);
+    const allRoles = db.listUserRoles(parsed.data.role);
+    const filteredRoles = allRoles.filter(
+      (r) =>
+        (r.store_id && accessibleStoreIds.includes(r.store_id)) ||
+        r.user_id === claims.sub
+    );
+    return reply.send(filteredRoles);
   });
 
   app.get('/rest/v1/deliverer_stats', async (request, reply) => {

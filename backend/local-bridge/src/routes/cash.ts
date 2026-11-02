@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import crypto from 'crypto';
 import { db } from '../db/index.js';
-import { authenticateRequest } from './utils/auth.js';
+import { authenticateRequest, getAccessibleStoreIds } from './utils/auth.js';
 
 const txCreateSchema = z.object({
   store_id: z.string().optional(),
@@ -18,9 +18,10 @@ export async function registerCashRoutes(app: FastifyInstance) {
     const claims = authenticateRequest(request, reply);
     if (!claims) return;
 
+    const accessibleStoreIds = getAccessibleStoreIds(claims);
     const storeId = (request.query as any).store_id ?? claims.store_id;
-    if (!storeId) {
-      return reply.status(400).send({ error: 'StoreRequired' });
+    if (!storeId || !accessibleStoreIds.includes(storeId)) {
+      return reply.status(403).send({ error: 'Forbidden', message: 'Access to store denied.' });
     }
 
     return reply.send(db.listCashTransactions(storeId));

@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import crypto from 'crypto';
 import { db } from '../db/index.js';
-import { authenticateRequest } from './utils/auth.js';
+import { authenticateRequest, getAccessibleStoreIds } from './utils/auth.js';
 
 const listQuerySchema = z.object({
   store_id: z.string().optional(),
@@ -115,10 +115,15 @@ export async function registerProductRoutes(app: FastifyInstance) {
       return reply.send([product]);
     }
 
+    const accessibleStoreIds = getAccessibleStoreIds(claims);
+
     if (claims.role === 'master' && !store_id) {
-       // Master listing all products across all stores (careful with size!)
-       // For now, let's keep it as is, or maybe restrict it.
-       return reply.send(db.listAllProducts());
+       // Master listing all products across accessible stores only
+       const allProducts: any[] = [];
+       for (const sId of accessibleStoreIds) {
+         allProducts.push(...db.listProducts(sId));
+       }
+       return reply.send(allProducts);
     }
 
     const targetStoreId = store_id || claims.store_id;
@@ -126,6 +131,13 @@ export async function registerProductRoutes(app: FastifyInstance) {
       return reply.status(400).send({
         error: 'StoreRequired',
         message: 'No store specified for this request.',
+      });
+    }
+
+    if (!accessibleStoreIds.includes(targetStoreId)) {
+      return reply.status(403).send({
+        error: 'Forbidden',
+        message: 'Access to this store is not permitted.',
       });
     }
 

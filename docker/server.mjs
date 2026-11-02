@@ -27,8 +27,14 @@ const MIME_TYPES = {
 };
 
 const server = http.createServer((req, res) => {
-  // 1. Proxy API requests to Fastify local-bridge
-  if (req.url.startsWith('/rest/v1') || req.url.startsWith('/api')) {
+  // 1. Proxy API and Auth requests to Fastify local-bridge
+  if (
+    req.url.startsWith('/rest/v1') ||
+    req.url.startsWith('/api') ||
+    req.url.startsWith('/auth') ||
+    req.url.startsWith('/health') ||
+    req.url.startsWith('/sync')
+  ) {
     const proxyReq = http.request(
       {
         host: '127.0.0.1',

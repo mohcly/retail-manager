@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { db } from '../db/index.js';
-import { authenticateRequest } from './utils/auth.js';
+import { authenticateRequest, getAccessibleStoreIds } from './utils/auth.js';
 
 const analyticsQuerySchema = z.object({
   store_id: z.string().optional(),
@@ -19,9 +19,15 @@ export async function registerAnalyticsRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: 'ValidationFailed', details: parsed.error.flatten() });
     }
 
-    const storeId = parsed.data.store_id ?? claims.store_id;
-    if (!storeId && storeId !== '') { // Allow empty string for Master (All Stores)
-      return reply.status(400).send({ error: 'StoreRequired', message: 'Store ID is required for analytics.' });
+    const accessibleStoreIds = getAccessibleStoreIds(claims);
+    let storeId = parsed.data.store_id ?? claims.store_id;
+
+    if (storeId && !accessibleStoreIds.includes(storeId)) {
+      return reply.status(403).send({ error: 'Forbidden', message: 'Access to store denied.' });
+    }
+
+    if (!storeId) {
+      storeId = accessibleStoreIds[0] || '';
     }
 
     const fromDate = parsed.data.from;

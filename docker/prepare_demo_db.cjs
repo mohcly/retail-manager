@@ -10,54 +10,79 @@ console.log('Copying SQLite DB from:', sourceDb);
 fs.copyFileSync(sourceDb, targetDb);
 
 const db = new Database(targetDb);
+db.pragma('foreign_keys = OFF');
 const now = new Date().toISOString();
 const passwordHash = bcrypt.hashSync('Password123!', 10);
 
-console.log('Setting up demo stores and organizations...');
+console.log('Configuring isolated demo organizations and stores...');
 
-// 1. STIHL MALI STORE
-const stihlStoreId = 'store-stihl-dibidani';
+// 1. STORES DEFINITION
+const stihlDibidaniId = 'store-stihl-dibidani';
+const stihlNiamakoroId = 'test-store-niamakoro-2';
+const holdingStoreId = 'store-holding-niamana';
+
+const validStoreIds = [stihlDibidaniId, stihlNiamakoroId, holdingStoreId];
+
+// STIHL Dibidani
 db.prepare(`
-  INSERT OR REPLACE INTO stores (id, name, address, phone, default_price_tier, created_at, updated_at)
-  VALUES (?, ?, ?, ?, 1, ?, ?)
+  INSERT OR REPLACE INTO stores (id, name, address, phone, default_price_tier, owner_id, created_at, updated_at)
+  VALUES (?, ?, ?, ?, 1, ?, ?, ?)
 `).run(
-  stihlStoreId,
+  stihlDibidaniId,
   'ETS Madjou Sylla — STIHL Dibidani',
   'Dibidani, Face à Djoliba, Bamako',
   '+223 77 77 90 60',
+  'user-stihl-master',
   now,
   now
 );
 
-// 2. HOLDING PRO STORE
-const holdingStoreId = 'store-holding-niamana';
+// STIHL Niamakoro
 db.prepare(`
-  INSERT OR REPLACE INTO stores (id, name, address, phone, default_price_tier, created_at, updated_at)
-  VALUES (?, ?, ?, ?, 1, ?, ?)
+  INSERT OR REPLACE INTO stores (id, name, address, phone, default_price_tier, owner_id, created_at, updated_at)
+  VALUES (?, ?, ?, ?, 1, ?, ?, ?)
+`).run(
+  stihlNiamakoroId,
+  'Quincaillerie Niamakoro',
+  'Niamakoro, Bamako',
+  '+223 76 00 00 00',
+  'user-stihl-master',
+  now,
+  now
+);
+
+// HOLDING PRO Niamana Dubaï
+db.prepare(`
+  INSERT OR REPLACE INTO stores (id, name, address, phone, default_price_tier, owner_id, created_at, updated_at)
+  VALUES (?, ?, ?, ?, 1, ?, ?, ?)
 `).run(
   holdingStoreId,
   'Holding Pro (Succursale Niamana Dubaï)',
   'Niamana ATTbougou 1008 Logements, Bamako',
   '+223 79 38 61 74',
+  'user-holding-master',
   now,
   now
 );
 
-// 3. Demo Accounts Setup
+// PURGE any other orphaned/test stores
+db.prepare(`DELETE FROM stores WHERE id NOT IN (?, ?, ?)`).run(...validStoreIds);
+
+// 2. DEMO USERS DEFINITION
 const demoUsers = [
   {
     id: 'user-stihl-master',
     email: 'master@stihl-mali.com',
     full_name: 'Madjou Sylla (Master)',
     role: 'master',
-    storeId: stihlStoreId
+    storeId: stihlDibidaniId
   },
   {
     id: 'user-stihl-worker',
     email: 'caisse@stihl-mali.com',
     full_name: 'Caissier Dibidani (Worker)',
     role: 'worker',
-    storeId: stihlStoreId
+    storeId: stihlDibidaniId
   },
   {
     id: 'user-holding-master',
@@ -75,6 +100,12 @@ const demoUsers = [
   }
 ];
 
+const validUserIds = demoUsers.map(u => u.id);
+
+// PURGE any old test users and roles
+db.prepare(`DELETE FROM users WHERE id NOT IN (?, ?, ?, ?)`).run(...validUserIds);
+db.prepare(`DELETE FROM user_roles WHERE user_id NOT IN (?, ?, ?, ?)`).run(...validUserIds);
+
 demoUsers.forEach(u => {
   db.prepare(`
     INSERT OR REPLACE INTO users (id, email, password_hash, full_name, role, created_at, updated_at)
@@ -91,67 +122,87 @@ demoUsers.forEach(u => {
     db.prepare('UPDATE stores SET owner_id = ? WHERE id = ?').run(u.id, u.storeId);
   }
 });
+// Ensure STIHL Niamakoro owner is user-stihl-master
+db.prepare('UPDATE stores SET owner_id = ? WHERE id = ?').run('user-stihl-master', stihlNiamakoroId);
 
-// 4. Ensure products exist for both stores
-// Duplicate existing products for stihlStoreId and holdingStoreId if not present
-const existingCountStihl = db.prepare('SELECT count(*) as cnt FROM products WHERE store_id = ?').get(stihlStoreId).cnt;
-const existingCountHolding = db.prepare('SELECT count(*) as cnt FROM products WHERE store_id = ?').get(holdingStoreId).cnt;
+// 3. SEED PRODUCTS PER STORE FIRST, THEN PURGE ORPHANS
+console.log('Seeding STIHL store with catalog...');
+db.prepare(`
+  INSERT OR IGNORE INTO products (
+    id, store_id, name, sku, barcode, description, cost_price, unit_price, wholesale_price,
+    quantity, min_quantity, category, created_at, updated_at
+  )
+  SELECT
+    'stihl-' || id,
+    ?,
+    name,
+    sku,
+    barcode,
+    description,
+    cost_price,
+    unit_price,
+    wholesale_price,
+    CASE WHEN quantity <= 0 THEN 25 ELSE quantity END,
+    5,
+    category,
+    ?,
+    ?
+  FROM products
+  LIMIT 250
+`).run(stihlDibidaniId, now, now);
 
-if (existingCountStihl === 0) {
-  console.log('Seeding STIHL store with products...');
-  db.prepare(`
-    INSERT INTO products (
-      id, store_id, name, sku, barcode, description, cost_price, unit_price, wholesale_price,
-      quantity, min_quantity, category, created_at, updated_at
-    )
-    SELECT
-      'stihl-' || id,
-      ?,
-      name,
-      sku,
-      barcode,
-      description,
-      cost_price,
-      unit_price,
-      wholesale_price,
-      CASE WHEN quantity <= 0 THEN 25 ELSE quantity END,
-      5,
-      category,
-      ?,
-      ?
-    FROM products
-    WHERE store_id != ?
-    LIMIT 300
-  `).run(stihlStoreId, now, now, stihlStoreId);
-}
+console.log('Seeding STIHL Niamakoro store with catalog...');
+db.prepare(`
+  INSERT OR IGNORE INTO products (
+    id, store_id, name, sku, barcode, description, cost_price, unit_price, wholesale_price,
+    quantity, min_quantity, category, created_at, updated_at
+  )
+  SELECT
+    'stihl-nk-' || id,
+    ?,
+    name,
+    sku,
+    barcode,
+    description,
+    cost_price,
+    unit_price,
+    wholesale_price,
+    CASE WHEN quantity <= 0 THEN 15 ELSE quantity END,
+    5,
+    category,
+    ?,
+    ?
+  FROM products
+  LIMIT 150
+`).run(stihlNiamakoroId, now, now);
 
-if (existingCountHolding === 0) {
-  console.log('Seeding Holding Pro store with products...');
-  db.prepare(`
-    INSERT INTO products (
-      id, store_id, name, sku, barcode, description, cost_price, unit_price, wholesale_price,
-      quantity, min_quantity, category, created_at, updated_at
-    )
-    SELECT
-      'holding-' || id,
-      ?,
-      name,
-      sku,
-      barcode,
-      description,
-      cost_price,
-      unit_price,
-      wholesale_price,
-      CASE WHEN quantity <= 0 THEN 30 ELSE quantity END,
-      5,
-      category,
-      ?,
-      ?
-    FROM products
-    WHERE store_id != ?
-    LIMIT 300
-  `).run(holdingStoreId, now, now, holdingStoreId);
-}
+console.log('Seeding Holding Pro store with catalog...');
+db.prepare(`
+  INSERT OR IGNORE INTO products (
+    id, store_id, name, sku, barcode, description, cost_price, unit_price, wholesale_price,
+    quantity, min_quantity, category, created_at, updated_at
+  )
+  SELECT
+    'holding-' || id,
+    ?,
+    name,
+    sku,
+    barcode,
+    description,
+    cost_price,
+    unit_price,
+    wholesale_price,
+    CASE WHEN quantity <= 0 THEN 30 ELSE quantity END,
+    5,
+    category,
+    ?,
+    ?
+  FROM products
+  LIMIT 250
+`).run(holdingStoreId, now, now);
+
+// NOW purge products from stores that no longer exist
+db.prepare(`DELETE FROM products WHERE store_id NOT IN (?, ?, ?)`).run(...validStoreIds);
 
 // Ensure specific STIHL products exist in the STIHL store for proper invoice rendering:
 const stihlSpecials = [
@@ -167,7 +218,7 @@ stihlSpecials.forEach((p, idx) => {
   db.prepare(`
     INSERT OR REPLACE INTO products (id, store_id, name, sku, unit_price, cost_price, quantity, min_quantity, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, 5, ?, ?)
-  `).run(pId, stihlStoreId, p.name, p.sku, p.price, p.cost, p.qty, now, now);
+  `).run(pId, stihlDibidaniId, p.name, p.sku, p.price, p.cost, p.qty, now, now);
 });
 
 // Ensure specific Holding Pro products exist:
@@ -187,8 +238,66 @@ holdingSpecials.forEach((p, idx) => {
   `).run(pId, holdingStoreId, p.name, p.sku, p.price, p.cost, p.qty, now, now);
 });
 
-console.log('✅ Demo DB successfully created with:');
+// 4. SUPPLIERS PER ORGANIZATION
+db.prepare(`DELETE FROM suppliers WHERE store_id NOT IN (?, ?, ?)`).run(...validStoreIds);
+
+const stihlSuppliers = [
+  { id: 'sup-stihl-01', name: 'ANDREAS STIHL AG & Co. KG (Allemagne)', phone: '+49 7151 26-0', email: 'export@stihl.de' },
+  { id: 'sup-stihl-02', name: 'ETS Madjou Sylla Import-Export Bamako', phone: '+223 77 77 90 60', email: 'contact@stihl-mali.com' },
+  { id: 'sup-stihl-03', name: 'TotalEnergies Marketing Mali SA', phone: '+223 20 22 40 41', email: 'service-clients@totalenergies.ml' },
+];
+
+stihlSuppliers.forEach(s => {
+  db.prepare(`
+    INSERT OR REPLACE INTO suppliers (id, store_id, name, phone, email, address, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, 'Bamako, Mali', ?, ?)
+  `).run(s.id, stihlDibidaniId, s.name, s.phone, s.email, now, now);
+});
+
+const holdingSuppliers = [
+  { id: 'sup-holding-01', name: 'Holding Pro General Trading LLC (Dubaï)', phone: '+971 4 000 0000', email: 'supply@holding-pro.com' },
+  { id: 'sup-holding-02', name: 'CFAO Motors Mali (Pièces Toyota & Isuzu)', phone: '+223 20 21 29 25', email: 'contact@cfaogroup.com' },
+  { id: 'sup-holding-03', name: 'Total Lubricants International Distribution', phone: '+223 20 22 00 00', email: 'lubricants@holding-pro.com' },
+];
+
+holdingSuppliers.forEach(s => {
+  db.prepare(`
+    INSERT OR REPLACE INTO suppliers (id, store_id, name, phone, email, address, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, 'Niamana ATTbougou, Bamako', ?, ?)
+  `).run(s.id, holdingStoreId, s.name, s.phone, s.email, now, now);
+});
+
+// 5. CLIENTS PER ORGANIZATION
+db.prepare(`DELETE FROM clients WHERE store_id NOT IN (?, ?, ?)`).run(...validStoreIds);
+
+const stihlClients = [
+  { id: 'cli-stihl-01', name: 'Société des Mines de Loulo (SOMILO)', phone: '+223 20 70 80 00', code: 'CLI-SOMILO' },
+  { id: 'cli-stihl-02', name: 'Entreprise Forestière et Agricole du Mali', phone: '+223 66 70 12 34', code: 'CLI-EFAM' },
+];
+
+stihlClients.forEach(c => {
+  db.prepare(`
+    INSERT OR REPLACE INTO clients (id, store_id, name, phone, code, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(c.id, stihlDibidaniId, c.name, c.phone, c.code, now, now);
+});
+
+const holdingClients = [
+  { id: 'cli-holding-01', name: 'Flotte Transport Express Niamana', phone: '+223 79 00 11 22', code: 'CLI-FTE-01' },
+  { id: 'cli-holding-02', name: 'Garage Moderne Niamana Dubaï', phone: '+223 76 55 44 33', code: 'CLI-GMND-02' },
+];
+
+holdingClients.forEach(c => {
+  db.prepare(`
+    INSERT OR REPLACE INTO clients (id, store_id, name, phone, code, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(c.id, holdingStoreId, c.name, c.phone, c.code, now, now);
+});
+
+console.log('✅ Demo DB successfully created with isolated data:');
 console.log('Stores count:', db.prepare('SELECT count(*) as cnt FROM stores').get().cnt);
 console.log('Products count:', db.prepare('SELECT count(*) as cnt FROM products').get().cnt);
 console.log('Users count:', db.prepare('SELECT count(*) as cnt FROM users').get().cnt);
+console.log('Suppliers count:', db.prepare('SELECT count(*) as cnt FROM suppliers').get().cnt);
+console.log('Clients count:', db.prepare('SELECT count(*) as cnt FROM clients').get().cnt);
 db.close();

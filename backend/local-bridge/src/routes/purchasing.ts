@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import crypto from 'crypto';
 import { db, rawDb } from '../db/index.js';
-import { authenticateRequest } from './utils/auth.js';
+import { authenticateRequest, getAccessibleStoreIds } from './utils/auth.js';
 import { emitOutbox } from '../db/repositories/sync_helpers.js';
 
 const listSchema = z.object({
@@ -305,8 +305,21 @@ export async function registerPurchasingRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: 'ValidationFailed', details: parsed.error.flatten() });
     }
 
-    const storeId = parsed.data.store_id ?? claims.store_id;
+    const accessibleStoreIds = getAccessibleStoreIds(claims);
+    let storeId = parsed.data.store_id ?? claims.store_id;
+
+    if (storeId && !accessibleStoreIds.includes(storeId)) {
+      return reply.status(403).send({ error: 'Forbidden', message: 'Access to store denied.' });
+    }
+
     if (!storeId) {
+      if (claims.role === 'master') {
+        const allSuppliers: any[] = [];
+        for (const sId of accessibleStoreIds) {
+          allSuppliers.push(...db.listSuppliers(sId));
+        }
+        return reply.send(allSuppliers);
+      }
       return reply.status(400).send({ error: 'StoreRequired', message: 'Store is required.' });
     }
 

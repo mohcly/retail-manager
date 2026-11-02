@@ -387,6 +387,7 @@ export default function AuthPage() {
                       onClick={() => {
                         setLoginData({ email: 'master@stihl-mali.com', password: 'Password123!' });
                         setActiveTenant('stihl');
+                        LocalDatabase.clearTable('stores').catch(() => {});
                       }}
                       className="p-2 rounded border border-orange-500/30 bg-orange-500/10 hover:bg-orange-500/20 text-left transition-all"
                     >
@@ -402,6 +403,7 @@ export default function AuthPage() {
                       onClick={() => {
                         setLoginData({ email: 'caisse@stihl-mali.com', password: 'Password123!' });
                         setActiveTenant('stihl');
+                        LocalDatabase.clearTable('stores').catch(() => {});
                       }}
                       className="p-2 rounded border border-orange-500/30 bg-orange-500/10 hover:bg-orange-500/20 text-left transition-all"
                     >
@@ -409,7 +411,7 @@ export default function AuthPage() {
                         <span className="w-2 h-2 rounded-full bg-orange-500 shrink-0" />
                         STIHL MALI
                       </div>
-                      <div className="text-[10px] text-muted-foreground mt-0.5">Caisse / Vente</div>
+                      <div className="text-[10px] text-muted-foreground mt-0.5">Caisse / Vente (Dibidani)</div>
                     </button>
 
                     <button
@@ -417,6 +419,7 @@ export default function AuthPage() {
                       onClick={() => {
                         setLoginData({ email: 'master@holding-pro.com', password: 'Password123!' });
                         setActiveTenant('holdingpro');
+                        LocalDatabase.clearTable('stores').catch(() => {});
                       }}
                       className="p-2 rounded border border-slate-700/30 bg-slate-500/10 hover:bg-slate-500/20 text-left transition-all"
                     >
@@ -432,14 +435,15 @@ export default function AuthPage() {
                       onClick={() => {
                         setLoginData({ email: 'caisse@holding-pro.com', password: 'Password123!' });
                         setActiveTenant('holdingpro');
+                        LocalDatabase.clearTable('stores').catch(() => {});
                       }}
                       className="p-2 rounded border border-slate-700/30 bg-slate-500/10 hover:bg-slate-500/20 text-left transition-all"
                     >
                       <div className="flex items-center gap-1.5 font-bold text-xs text-slate-800 dark:text-slate-200">
                         <span className="w-2 h-2 rounded-full bg-slate-800 dark:bg-slate-200 shrink-0" />
-                        NIAMANA DUBAÏ
+                        HOLDING PRO
                       </div>
-                      <div className="text-[10px] text-muted-foreground mt-0.5">Caisse / Vente</div>
+                      <div className="text-[10px] text-muted-foreground mt-0.5">Caisse / Vente (Niamana)</div>
                     </button>
                   </div>
                 </div>

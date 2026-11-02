@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import crypto from 'crypto';
 import { db } from '../db/index.js';
-import { authenticateRequest } from './utils/auth.js';
+import { authenticateRequest, getAccessibleStoreIds } from './utils/auth.js';
 
 const listSchema = z.object({
   store_id: z.string().optional(),
@@ -66,12 +66,20 @@ export async function registerClientsRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: 'ValidationFailed', details: parsed.error.flatten() });
     }
 
+    const accessibleStoreIds = getAccessibleStoreIds(claims);
     let storeId = parsed.data.store_id;
-    
-    // Workers can only see their own store
-    if (claims.role !== 'master') {
-      if (storeId && storeId !== claims.store_id) {
-        return reply.status(403).send({ error: 'Forbidden', message: 'Access to other stores denied.' });
+
+    if (storeId && !accessibleStoreIds.includes(storeId)) {
+      return reply.status(403).send({ error: 'Forbidden', message: 'Access to other stores denied.' });
+    }
+
+    if (!storeId) {
+      if (claims.role === 'master') {
+        const allClients: any[] = [];
+        for (const sId of accessibleStoreIds) {
+          allClients.push(...db.listClients(sId));
+        }
+        return reply.send(allClients);
       }
       storeId = claims.store_id || undefined;
     }

@@ -389,11 +389,13 @@ export class OfflineStoreService {
         }
 
         await this.cacheRemoteStores(payload || [], localStores);
-        const unsyncedLocalIds = new Set(localStores.filter((s) => !s.synced).map((s) => s.id));
+        const unsyncedLocalStores = localStores.filter((s) => !s.synced).map(mapLocalStoreToStore);
         const mergedById = new Map<string, Store>();
-        for (const s of localAsStores) mergedById.set(s.id, s);
         for (const s of payload || []) {
-          if (!unsyncedLocalIds.has(s.id)) mergedById.set(s.id, s as Store);
+          mergedById.set(s.id, s as Store);
+        }
+        for (const s of unsyncedLocalStores) {
+          mergedById.set(s.id, s);
         }
 
         const merged = Array.from(mergedById.values()).sort((a, b) => (a.name || '').localeCompare(b.name || ''));
@@ -411,7 +413,7 @@ export class OfflineStoreService {
   private static async cacheRemoteStores(remoteStores: any[], localStores: LocalStore[]) {
     const remoteIds = new Set((remoteStores || []).map((s) => s.id));
     for (const ls of localStores) {
-      if (ls.synced && !remoteIds.has(ls.id)) {
+      if (!remoteIds.has(ls.id) && ls.synced !== false) {
         await LocalDatabase.deleteStore(ls.id).catch(() => {});
       }
     }

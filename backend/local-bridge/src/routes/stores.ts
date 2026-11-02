@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import crypto from 'crypto';
 import { db } from '../db/index.js';
-import { authenticateRequest } from './utils/auth.js';
+import { authenticateRequest, getAccessibleStoreIds } from './utils/auth.js';
 
 const storeCreateSchema = z.object({
   name: z.string().min(1),
@@ -22,12 +22,8 @@ export async function registerStoreRoutes(app: FastifyInstance) {
     const claims = authenticateRequest(request, reply, ['master', 'worker']);
     if (!claims) return;
 
-    // Workers can see all stores (to map IDs to names), or filter?
-    // db.listStores(claims.sub) filters by owner_id.
-    // If worker is not owner, it returns empty list?
-    // We should probably allow listing all stores for name resolution.
-    // Or check if db.listStores handles null ownerId to return all?
-    const stores = db.listStores(); // Remove claim.sub filter to allow seeing all stores
+    const accessibleStoreIds = getAccessibleStoreIds(claims);
+    const stores = db.listStores().filter((s) => accessibleStoreIds.includes(s.id));
     return reply.send(stores);
   });
 
@@ -66,6 +62,10 @@ export async function registerStoreRoutes(app: FastifyInstance) {
     }
 
     const storeId = (request.params as { id: string }).id;
+    const accessibleStoreIds = getAccessibleStoreIds(claims);
+    if (!accessibleStoreIds.includes(storeId)) {
+      return reply.status(403).send({ error: 'Forbidden', message: 'You do not own this store.' });
+    }
     const existing = db.getStoreById(storeId);
     if (!existing) {
       return reply.status(404).send({ error: 'NotFound', message: 'Store not found.' });
@@ -80,6 +80,10 @@ export async function registerStoreRoutes(app: FastifyInstance) {
     if (!claims) return;
 
     const storeId = (request.params as { id: string }).id;
+    const accessibleStoreIds = getAccessibleStoreIds(claims);
+    if (!accessibleStoreIds.includes(storeId)) {
+      return reply.status(403).send({ error: 'Forbidden', message: 'You do not own this store.' });
+    }
     const existing = db.getStoreById(storeId);
     if (!existing) {
       return reply.status(404).send({ error: 'NotFound', message: 'Store not found.' });

@@ -3,7 +3,7 @@ import { z } from 'zod';
 import crypto from 'crypto';
 import { db } from '../db/index.js';
 import { emitOutbox } from '../db/repositories/sync_helpers.js';
-import { authenticateRequest } from './utils/auth.js';
+import { authenticateRequest, getAccessibleStoreIds } from './utils/auth.js';
 
 const salesQuerySchema = z.object({
   store_id: z.string().optional(),
@@ -79,12 +79,10 @@ export async function registerSalesRoutes(app: FastifyInstance) {
     const dateFrom = parsed.data.date_from;
     const dateTo = parsed.data.date_to;
 
+    const accessibleStoreIds = getAccessibleStoreIds(claims);
+
     if (requestedStoreId) {
-      // A non-master's requested store must match their own claim. Without
-      // this check any worker could read another store's - or with the empty
-      // string convention, EVERY store's - full sales history. Same class of
-      // hole as the analytics endpoints, fixed the same day.
-      if (claims.role !== 'master' && claims.store_id && requestedStoreId !== claims.store_id) {
+      if (!accessibleStoreIds.includes(requestedStoreId)) {
         return reply.status(403).send({ error: 'Forbidden', message: 'Cannot view another store.' });
       }
       const sales = db.listSales(requestedStoreId, limit, dateFrom, dateTo);
@@ -92,11 +90,15 @@ export async function registerSalesRoutes(app: FastifyInstance) {
     }
 
     if (claims.role === 'master') {
-      return reply.send(db.listSales(undefined, limit, dateFrom, dateTo));
+      const allSales: any[] = [];
+      for (const sId of accessibleStoreIds) {
+        allSales.push(...db.listSales(sId, limit, dateFrom, dateTo));
+      }
+      return reply.send(allSales);
     }
 
     const storeId = claims.store_id;
-    if (!storeId) {
+    if (!storeId || !accessibleStoreIds.includes(storeId)) {
       return reply.status(400).send({ error: 'StoreRequired', message: 'Store is required.' });
     }
 
@@ -112,6 +114,11 @@ export async function registerSalesRoutes(app: FastifyInstance) {
     const sale = db.getSaleById(saleId);
     if (!sale) {
       return reply.status(404).send({ error: 'NotFound', message: 'Sale not found.' });
+    }
+
+    const accessibleStoreIds = getAccessibleStoreIds(claims);
+    if (sale.store_id && !accessibleStoreIds.includes(sale.store_id)) {
+      return reply.status(403).send({ error: 'Forbidden', message: 'Access denied.' });
     }
     if (claims.store_id && claims.store_id !== sale.store_id && claims.role !== 'master') {
       return reply.status(403).send({ error: 'Forbidden', message: 'Cannot view this sale.' });
