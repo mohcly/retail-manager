@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import logoUrl from '@/assets/logo.png';
 import { WorkerMenuBar, WorkerModule } from './WorkerMenuBar';
@@ -43,6 +44,7 @@ interface WorkerLayoutProps {
 }
 
 export function WorkerLayout({ className }: WorkerLayoutProps) {
+  const navigate = useNavigate();
   const { isDesktop } = useDevice();
 
   useGlobalKeyboard();
@@ -320,7 +322,18 @@ export function WorkerLayout({ className }: WorkerLayoutProps) {
         </div>
 
         {/* RIGHT — logout always anchored */}
-        <div className="shrink-0">
+        <div className="shrink-0 flex items-center gap-1.5">
+          {isMaster && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/master/dashboard')}
+              className="h-6 px-2 text-[11px] font-semibold bg-white/10 hover:bg-white/20 text-white border-white/20"
+              title="Basculer vers le Tableau de Bord Master"
+            >
+              Tableau Master
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="sm"

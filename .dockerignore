@@ -1,0 +1,12 @@
+node_modules
+*/node_modules
+*/*/node_modules
+.git
+.github
+src-tauri/target
+release
+out
+.turbo
+.claude
+*.log
+!frontend/dist

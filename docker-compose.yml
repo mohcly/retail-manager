@@ -1,0 +1,19 @@
+services:
+  retail-manager:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: retail-manager-demo
+    ports:
+      - "3000:3000"
+      - "8787:8787"
+    environment:
+      - PORT=3000
+      - BACKEND_PORT=8787
+      - DATA_DIR=/app/data
+    volumes:
+      - retail_manager_demo_data:/app/data
+    restart: unless-stopped
+
+volumes:
+  retail_manager_demo_data:

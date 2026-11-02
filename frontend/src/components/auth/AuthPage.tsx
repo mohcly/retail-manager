@@ -373,6 +373,76 @@ export default function AuthPage() {
                     t('auth.signIn')
                   )}
                 </Button>
+
+                {/* Quick Demo Switcher */}
+                <div className="mt-5 pt-4 border-t border-border/50">
+                  <div className="text-center mb-2.5">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                      Accès Démo Rapide (Client & Rôles)
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLoginData({ email: 'master@stihl-mali.com', password: 'Password123!' });
+                        setActiveTenant('stihl');
+                      }}
+                      className="p-2 rounded border border-orange-500/30 bg-orange-500/10 hover:bg-orange-500/20 text-left transition-all"
+                    >
+                      <div className="flex items-center gap-1.5 font-bold text-xs text-orange-600 dark:text-orange-400">
+                        <span className="w-2 h-2 rounded-full bg-orange-500 shrink-0" />
+                        STIHL MALI
+                      </div>
+                      <div className="text-[10px] text-muted-foreground mt-0.5">Directeur (Master)</div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLoginData({ email: 'caisse@stihl-mali.com', password: 'Password123!' });
+                        setActiveTenant('stihl');
+                      }}
+                      className="p-2 rounded border border-orange-500/30 bg-orange-500/10 hover:bg-orange-500/20 text-left transition-all"
+                    >
+                      <div className="flex items-center gap-1.5 font-bold text-xs text-orange-600 dark:text-orange-400">
+                        <span className="w-2 h-2 rounded-full bg-orange-500 shrink-0" />
+                        STIHL MALI
+                      </div>
+                      <div className="text-[10px] text-muted-foreground mt-0.5">Caisse / Vente</div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLoginData({ email: 'master@holding-pro.com', password: 'Password123!' });
+                        setActiveTenant('holdingpro');
+                      }}
+                      className="p-2 rounded border border-slate-700/30 bg-slate-500/10 hover:bg-slate-500/20 text-left transition-all"
+                    >
+                      <div className="flex items-center gap-1.5 font-bold text-xs text-slate-800 dark:text-slate-200">
+                        <span className="w-2 h-2 rounded-full bg-slate-800 dark:bg-slate-200 shrink-0" />
+                        HOLDING PRO
+                      </div>
+                      <div className="text-[10px] text-muted-foreground mt-0.5">Directeur (Master)</div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLoginData({ email: 'caisse@holding-pro.com', password: 'Password123!' });
+                        setActiveTenant('holdingpro');
+                      }}
+                      className="p-2 rounded border border-slate-700/30 bg-slate-500/10 hover:bg-slate-500/20 text-left transition-all"
+                    >
+                      <div className="flex items-center gap-1.5 font-bold text-xs text-slate-800 dark:text-slate-200">
+                        <span className="w-2 h-2 rounded-full bg-slate-800 dark:bg-slate-200 shrink-0" />
+                        NIAMANA DUBAÏ
+                      </div>
+                      <div className="text-[10px] text-muted-foreground mt-0.5">Caisse / Vente</div>
+                    </button>
+                  </div>
+                </div>
               </form>
             </TabsContent>
 

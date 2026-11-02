@@ -355,6 +355,17 @@ export function MasterLayout() {
                 </div>
               ) : null;
             })()}
+            {/* Quick Switch to Worker / Caisse Mode */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/worker/dashboard')}
+              className="hidden md:flex items-center gap-1.5 h-7 px-2.5 text-xs font-semibold bg-primary/10 text-primary border-primary/20 hover:bg-primary/20"
+              title="Accéder au terminal de caisse et facturation"
+            >
+              <ShoppingCart className="h-3.5 w-3.5" />
+              <span>Caisse & Vente</span>
+            </Button>
             <StoreMultiSelector />
             <HardwareStatus />
             <CurrencySwitcher />
