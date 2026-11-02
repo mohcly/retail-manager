@@ -65,6 +65,20 @@ const StihlLogo = () => (
     </div>
 );
 
+const EtsBanner = () => (
+    <div className="relative z-10 keep-together mb-6">
+        <img
+            src="/ets-banner.jpg"
+            alt="Quincaillerie de la Paix - ETS Madjou Sylla"
+            width={2400}
+            height={658}
+            loading="eager"
+            decoding="sync"
+            className="block w-full h-auto rounded-[3px]"
+        />
+    </div>
+);
+
 export const InvoiceA4Template = forwardRef<HTMLDivElement, { data: InvoiceData }>(({ data }, ref) => {
     const { t } = useTranslation();
     const isProforma = data.type === 'proforma';
@@ -239,30 +253,8 @@ export const InvoiceA4Template = forwardRef<HTMLDivElement, { data: InvoiceData 
                 </div>
             )}
 
-            {/* HEADER VARIANT 3: STIHL DIBIDANI */}
-            {variant === 'stihl_dibidani' && (
-                <div className={`relative z-10 flex justify-between items-center mb-6 pb-4 border-b-4 ${hasStihlProduct ? 'border-[#f04e23]' : 'border-[#2c3e50]'}`}>
-                    <QuincaillerieLogo />
-                    <div className="flex-1 text-center px-4">
-                        <div className="inline-block bg-red-600 text-white text-xs font-bold px-2 py-1 rounded mb-1">
-                            ETS Madjou Sylla
-                        </div>
-                        <h1 className={`text-3xl font-black tracking-tight mb-1 leading-none uppercase ${hasStihlProduct ? 'text-[#f04e23]' : 'text-[#2c3e50]'}`}>
-                            Quincaillerie De La Paix
-                        </h1>
-                        <p className="text-[13px] font-bold text-red-600 tracking-wide uppercase mb-2">
-                            Vente de machine tronçonneuse, disque, meule, etc.
-                        </p>
-                        <div className="text-sm font-semibold text-gray-800 leading-snug">
-                            <p>TEL: <span className="text-green-700">+223 77 77 90 60 / 20 22 26 45 / 79 45 49 46</span></p>
-                            <p className="text-blue-800">madjoulalasylla@gmail.com &nbsp;|&nbsp; <span className="text-gray-600">{data.storeAddress || 'Dibidani, Face à Djoliba, près du Trésor'}</span></p>
-                        </div>
-                    </div>
-                    <div className="w-[110px] shrink-0 text-right flex justify-end">
-                        {hasStihlProduct ? <StihlLogo /> : <div className="w-full"></div>}
-                    </div>
-                </div>
-            )}
+            {/* HEADER VARIANT 3: STIHL DIBIDANI - full-width ETS banner */}
+            {variant === 'stihl_dibidani' && <EtsBanner />}
 
             {/* HEADER VARIANT 4: GENERIC / OTHER STORE */}
             {variant === 'generic' && (
