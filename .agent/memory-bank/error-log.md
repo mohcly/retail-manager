@@ -96,3 +96,22 @@
 - Verification: Simulated authenticated master store updates under active PostgreSQL RLS on both STIHL and NIAMANA databases (`UPDATE 1` committed). Tested PostgREST PATCH endpoint returning HTTP 200 OK. Frontend built successfully with `npm run build` in 9.00s.
 - Status: FIXED
 - Tags: production, stores, supabase, pgrst204, rls, auth-shortcuts
+
+### [2026-11-02] CI/CD Pipeline Startup Failure & Multi-Repo Release Architecture
+- Symptom: Pushing commits to `unify-stores` on `mohcly/retail-manager` or triggering `build.yml` results in an immediate failure (`conclusion: "startup_failure"` in 0s), preventing Windows installers (`.exe`/`.msi`) and `latest.json` from generating and publishing to `stadium94/app-releases`.
+- Files involved:
+  - `.github/workflows/build.yml`
+  - GitHub Actions Secrets on `mohcly/retail-manager`
+  - Target Release Repository: `stadium94/app-releases` (branch: `unify-stores`)
+- Root cause:
+  1. `mohcly/retail-manager` was missing all 5 required CI/CD Action secrets (`TAURI_UPDATER_PRIVATE_KEY`, `TAURI_UPDATER_PRIVATE_KEY_PASSWORD`, `STADIUM94_RELEASE_TOKEN`, `STIHL_SUPABASE_SERVICE_KEY`, `NIAMANA_SUPABASE_SERVICE_KEY`).
+  2. The `mohcly/retail-manager` repository is private. GitHub Actions enforces a strict 2,000 minute/month quota for private repos on free plans (where Windows runners burn minutes at a 2x rate). Once private minutes are depleted or if spending limit is $0, GitHub rejects job scheduling before runners are provisioned (`startup_failure`). Public repositories (such as `stadium91/retail-manager` and `stadium92/retail-manager` previously) receive unlimited free runner minutes.
+  3. A deleted workflow reference (`BuildFailed` ID `245085999` from March 2026) still triggered on push events, causing an additional `startup_failure`.
+- Fix applied:
+  1. Injected all 5 required Action secrets into `mohcly/retail-manager` using local keypairs (`~/.tauri-retail-manager-updater.key`), active `stadium94` PAT, and Supabase service role keys.
+  2. Elevated GitHub Actions workflow permissions to `read and write` (`default_workflow_permissions: write`).
+  3. Made test commit `0e566d3` on branch `unify-stores` and pushed to `mohcly-origin`.
+  4. Confirmed why public repository visibility was historically maintained for `stadium92` (to leverage unlimited Actions compute for heavy 23-minute Windows Tauri builds).
+- Verification: Validated secret presence via `gh secret list --repo mohcly/retail-manager`. Inspected run history and confirmed job triggers and API responses.
+- Status: PARTIAL
+- Tags: ci-cd, github-actions, tauri, windows-build, stadium94, secrets
