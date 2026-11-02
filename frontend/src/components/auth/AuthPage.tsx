@@ -19,6 +19,7 @@ import { cn } from '@/lib/utils';
 import { MobileAuthPage } from '@/components/mobile/Auth/MobileAuthPage';
 import { predictTenantByEmail, lookupTenantByEmail, REGISTERED_TENANTS, type TenantConfig } from '@/lib/tenants';
 import { setActiveTenant } from '@/lib/supabase';
+import { LocalDatabase } from '@/services/LocalDatabase';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
