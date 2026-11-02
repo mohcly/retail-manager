@@ -1,4 +1,5 @@
 # Prepare Sidecar Payload and Wrapper Script (Architecture-Specific)
+# Trigger CI build pipeline for unify-stores -> stadium94/app-releases
 $ErrorActionPreference = "Stop"
 
 $PROJECT_ROOT = Resolve-Path "$PSScriptRoot\.."
